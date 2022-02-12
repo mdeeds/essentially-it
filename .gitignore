@@ -1,0 +1,3 @@
+src/*.js.map
+src/*.js
+dist/*.js.map
