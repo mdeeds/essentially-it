@@ -31,12 +31,14 @@ const THREE = __importStar(__webpack_require__(578));
 const VRButton_js_1 = __webpack_require__(652);
 const hand_1 = __webpack_require__(673);
 const paintCylinder_1 = __webpack_require__(183);
+const particleSystem_1 = __webpack_require__(564);
 class Game {
     audioCtx;
     scene;
     camera;
     renderer;
     whiteBoard;
+    particles;
     hands = [];
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
@@ -48,17 +50,21 @@ class Game {
         this.camera.position.set(0, 1.7, 0);
         this.camera.lookAt(0, 1.7, -2);
         this.scene.add(this.camera);
-        const sphere = new THREE.Mesh(new THREE.SphereBufferGeometry(0.1), new THREE.MeshBasicMaterial({ color: 'white' }));
-        sphere.position.set(0, 1.7, -5);
-        this.scene.add(sphere);
+        this.particles = new particleSystem_1.ParticleSystem();
+        this.scene.add(this.particles);
+        // const sphere = new THREE.Mesh(
+        //   new THREE.SphereBufferGeometry(0.1),
+        //   new THREE.MeshBasicMaterial({ color: 'white' }));
+        // sphere.position.set(0, 1.7, -5);
+        // this.scene.add(sphere);
         this.whiteBoard = new paintCylinder_1.PaintCylinder();
         this.whiteBoard.position.set(0, 1.7, 0);
         this.scene.add(this.whiteBoard);
         this.setUpTouchHandlers();
         this.setUpRenderer();
         this.setUpAnimation();
-        this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.whiteBoard));
-        this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.whiteBoard));
+        this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.whiteBoard, this.particles));
+        this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.whiteBoard, this.particles));
     }
     getRay(ev) {
         const x = (ev.clientX / 1280) * 2 - 1;
@@ -93,11 +99,17 @@ class Game {
             .sub(ray.origin).normalize();
         return ray;
     }
+    particleColor = new THREE.Color('#abf');
+    clock = new THREE.Clock(/*autostart=*/ true);
     animationLoop() {
+        let deltaS = this.clock.getDelta();
+        deltaS = Math.max(0.1, deltaS);
         this.renderer.render(this.scene, this.camera);
         for (const h of this.hands) {
             h.tick();
         }
+        this.particles.AddParticle(new THREE.Vector3((Math.random() - 0.5) * 5, 1.0, (Math.random() - 0.5) * 5), new THREE.Vector3(0.01 * (Math.random() - 0.5), 0.03 * (Math.random()), 0.01 * (Math.random() - 0.5)), this.particleColor);
+        this.particles.step(deltaS);
     }
     setUpAnimation() {
         this.renderer.setAnimationLoop((function (self) {
@@ -146,14 +158,16 @@ class Hand {
     side;
     scene;
     paint;
+    particles;
     gamepad;
     grip;
     line;
     penDown;
-    constructor(side, scene, renderer, paint) {
+    constructor(side, scene, renderer, paint, particles) {
         this.side = side;
         this.scene = scene;
         this.paint = paint;
+        this.particles = particles;
         const index = (side == 'left') ? 0 : 1;
         this.grip = renderer.xr.getControllerGrip(index);
         // this.grip = new THREE.Group();
@@ -185,8 +199,17 @@ class Hand {
         this.paint.paintUp(this.ray);
         this.penDown = false;
     }
+    v = new THREE.Vector3();
+    p = new THREE.Vector3();
+    bright = new THREE.Color('#f0f');
     tick() {
+        this.grip.getWorldPosition(this.p);
+        this.v.copy(this.minusZ);
+        this.grip.getWorldDirection(this.v);
         this.ray.set(this.grip.position, this.minusZ);
+        this.v.copy(this.ray.direction);
+        this.v.multiplyScalar(0.03);
+        this.particles.AddParticle(this.ray.origin, this.v, this.bright);
         if (this.penDown) {
             this.paint.paintMove(this.ray);
         }
@@ -352,6 +375,164 @@ void main() {
 }
 exports.PaintCylinder = PaintCylinder;
 //# sourceMappingURL=paintCylinder.js.map
+
+/***/ }),
+
+/***/ 564:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ParticleSystem = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class Particle {
+    position;
+    velocity;
+    color;
+    currentSize;
+    rotation;
+    lifeS;
+    constructor(position, velocity, color, currentSize, rotation, lifeS) {
+        this.position = position;
+        this.velocity = velocity;
+        this.color = color;
+        this.currentSize = currentSize;
+        this.rotation = rotation;
+        this.lifeS = lifeS;
+    }
+}
+class ParticleSystem extends THREE.Object3D {
+    static kVS = `
+// uniform float pointMultiplier;
+attribute float size;
+varying vec4 vColor;
+void main() {
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * mvPosition;
+  // gl_PointSize = size * pointMultiplier / gl_Position.w;
+  gl_PointSize = 800.0 * size / gl_Position.w;
+  
+  vColor = color;
+}`;
+    static kFS = `
+// uniform sampler2D diffuseTexture;
+varying vec4 vColor;
+void main() {
+  vec2 coords = gl_PointCoord;
+  // gl_FragColor = texture2D(diffuseTexture, coords) * vColor;
+  float intensity = 2.0 * (0.5 - length(gl_PointCoord - 0.5));
+  gl_FragColor = vColor * intensity;
+}`;
+    material;
+    particles = [];
+    geometry = new THREE.BufferGeometry();
+    points;
+    constructor() {
+        super();
+        const uniforms = {
+            diffuseTexture: {
+                value: new THREE.TextureLoader().load('./img/dot.png')
+            },
+            pointMultiplier: {
+                value: window.innerHeight / (2.0 * Math.tan(0.5 * 60.0 * Math.PI / 180.0))
+            }
+        };
+        console.log(`Multiplier: ${uniforms.pointMultiplier.value}`);
+        this.material = new THREE.ShaderMaterial({
+            uniforms: uniforms,
+            vertexShader: ParticleSystem.kVS,
+            fragmentShader: ParticleSystem.kFS,
+            blending: THREE.AdditiveBlending,
+            depthTest: true,
+            depthWrite: false,
+            transparent: true,
+            vertexColors: true
+        });
+        this.geometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
+        this.geometry.setAttribute('size', new THREE.Float32BufferAttribute([], 1));
+        this.points = new THREE.Points(this.geometry, this.material);
+        this.add(this.points);
+        this.geometry.boundingSphere =
+            new THREE.Sphere(new THREE.Vector3(), 50);
+        this.UpdateGeometry();
+    }
+    AddParticle(position, velocity, color) {
+        if (!position.manhattanLength() || !velocity.manhattanLength()) {
+            return;
+        }
+        const p = new THREE.Vector3();
+        p.copy(position);
+        const v = new THREE.Vector3();
+        v.copy(velocity);
+        const colorVector = new THREE.Vector4(color.r, color.g, color.b, 0.5);
+        this.particles.push(new Particle(p, v, colorVector, Math.random() * 0.05, Math.random() * 2 * Math.PI, 10));
+    }
+    UpdateGeometry() {
+        const positions = [];
+        const sizes = [];
+        const colors = [];
+        for (let p of this.particles) {
+            positions.push(p.position.x, p.position.y, p.position.z);
+            colors.push(p.color.x, p.color.y, p.color.z, p.color.w);
+            sizes.push(p.currentSize);
+        }
+        this.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        this.geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+        this.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+        this.geometry.attributes.position.needsUpdate = true;
+        this.geometry.attributes.size.needsUpdate = true;
+        this.geometry.attributes.color.needsUpdate = true;
+    }
+    v = new THREE.Vector3();
+    UpdateParticles(deltaS) {
+        for (const p of this.particles) {
+            this.v.copy(p.velocity);
+            this.v.multiplyScalar(deltaS);
+            p.position.add(this.v);
+            p.lifeS -= deltaS;
+        }
+        let numDeleted = 0;
+        for (let i = 0; i < this.particles.length; ++i) {
+            if (this.particles[i].lifeS < 0) {
+                numDeleted++;
+            }
+            else {
+                this.particles[i - numDeleted] = this.particles[i];
+            }
+        }
+        this.particles.splice(this.particles.length - numDeleted);
+        // this.particles.sort((a, b) => {
+        //   const d1 = camera.position.distanceTo(a.position);
+        //   const d2 = camera.position.distanceTo(b.position);
+        //   return d2 - d1;
+        // });
+    }
+    step(deltaS) {
+        this.UpdateParticles(deltaS);
+        this.UpdateGeometry();
+    }
+}
+exports.ParticleSystem = ParticleSystem;
+//# sourceMappingURL=particleSystem.js.map
 
 /***/ }),
 

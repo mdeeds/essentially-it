@@ -2,12 +2,14 @@ import * as THREE from "three";
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import { Hand } from "./hand";
 import { PaintCylinder } from "./paintCylinder";
+import { ParticleSystem } from "./particleSystem";
 
 export class Game {
   private scene: THREE.Scene;
   private camera: THREE.Camera;
   private renderer: THREE.WebGLRenderer;
   private whiteBoard: PaintCylinder;
+  private particles: ParticleSystem;
 
   private hands: Hand[] = [];
 
@@ -21,11 +23,14 @@ export class Game {
     this.camera.lookAt(0, 1.7, -2);
     this.scene.add(this.camera);
 
-    const sphere = new THREE.Mesh(
-      new THREE.SphereBufferGeometry(0.1),
-      new THREE.MeshBasicMaterial({ color: 'white' }));
-    sphere.position.set(0, 1.7, -5);
-    this.scene.add(sphere);
+    this.particles = new ParticleSystem();
+    this.scene.add(this.particles);
+
+    // const sphere = new THREE.Mesh(
+    //   new THREE.SphereBufferGeometry(0.1),
+    //   new THREE.MeshBasicMaterial({ color: 'white' }));
+    // sphere.position.set(0, 1.7, -5);
+    // this.scene.add(sphere);
     this.whiteBoard = new PaintCylinder();
     this.whiteBoard.position.set(0, 1.7, 0);
     this.scene.add(this.whiteBoard);
@@ -34,9 +39,9 @@ export class Game {
     this.setUpRenderer();
     this.setUpAnimation();
     this.hands.push(
-      new Hand('left', this.scene, this.renderer, this.whiteBoard))
+      new Hand('left', this.scene, this.renderer, this.whiteBoard, this.particles))
     this.hands.push(
-      new Hand('right', this.scene, this.renderer, this.whiteBoard))
+      new Hand('right', this.scene, this.renderer, this.whiteBoard, this.particles))
   }
 
   private getRay(ev: Touch | MouseEvent): THREE.Ray {
@@ -81,11 +86,20 @@ export class Game {
     return ray;
   }
 
+  private particleColor = new THREE.Color('#abf');
+  private clock = new THREE.Clock(/*autostart=*/true);
   private animationLoop() {
+    let deltaS = this.clock.getDelta();
+    deltaS = Math.max(0.1, deltaS);
     this.renderer.render(this.scene, this.camera);
     for (const h of this.hands) {
       h.tick();
     }
+    this.particles.AddParticle(
+      new THREE.Vector3((Math.random() - 0.5) * 5, 1.0, (Math.random() - 0.5) * 5),
+      new THREE.Vector3(0.01 * (Math.random() - 0.5), 0.03 * (Math.random()), 0.01 * (Math.random() - 0.5)),
+      this.particleColor);
+    this.particles.step(deltaS);
   }
 
   private setUpAnimation() {

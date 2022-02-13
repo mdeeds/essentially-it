@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { Object3D } from "three";
 import { PaintCylinder } from "./paintCylinder";
+import { ParticleSystem } from "./particleSystem";
 
 export type Side = 'left' | 'right';
 
@@ -11,8 +12,8 @@ export class Hand {
   private penDown: boolean;
 
   constructor(readonly side: Side, private scene: THREE.Object3D,
-    renderer: THREE.WebGLRenderer,
-    private paint: PaintCylinder) {
+    renderer: THREE.WebGLRenderer, private paint: PaintCylinder,
+    private particles: ParticleSystem) {
     const index = (side == 'left') ? 0 : 1;
     this.grip = renderer.xr.getControllerGrip(index);
     // this.grip = new THREE.Group();
@@ -52,8 +53,19 @@ export class Hand {
     this.penDown = false;
   }
 
+  private v = new THREE.Vector3();
+  private p = new THREE.Vector3();
+  private bright = new THREE.Color('#f0f');
   tick() {
+    this.grip.getWorldPosition(this.p);
+    this.v.copy(this.minusZ);
+    this.grip.getWorldDirection(this.v);
     this.ray.set(this.grip.position, this.minusZ);
+
+    this.v.copy(this.ray.direction);
+    this.v.multiplyScalar(0.03);
+    this.particles.AddParticle(this.ray.origin, this.v, this.bright);
+
     if (this.penDown) {
       this.paint.paintMove(this.ray);
     }
