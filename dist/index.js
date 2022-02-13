@@ -190,7 +190,7 @@ class Hand {
         this.scene.add(this.grip);
     }
     ray = new THREE.Ray();
-    minusZ = new THREE.Vector3(0, 0, -1);
+    minusZ = new THREE.Vector3(0, 0, 1);
     handleSelectStart(ev) {
         this.paint.paintDown(this.ray);
         this.penDown = true;

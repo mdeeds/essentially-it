@@ -41,7 +41,7 @@ export class Hand {
   }
 
   private ray = new THREE.Ray();
-  private minusZ = new THREE.Vector3(0, 0, -1);
+  private minusZ = new THREE.Vector3(0, 0, 1);
 
   private handleSelectStart(ev: any) {
     this.paint.paintDown(this.ray);
