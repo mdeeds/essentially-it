@@ -113,6 +113,6 @@ export class Game {
     this.renderer.setSize(1280, 720);
     document.body.appendChild(this.renderer.domElement);
     document.body.appendChild(VRButton.createButton(this.renderer));
-    this.renderer.xr.enabled = true
+    this.renderer.xr.enabled = true;
   }
 }

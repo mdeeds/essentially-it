@@ -55,19 +55,22 @@ export class Hand {
 
   private v = new THREE.Vector3();
   private p = new THREE.Vector3();
-  private bright = new THREE.Color('#f0f');
+  private penUpColor = new THREE.Color('#f0f');
+  private penDownColor = new THREE.Color('#ff0');
   tick() {
     this.grip.getWorldPosition(this.p);
     this.v.copy(this.minusZ);
     this.grip.getWorldDirection(this.v);
-    this.ray.set(this.grip.position, this.minusZ);
+    this.ray.set(this.grip.position, this.v);
 
     this.v.copy(this.ray.direction);
     this.v.multiplyScalar(0.03);
-    this.particles.AddParticle(this.ray.origin, this.v, this.bright);
 
     if (this.penDown) {
+      this.particles.AddParticle(this.ray.origin, this.v, this.penDownColor);
       this.paint.paintMove(this.ray);
+    } else {
+      this.particles.AddParticle(this.ray.origin, this.v, this.penUpColor);
     }
   }
 }
