@@ -93,15 +93,19 @@ export class PaintCylinder extends THREE.Object3D {
     this.canvas.width = 4096;
     this.canvas.height = 1024;
     this.ctx = this.canvas.getContext('2d');
+
+    this.ctx.fillStyle = '#99f2';
+    for (let x = 0; x < this.canvas.width; x += 64) {
+      for (let y = 0; y < this.canvas.height; y += 64) {
+        this.ctx.fillRect(x, y - 3, 3, 7);
+        this.ctx.fillRect(x - 3, y, 7, 3);
+      }
+    }
     this.ctx.fillStyle = '#fff';
     this.ctx.strokeStyle = '#fff';
     this.ctx.lineCap = 'round';
     this.ctx.lineWidth = 10;
-    for (let i = 0; i < 100; ++i) {
-      this.ctx.fillText('Hello, World!',
-        Math.random() * this.canvas.width,
-        Math.random() * this.canvas.height);
-    }
+
     this.canvasTexture = new THREE.CanvasTexture(this.canvas);
     this.canvasTexture.needsUpdate = true;
 

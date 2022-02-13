@@ -29,12 +29,15 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Game = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const VRButton_js_1 = __webpack_require__(652);
+const hand_1 = __webpack_require__(673);
 const paintCylinder_1 = __webpack_require__(183);
 class Game {
     audioCtx;
     scene;
     camera;
     renderer;
+    whiteBoard;
+    hands = [];
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
         this.scene = new THREE.Scene();
@@ -43,19 +46,58 @@ class Game {
         /*fov=*/ 75, /*aspec=*/ 1280 / 720, /*near=*/ 0.1, 
         /*far=*/ 100);
         this.camera.position.set(0, 1.7, 0);
-        this.camera.lookAt(0, 1.6, -2);
+        this.camera.lookAt(0, 1.7, -2);
         this.scene.add(this.camera);
         const sphere = new THREE.Mesh(new THREE.SphereBufferGeometry(0.1), new THREE.MeshBasicMaterial({ color: 'white' }));
         sphere.position.set(0, 1.7, -5);
         this.scene.add(sphere);
-        const paint = new paintCylinder_1.PaintCylinder();
-        paint.position.set(0, 1.7, 0);
-        this.scene.add(paint);
+        this.whiteBoard = new paintCylinder_1.PaintCylinder();
+        this.whiteBoard.position.set(0, 1.7, 0);
+        this.scene.add(this.whiteBoard);
+        this.setUpTouchHandlers();
         this.setUpRenderer();
         this.setUpAnimation();
+        this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.whiteBoard));
+        this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.whiteBoard));
+    }
+    getRay(ev) {
+        const x = (ev.clientX / 1280) * 2 - 1;
+        const y = -(ev.clientY / 720) * 2 + 1;
+        const ray = this.rayFromCamera(x, y);
+        return ray;
+    }
+    setUpTouchHandlers() {
+        document.body.addEventListener('touchstart', (ev) => {
+            if (ev.touches.length === 1) {
+                const ray = this.getRay(ev.touches[0]);
+                this.whiteBoard.paintDown(ray);
+            }
+        }, false);
+        document.body.addEventListener('touchmove', (ev) => {
+            if (ev.touches.length === 1) {
+                const ray = this.getRay(ev.touches[0]);
+                this.whiteBoard.paintMove(ray);
+            }
+        }, false);
+        document.body.addEventListener('touchend', (ev) => {
+            if (ev.touches.length === 1) {
+                const ray = this.getRay(ev.touches[0]);
+                this.whiteBoard.paintUp(ray);
+            }
+        }, false);
+    }
+    rayFromCamera(x, y) {
+        const ray = new THREE.Ray();
+        ray.origin.setFromMatrixPosition(this.camera.matrixWorld);
+        ray.direction.set(x, y, 0.5).unproject(this.camera)
+            .sub(ray.origin).normalize();
+        return ray;
     }
     animationLoop() {
         this.renderer.render(this.scene, this.camera);
+        for (const h of this.hands) {
+            h.tick();
+        }
     }
     setUpAnimation() {
         this.renderer.setAnimationLoop((function (self) {
@@ -71,6 +113,87 @@ class Game {
 }
 exports.Game = Game;
 //# sourceMappingURL=game.js.map
+
+/***/ }),
+
+/***/ 673:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Hand = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class Hand {
+    side;
+    scene;
+    paint;
+    gamepad;
+    grip;
+    line;
+    penDown;
+    constructor(side, scene, renderer, paint) {
+        this.side = side;
+        this.scene = scene;
+        this.paint = paint;
+        const index = (side == 'left') ? 0 : 1;
+        this.grip = renderer.xr.getControllerGrip(index);
+        // this.grip = new THREE.Group();
+        this.grip.position.set((index - 0.5) * 0.1, 0.1, -0.1);
+        console.log(`Grip name: ${this.grip.name}`);
+        const pads = window.navigator.getGamepads();
+        if (pads.length > index) {
+            this.gamepad = pads[index];
+        }
+        this.setUpMeshes();
+        this.grip.addEventListener('selectstart', (ev) => this.handleSelectStart(ev));
+        this.grip.addEventListener('selectend', (ev) => this.handleSelectEnd(ev));
+    }
+    setUpMeshes() {
+        const lineMaterial = new THREE.LineBasicMaterial({ color: '#def' });
+        const lineGeometry = new THREE.BufferGeometry()
+            .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0, -10)]);
+        this.line = new THREE.Line(lineGeometry, lineMaterial);
+        this.grip.add(this.line);
+        this.scene.add(this.grip);
+    }
+    ray = new THREE.Ray();
+    minusZ = new THREE.Vector3(0, 0, -1);
+    handleSelectStart(ev) {
+        this.paint.paintDown(this.ray);
+        this.penDown = true;
+    }
+    handleSelectEnd(ev) {
+        this.paint.paintUp(this.ray);
+        this.penDown = false;
+    }
+    tick() {
+        this.ray.set(this.grip.position, this.minusZ);
+        if (this.penDown) {
+            this.paint.paintMove(this.ray);
+        }
+    }
+}
+exports.Hand = Hand;
+//# sourceMappingURL=hand.js.map
 
 /***/ }),
 
@@ -100,38 +223,102 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PaintCylinder = void 0;
 const THREE = __importStar(__webpack_require__(578));
+class Polar {
+    theta;
+    rho;
+    constructor(theta, rho) {
+        this.theta = theta;
+        this.rho = rho;
+    }
+}
 class PaintCylinder extends THREE.Object3D {
     mesh;
     canvasTexture;
+    canvas;
+    ctx;
+    radius;
     // private panelMaterial: THREE.MeshStandardMaterial = null;
     constructor() {
         super();
         // this.panelMaterial = new THREE.MeshStandardMaterial(
         //   { color: '#8f8', emissive: 1.0, side: THREE.BackSide });
-        const radius = 1.5;
-        const circumfrence = 2 * Math.PI * radius;
+        this.radius = 1.5;
+        const circumfrence = 2 * Math.PI * this.radius;
         const height = circumfrence / 4;
         this.mesh = new THREE.Mesh(new THREE.CylinderBufferGeometry(
-        /*top=*/ radius, /*bottom=*/ radius, 
+        /*top=*/ this.radius, /*bottom=*/ this.radius, 
         /*height=*/ height, 
         /*radial=*/ 32, /*vertical=*/ 8, 
         /*open=*/ true), this.getMaterial());
         this.mesh.position.set(0, 0, 0);
         this.add(this.mesh);
     }
-    getMaterial0() {
-        return new THREE.MeshBasicMaterial({ color: '#8f8', side: THREE.DoubleSide });
+    o = new THREE.Vector3();
+    p = new THREE.Vector3();
+    intersectRayOnCylinder(ray) {
+        // (d, y) + tl = (r, h)
+        // d + tl_r = r
+        // t = (r - d) / l_r
+        this.getWorldPosition(this.o);
+        this.o.multiplyScalar(-1);
+        this.o.add(ray.origin);
+        const d = Math.sqrt(this.o.x * this.o.x + this.o.z * this.o.z);
+        const l_r = Math.sqrt(ray.direction.x * ray.direction.x +
+            ray.direction.z * ray.direction.z);
+        const t = (this.radius - d) / l_r;
+        this.p.copy(ray.direction);
+        this.p.multiplyScalar(t);
+        const theta = Math.atan2(this.p.x, -this.p.z);
+        const rho = Math.atan2(this.p.y, this.radius);
+        return new Polar(theta, rho);
+    }
+    getXY(ray) {
+        const polar = this.intersectRayOnCylinder(ray);
+        const x = this.canvas.width * (polar.theta / 2 / Math.PI + 0.5);
+        const y = this.canvas.height * (-polar.rho * 2 / Math.PI + 0.5);
+        return [x, y];
+    }
+    lastX = 0;
+    lastY = 0;
+    paintDown(ray) {
+        const [x, y] = this.getXY(ray);
+        this.lastX = x;
+        this.lastY = y;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 5, -Math.PI, Math.PI);
+        this.ctx.fill();
+        this.canvasTexture.needsUpdate = true;
+    }
+    paintMove(ray) {
+        const [x, y] = this.getXY(ray);
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.lastX, this.lastY);
+        this.ctx.lineTo(x, y);
+        this.ctx.stroke();
+        this.canvasTexture.needsUpdate = true;
+        this.lastX = x;
+        this.lastY = y;
+        this.canvasTexture.needsUpdate = true;
+    }
+    paintUp(ray) {
     }
     getMaterial() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 4096;
-        canvas.height = 1024;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#fff';
-        for (let i = 0; i < 100; ++i) {
-            ctx.fillText('Hello, World!', Math.random() * canvas.width, Math.random() * canvas.height);
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = 4096;
+        this.canvas.height = 1024;
+        this.ctx = this.canvas.getContext('2d');
+        this.ctx.fillStyle = '#99f2';
+        for (let x = 0; x < this.canvas.width; x += 64) {
+            for (let y = 0; y < this.canvas.height; y += 64) {
+                this.ctx.fillRect(x, y - 3, 3, 7);
+                this.ctx.fillRect(x - 3, y, 7, 3);
+            }
         }
-        this.canvasTexture = new THREE.CanvasTexture(canvas);
+        this.ctx.fillStyle = '#fff';
+        this.ctx.strokeStyle = '#fff';
+        this.ctx.lineCap = 'round';
+        this.ctx.lineWidth = 10;
+        this.canvasTexture = new THREE.CanvasTexture(this.canvas);
         this.canvasTexture.needsUpdate = true;
         const material = new THREE.ShaderMaterial({
             side: THREE.BackSide,
@@ -145,7 +332,7 @@ class PaintCylinder extends THREE.Object3D {
 varying vec2 v_uv;
 void main() {
   float r = length(position.xz);
-  float u = (atan(position.z, position.x) / 3.14 / 2.0) + 0.5;
+  float u = (atan(position.x, -position.z) / 3.14 / 2.0) + 0.5;
   float v = (atan(position.y, r) / 3.14 * 2.0) + 0.5;
   gl_Position = projectionMatrix * modelViewMatrix * 
     vec4(position, 1.0);
