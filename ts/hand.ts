@@ -33,7 +33,7 @@ export class Hand {
   private setUpMeshes() {
     const lineMaterial = new THREE.LineBasicMaterial({ color: '#def' });
     const lineGeometry = new THREE.BufferGeometry()
-      .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0, -10)]);
+      .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, -10, 0)]);
     this.line = new THREE.Line(lineGeometry, lineMaterial);
     this.grip.add(this.line);
 
@@ -41,7 +41,7 @@ export class Hand {
   }
 
   private ray = new THREE.Ray();
-  private minusZ = new THREE.Vector3(0, 1, 0);
+  private minusZ = new THREE.Vector3(0, -1, 0);
 
   private handleSelectStart(ev: any) {
     this.paint.paintDown(this.ray);
@@ -55,7 +55,7 @@ export class Hand {
 
   private v = new THREE.Vector3();
   private p = new THREE.Vector3();
-  private penUpColor = new THREE.Color('#00f');
+  private penUpColor = new THREE.Color('#0ff');
   private penDownColor = new THREE.Color('#ff0');
   tick() {
     this.grip.getWorldPosition(this.p);

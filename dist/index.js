@@ -184,13 +184,13 @@ class Hand {
     setUpMeshes() {
         const lineMaterial = new THREE.LineBasicMaterial({ color: '#def' });
         const lineGeometry = new THREE.BufferGeometry()
-            .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0, -10)]);
+            .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, -10, 0)]);
         this.line = new THREE.Line(lineGeometry, lineMaterial);
         this.grip.add(this.line);
         this.scene.add(this.grip);
     }
     ray = new THREE.Ray();
-    minusZ = new THREE.Vector3(0, 1, 0);
+    minusZ = new THREE.Vector3(0, -1, 0);
     handleSelectStart(ev) {
         this.paint.paintDown(this.ray);
         this.penDown = true;
@@ -201,7 +201,7 @@ class Hand {
     }
     v = new THREE.Vector3();
     p = new THREE.Vector3();
-    penUpColor = new THREE.Color('#00f');
+    penUpColor = new THREE.Color('#0ff');
     penDownColor = new THREE.Color('#ff0');
     tick() {
         this.grip.getWorldPosition(this.p);
