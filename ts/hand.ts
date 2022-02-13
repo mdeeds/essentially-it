@@ -55,11 +55,14 @@ export class Hand {
 
   private v = new THREE.Vector3();
   private p = new THREE.Vector3();
-  private penUpColor = new THREE.Color('#f00');
-  private penDownColor = new THREE.Color('#0f0');
+  private penUpColor = new THREE.Color('#0f0');
+  private penDownColor = new THREE.Color('#0ff');
   tick() {
     this.grip.getWorldPosition(this.p);
     this.v.copy(this.minusZ);
+    this.grip.updateMatrixWorld();
+    this.v.applyMatrix4(this.grip.matrixWorld);
+    this.v.sub(this.p);
     this.ray.set(this.grip.position, this.grip.getWorldDirection(this.v));
 
     this.v.copy(this.ray.direction);
