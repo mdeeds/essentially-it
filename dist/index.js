@@ -190,7 +190,7 @@ class Hand {
         this.scene.add(this.grip);
     }
     ray = new THREE.Ray();
-    minusZ = new THREE.Vector3(0, 0, 1);
+    minusZ = new THREE.Vector3(0, 0, -1);
     handleSelectStart(ev) {
         this.paint.paintDown(this.ray);
         this.penDown = true;
@@ -201,8 +201,8 @@ class Hand {
     }
     v = new THREE.Vector3();
     p = new THREE.Vector3();
-    penUpColor = new THREE.Color('#f0f');
-    penDownColor = new THREE.Color('#0ff');
+    penUpColor = new THREE.Color('#f00');
+    penDownColor = new THREE.Color('#00f');
     tick() {
         this.grip.getWorldPosition(this.p);
         this.v.copy(this.minusZ);

@@ -41,7 +41,7 @@ export class Hand {
   }
 
   private ray = new THREE.Ray();
-  private minusZ = new THREE.Vector3(0, 0, 1);
+  private minusZ = new THREE.Vector3(0, 0, -1);
 
   private handleSelectStart(ev: any) {
     this.paint.paintDown(this.ray);
@@ -55,8 +55,8 @@ export class Hand {
 
   private v = new THREE.Vector3();
   private p = new THREE.Vector3();
-  private penUpColor = new THREE.Color('#f0f');
-  private penDownColor = new THREE.Color('#0ff');
+  private penUpColor = new THREE.Color('#f00');
+  private penDownColor = new THREE.Color('#00f');
   tick() {
     this.grip.getWorldPosition(this.p);
     this.v.copy(this.minusZ);
