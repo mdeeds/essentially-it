@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { Ray } from "three";
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import { Hand } from "./hand";
 import { PaintCylinder } from "./paintCylinder";
 
 export class Game {
@@ -8,6 +8,9 @@ export class Game {
   private camera: THREE.Camera;
   private renderer: THREE.WebGLRenderer;
   private whiteBoard: PaintCylinder;
+
+  private hands: Hand[] = [];
+
   constructor(private audioCtx: AudioContext) {
     this.scene = new THREE.Scene()
     this.renderer = new THREE.WebGLRenderer();
@@ -30,6 +33,10 @@ export class Game {
     this.setUpTouchHandlers();
     this.setUpRenderer();
     this.setUpAnimation();
+    this.hands.push(
+      new Hand('left', this.scene, this.renderer, this.whiteBoard))
+    this.hands.push(
+      new Hand('right', this.scene, this.renderer, this.whiteBoard))
   }
 
   private getRay(ev: Touch | MouseEvent): THREE.Ray {
@@ -76,6 +83,9 @@ export class Game {
 
   private animationLoop() {
     this.renderer.render(this.scene, this.camera);
+    for (const h of this.hands) {
+      h.tick();
+    }
   }
 
   private setUpAnimation() {
