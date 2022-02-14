@@ -16,7 +16,11 @@ export class Game {
 
   constructor(private audioCtx: AudioContext) {
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.Fog('#ddd', /*near=*/10, /*far=*/20);
+
+    const fogSphere = new THREE.Mesh(
+      new THREE.IcosahedronBufferGeometry(20, 3),
+      new THREE.MeshBasicMaterial({ color: '#ddd', side: THREE.BackSide }));
+    this.scene.add(fogSphere);
 
     this.renderer = new THREE.WebGLRenderer();
     this.camera = new THREE.PerspectiveCamera(
