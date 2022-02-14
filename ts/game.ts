@@ -10,11 +10,14 @@ export class Game {
   private renderer: THREE.WebGLRenderer;
   private whiteBoard: PaintCylinder;
   private particles: ParticleSystem;
+  private keysDown = new Set<string>();
 
   private hands: Hand[] = [];
 
   constructor(private audioCtx: AudioContext) {
-    this.scene = new THREE.Scene()
+    this.scene = new THREE.Scene();
+    this.scene.fog = new THREE.Fog('#ddd', /*near=*/10, /*far=*/20);
+
     this.renderer = new THREE.WebGLRenderer();
     this.camera = new THREE.PerspectiveCamera(
       /*fov=*/75, /*aspec=*/1280 / 720, /*near=*/0.1,
@@ -42,6 +45,7 @@ export class Game {
       new Hand('left', this.scene, this.renderer, this.whiteBoard, this.particles))
     this.hands.push(
       new Hand('right', this.scene, this.renderer, this.whiteBoard, this.particles))
+    this.setUpKeyHandler();
   }
 
   private getRay(ev: Touch | MouseEvent): THREE.Ray {
@@ -92,6 +96,7 @@ export class Game {
     let deltaS = this.clock.getDelta();
     deltaS = Math.max(0.1, deltaS);
     this.renderer.render(this.scene, this.camera);
+    this.handleKeys();
     for (const h of this.hands) {
       h.tick();
     }
@@ -114,5 +119,49 @@ export class Game {
     document.body.appendChild(this.renderer.domElement);
     document.body.appendChild(VRButton.createButton(this.renderer));
     this.renderer.xr.enabled = true;
+  }
+
+  private p = new THREE.Vector3();
+  private f = new THREE.Vector3();
+  private r = new THREE.Vector3();
+  private handleKeys() {
+    if (this.keysDown.size == 0) {
+      return;
+    }
+    this.p.set(0, 0, 0);
+    this.p.applyMatrix4(this.camera.matrix);
+    this.f.set(0, 0, 0.01);
+    this.f.applyMatrix4(this.camera.matrix);
+    this.f.sub(this.p);
+    this.r.set(0.01, 0, 0);
+    this.r.applyMatrix4(this.camera.matrix);
+    this.r.sub(this.p);
+    if (this.keysDown.has('KeyQ')) {
+      this.camera.rotateY(0.03);
+    }
+    if (this.keysDown.has('KeyE')) {
+      this.camera.rotateY(-0.03);
+    }
+    if (this.keysDown.has('KeyW')) {
+      this.camera.position.sub(this.f);
+    }
+    if (this.keysDown.has('KeyS')) {
+      this.camera.position.add(this.f);
+    }
+    if (this.keysDown.has('KeyA')) {
+      this.camera.position.sub(this.r);
+    }
+    if (this.keysDown.has('KeyD')) {
+      this.camera.position.add(this.r);
+    }
+  }
+
+  private setUpKeyHandler() {
+    document.body.addEventListener('keydown', (ev: KeyboardEvent) => {
+      this.keysDown.add(ev.code);
+    });
+    document.body.addEventListener('keyup', (ev: KeyboardEvent) => {
+      this.keysDown.delete(ev.code);
+    });
   }
 }

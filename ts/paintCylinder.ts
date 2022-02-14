@@ -13,9 +13,6 @@ export class PaintCylinder extends THREE.Object3D {
   // private panelMaterial: THREE.MeshStandardMaterial = null;
   constructor() {
     super();
-    // this.panelMaterial = new THREE.MeshStandardMaterial(
-    //   { color: '#8f8', emissive: 1.0, side: THREE.BackSide });
-
     this.radius = 1.5;
     const circumfrence = 2 * Math.PI * this.radius;
     const height = circumfrence / 4;
@@ -58,6 +55,25 @@ export class PaintCylinder extends THREE.Object3D {
     const x = this.canvas.width * (polar.theta / 2 / Math.PI + 0.5);
     const y = this.canvas.height * (-polar.rho * 2 / Math.PI + 0.5);
     return [x, y];
+  }
+
+  private zoom(left1: THREE.Ray, right1: THREE.Ray,
+    left2: THREE.Ray, right2: THREE.Ray) {
+    const l1 = this.getXY(left1);
+    const r1 = this.getXY(right1);
+    const l2 = this.getXY(left2);
+    const r2 = this.getXY(right2);
+
+    const d1 = [r1[0] - l1[0], r1[1], l1[1]];
+    const d2 = [r2[0] - l2[0], r2[1], l2[1]];
+
+    const len1 = Math.sqrt(d1[0] * d1[0] + d1[1] * d1[1]);
+    const len2 = Math.sqrt(d2[0] * d2[0] + d2[1] * d2[1]);
+
+    const zoomChange = len2 / len1;
+    const center1 = [(l1[0] + r1[0]) / 2, (l1[1] + r1[1]) / 2];
+    const center2 = [(l2[0] + r2[0]) / 2, (l2[1] + r2[1]) / 2];
+
   }
 
   private lastX = 0;
@@ -116,13 +132,24 @@ export class PaintCylinder extends THREE.Object3D {
         panelTexture: {
           value: this.canvasTexture,
         },
+        zoomCenter: {
+          value: new THREE.Vector2(0, 0),
+        },
+        zoomAmount: {
+          value: 1.0,
+        }
       },
       vertexShader: `
 varying vec2 v_uv;
+uniform vec2 zoomCenter;
+uniform float zoomAmount;
 void main() {
   float r = length(position.xz);
   float u = (atan(position.x, -position.z) / 3.14 / 2.0) + 0.5;
   float v = (atan(position.y, r) / 3.14 * 2.0) + 0.5;
+  u = (u - zoomCenter.x) / zoomAmount + zoomCenter.x;
+  v = (v - zoomCenter.y) / zoomAmount + zoomCenter.y;
+
   gl_Position = projectionMatrix * modelViewMatrix * 
     vec4(position, 1.0);
   v_uv = vec2(u, v);
@@ -141,20 +168,4 @@ void main() {
     return material;
 
   }
-
-  // setUpTexture1() {
-  //   const loader = new THREE.ImageLoader();
-  //   loader.load('img/panel.png', (image) => {
-  //     const canvas = document.createElement('canvas');
-  //     canvas.width = 4096;
-  //     canvas.height = 1024;
-  //     const ctx = canvas.getContext('2d');
-  //     ctx.drawImage(image, 0, 0);
-  //     this.canvasTexture = new THREE.CanvasTexture(canvas);
-  //     this.canvasTexture.needsUpdate = true;
-  //     this.panelMaterial.map = this.canvasTexture;
-  //     this.panelMaterial.color = null; // new THREE.Color('white');
-  //     this.panelMaterial.needsUpdate = true;
-  //   });
-  // }
 }
