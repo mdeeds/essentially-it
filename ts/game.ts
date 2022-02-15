@@ -19,7 +19,7 @@ export class Game {
 
     const fogSphere = new THREE.Mesh(
       new THREE.IcosahedronBufferGeometry(20, 3),
-      new THREE.MeshBasicMaterial({ color: '#ddd', side: THREE.BackSide }));
+      new THREE.MeshBasicMaterial({ color: '#fff', side: THREE.BackSide }));
     this.scene.add(fogSphere);
 
     this.renderer = new THREE.WebGLRenderer();
@@ -94,20 +94,24 @@ export class Game {
     return ray;
   }
 
-  private particleColor = new THREE.Color('#abf');
+  private particleColor = new THREE.Color('#df3');
   private clock = new THREE.Clock(/*autostart=*/true);
   private animationLoop() {
     let deltaS = this.clock.getDelta();
-    deltaS = Math.max(0.1, deltaS);
+    deltaS = Math.min(0.1, deltaS);
     this.renderer.render(this.scene, this.camera);
     this.handleKeys();
     for (const h of this.hands) {
       h.tick();
     }
-    this.particles.AddParticle(
-      new THREE.Vector3((Math.random() - 0.5) * 5, 1.0, (Math.random() - 0.5) * 5),
-      new THREE.Vector3(0.01 * (Math.random() - 0.5), 0.03 * (Math.random()), 0.01 * (Math.random() - 0.5)),
-      this.particleColor);
+    for (let i = 0; i < 10; ++i) {
+      const v = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5);
+      v.setLength(2);
+      this.particles.AddParticle(
+        new THREE.Vector3((Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10),
+        v,
+        this.particleColor);
+    }
     this.particles.step(deltaS);
   }
 
