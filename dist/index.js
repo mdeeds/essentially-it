@@ -39,10 +39,13 @@ class Game {
     renderer;
     whiteBoard;
     particles;
+    keysDown = new Set();
     hands = [];
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
         this.scene = new THREE.Scene();
+        const fogSphere = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 3), new THREE.MeshBasicMaterial({ color: '#fff', side: THREE.BackSide }));
+        this.scene.add(fogSphere);
         this.renderer = new THREE.WebGLRenderer();
         this.camera = new THREE.PerspectiveCamera(
         /*fov=*/ 75, /*aspec=*/ 1280 / 720, /*near=*/ 0.1, 
@@ -65,6 +68,7 @@ class Game {
         this.setUpAnimation();
         this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.whiteBoard, this.particles));
         this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.whiteBoard, this.particles));
+        this.setUpKeyHandler();
     }
     getRay(ev) {
         const x = (ev.clientX / 1280) * 2 - 1;
@@ -99,16 +103,21 @@ class Game {
             .sub(ray.origin).normalize();
         return ray;
     }
-    particleColor = new THREE.Color('#abf');
+    particleColor = new THREE.Color('#df3');
     clock = new THREE.Clock(/*autostart=*/ true);
     animationLoop() {
         let deltaS = this.clock.getDelta();
-        deltaS = Math.max(0.1, deltaS);
+        deltaS = Math.min(0.1, deltaS);
         this.renderer.render(this.scene, this.camera);
+        this.handleKeys();
         for (const h of this.hands) {
             h.tick();
         }
-        this.particles.AddParticle(new THREE.Vector3((Math.random() - 0.5) * 5, 1.0, (Math.random() - 0.5) * 5), new THREE.Vector3(0.01 * (Math.random() - 0.5), 0.03 * (Math.random()), 0.01 * (Math.random() - 0.5)), this.particleColor);
+        for (let i = 0; i < 10; ++i) {
+            const v = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5);
+            v.setLength(2);
+            this.particles.AddParticle(new THREE.Vector3((Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10), v, this.particleColor);
+        }
         this.particles.step(deltaS);
     }
     setUpAnimation() {
@@ -121,6 +130,48 @@ class Game {
         document.body.appendChild(this.renderer.domElement);
         document.body.appendChild(VRButton_js_1.VRButton.createButton(this.renderer));
         this.renderer.xr.enabled = true;
+    }
+    p = new THREE.Vector3();
+    f = new THREE.Vector3();
+    r = new THREE.Vector3();
+    handleKeys() {
+        if (this.keysDown.size == 0) {
+            return;
+        }
+        this.p.set(0, 0, 0);
+        this.p.applyMatrix4(this.camera.matrix);
+        this.f.set(0, 0, 0.01);
+        this.f.applyMatrix4(this.camera.matrix);
+        this.f.sub(this.p);
+        this.r.set(0.01, 0, 0);
+        this.r.applyMatrix4(this.camera.matrix);
+        this.r.sub(this.p);
+        if (this.keysDown.has('KeyQ')) {
+            this.camera.rotateY(0.03);
+        }
+        if (this.keysDown.has('KeyE')) {
+            this.camera.rotateY(-0.03);
+        }
+        if (this.keysDown.has('KeyW')) {
+            this.camera.position.sub(this.f);
+        }
+        if (this.keysDown.has('KeyS')) {
+            this.camera.position.add(this.f);
+        }
+        if (this.keysDown.has('KeyA')) {
+            this.camera.position.sub(this.r);
+        }
+        if (this.keysDown.has('KeyD')) {
+            this.camera.position.add(this.r);
+        }
+    }
+    setUpKeyHandler() {
+        document.body.addEventListener('keydown', (ev) => {
+            this.keysDown.add(ev.code);
+        });
+        document.body.addEventListener('keyup', (ev) => {
+            this.keysDown.delete(ev.code);
+        });
     }
 }
 exports.Game = Game;
@@ -268,8 +319,6 @@ class PaintCylinder extends THREE.Object3D {
     // private panelMaterial: THREE.MeshStandardMaterial = null;
     constructor() {
         super();
-        // this.panelMaterial = new THREE.MeshStandardMaterial(
-        //   { color: '#8f8', emissive: 1.0, side: THREE.BackSide });
         this.radius = 1.5;
         const circumfrence = 2 * Math.PI * this.radius;
         const height = circumfrence / 4;
@@ -296,6 +345,9 @@ class PaintCylinder extends THREE.Object3D {
         const t = (this.radius - d) / l_r;
         this.p.copy(ray.direction);
         this.p.multiplyScalar(t);
+        this.p.add(ray.origin);
+        this.getWorldPosition(this.o);
+        this.p.sub(this.o);
         const theta = Math.atan2(this.p.x, -this.p.z);
         const rho = Math.atan2(this.p.y, this.radius);
         return new Polar(theta, rho);
@@ -305,6 +357,19 @@ class PaintCylinder extends THREE.Object3D {
         const x = this.canvas.width * (polar.theta / 2 / Math.PI + 0.5);
         const y = this.canvas.height * (-polar.rho * 2 / Math.PI + 0.5);
         return [x, y];
+    }
+    zoom(left1, right1, left2, right2) {
+        const l1 = this.getXY(left1);
+        const r1 = this.getXY(right1);
+        const l2 = this.getXY(left2);
+        const r2 = this.getXY(right2);
+        const d1 = [r1[0] - l1[0], r1[1], l1[1]];
+        const d2 = [r2[0] - l2[0], r2[1], l2[1]];
+        const len1 = Math.sqrt(d1[0] * d1[0] + d1[1] * d1[1]);
+        const len2 = Math.sqrt(d2[0] * d2[0] + d2[1] * d2[1]);
+        const zoomChange = len2 / len1;
+        const center1 = [(l1[0] + r1[0]) / 2, (l1[1] + r1[1]) / 2];
+        const center2 = [(l2[0] + r2[0]) / 2, (l2[1] + r2[1]) / 2];
     }
     lastX = 0;
     lastY = 0;
@@ -335,15 +400,15 @@ class PaintCylinder extends THREE.Object3D {
         this.canvas.width = 4096;
         this.canvas.height = 1024;
         this.ctx = this.canvas.getContext('2d');
-        this.ctx.fillStyle = '#99f2';
+        this.ctx.fillStyle = '#9af4';
         for (let x = 0; x < this.canvas.width; x += 64) {
             for (let y = 0; y < this.canvas.height; y += 64) {
-                this.ctx.fillRect(x, y - 3, 3, 7);
-                this.ctx.fillRect(x - 3, y, 7, 3);
+                this.ctx.fillRect(x - 1, y - 3, 3, 7);
+                this.ctx.fillRect(x - 3, y - 1, 7, 3);
             }
         }
-        this.ctx.fillStyle = '#fff';
-        this.ctx.strokeStyle = '#fff';
+        this.ctx.fillStyle = '#000';
+        this.ctx.strokeStyle = '#000';
         this.ctx.lineCap = 'round';
         this.ctx.lineWidth = 10;
         this.canvasTexture = new THREE.CanvasTexture(this.canvas);
@@ -355,13 +420,24 @@ class PaintCylinder extends THREE.Object3D {
                 panelTexture: {
                     value: this.canvasTexture,
                 },
+                zoomCenter: {
+                    value: new THREE.Vector2(0, 0),
+                },
+                zoomAmount: {
+                    value: 1.0,
+                }
             },
             vertexShader: `
 varying vec2 v_uv;
+uniform vec2 zoomCenter;
+uniform float zoomAmount;
 void main() {
   float r = length(position.xz);
   float u = (atan(position.x, -position.z) / 3.14 / 2.0) + 0.5;
   float v = (atan(position.y, r) / 3.14 * 2.0) + 0.5;
+  u = (u - zoomCenter.x) / zoomAmount + zoomCenter.x;
+  v = (v - zoomCenter.y) / zoomAmount + zoomCenter.y;
+
   gl_Position = projectionMatrix * modelViewMatrix * 
     vec4(position, 1.0);
   v_uv = vec2(u, v);
@@ -466,7 +542,8 @@ void main() {
             uniforms: uniforms,
             vertexShader: ParticleSystem.kVS,
             fragmentShader: ParticleSystem.kFS,
-            blending: THREE.AdditiveBlending,
+            // blending: THREE.AdditiveBlending,
+            blending: THREE.SubtractiveBlending,
             depthTest: true,
             depthWrite: false,
             transparent: true,

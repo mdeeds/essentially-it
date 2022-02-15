@@ -45,6 +45,9 @@ export class PaintCylinder extends THREE.Object3D {
     const t = (this.radius - d) / l_r;
     this.p.copy(ray.direction);
     this.p.multiplyScalar(t);
+    this.p.add(ray.origin);
+    this.getWorldPosition(this.o);
+    this.p.sub(this.o);
     const theta = Math.atan2(this.p.x, -this.p.z);
     const rho = Math.atan2(this.p.y, this.radius);
     return new Polar(theta, rho);
