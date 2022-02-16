@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { Zoom } from "./zoom";
 
 class Polar {
   constructor(readonly theta: number, readonly rho: number) { }
@@ -75,27 +76,16 @@ export class PaintCylinder extends THREE.Object3D {
     const r1 = this.getXY(right1);
     const l2 = this.getXY(left2);
     const r2 = this.getXY(right2);
-
-    if (!l1 || !r1 || !l2 || !r2) {
-      return;
-    }
-
-    const d1 = [r1[0] - l1[0], r1[1], l1[1]];
-    const d2 = [r2[0] - l2[0], r2[1], l2[1]];
-
-    const len1 = Math.sqrt(d1[0] * d1[0] + d1[1] * d1[1]);
-    const len2 = Math.sqrt(d2[0] * d2[0] + d2[1] * d2[1]);
-
-    const zoomChange = len2 / len1;
-    const center1 = [(l1[0] + r1[0]) / 2, (l1[1] + r1[1]) / 2];
-    const center2 = [(l2[0] + r2[0]) / 2, (l2[1] + r2[1]) / 2];
+    return Zoom.makeZoomMatrix(l1, r1, l2, r2);
   }
 
   private lastX = 0;
   private lastY = 0;
 
   paintDown(ray: THREE.Ray) {
-    const [x, y] = this.getXY(ray);
+    const xy = this.getXY(ray);
+    if (!xy) return;
+    const [x, y] = xy;
     this.lastX = x;
     this.lastY = y;
     this.ctx.beginPath();
@@ -105,7 +95,9 @@ export class PaintCylinder extends THREE.Object3D {
   }
 
   paintMove(ray: THREE.Ray) {
-    const [x, y] = this.getXY(ray);
+    const xy = this.getXY(ray);
+    if (!xy) return;
+    const [x, y] = xy;
     this.ctx.beginPath();
     this.ctx.moveTo(this.lastX, this.lastY);
     this.ctx.lineTo(x, y);
@@ -132,6 +124,16 @@ export class PaintCylinder extends THREE.Object3D {
         this.ctx.fillRect(x - 3, y - 1, 7, 3);
       }
     }
+    this.ctx.strokeStyle = '#9af';
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.moveTo(0.5, 0.5);
+    this.ctx.lineTo(this.canvas.width - 0.5, 0.5);
+    this.ctx.lineTo(this.canvas.width - 0.5, this.canvas.height - 0.5);
+    this.ctx.lineTo(0.5, this.canvas.height - 0.5);
+    this.ctx.lineTo(0.5, 0.5);
+    this.ctx.stroke();
+
     this.ctx.fillStyle = '#000';
     this.ctx.strokeStyle = '#000';
     this.ctx.lineCap = 'round';

@@ -42,7 +42,6 @@ export class Game {
     this.whiteBoard.position.set(0, 1.7, 0);
     this.scene.add(this.whiteBoard);
 
-    this.setUpTouchHandlers();
     this.setUpRenderer();
     this.setUpAnimation();
     this.hands.push(
@@ -50,6 +49,7 @@ export class Game {
     this.hands.push(
       new Hand('right', this.scene, this.renderer, this.whiteBoard, this.particles))
     this.setUpKeyHandler();
+    this.setUpTouchHandlers();
   }
 
   private getRay(ev: Touch | MouseEvent): THREE.Ray {
@@ -60,30 +60,31 @@ export class Game {
   }
 
   private setUpTouchHandlers() {
-    document.body.addEventListener('touchstart',
+    const canvas = document.querySelector('canvas');
+    canvas.addEventListener('touchstart',
       (ev: TouchEvent) => {
         if (ev.touches.length === 1) {
           const ray = this.getRay(ev.touches[0]);
           this.whiteBoard.paintDown(ray);
         }
-      },
-      false);
-    document.body.addEventListener('touchmove',
+        ev.preventDefault();
+      });
+    canvas.addEventListener('touchmove',
       (ev: TouchEvent) => {
         if (ev.touches.length === 1) {
           const ray = this.getRay(ev.touches[0]);
           this.whiteBoard.paintMove(ray);
         }
-      },
-      false);
-    document.body.addEventListener('touchend',
+        ev.preventDefault();
+      });
+    canvas.addEventListener('touchend',
       (ev: TouchEvent) => {
         if (ev.touches.length === 1) {
           const ray = this.getRay(ev.touches[0]);
           this.whiteBoard.paintUp(ray);
         }
-      },
-      false);
+        ev.preventDefault();
+      });
   }
 
   private rayFromCamera(x: number, y: number): THREE.Ray {
