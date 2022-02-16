@@ -35,19 +35,24 @@ export class PaintCylinder extends THREE.Object3D {
     // (d, y) + tl = (r, h)
     // d + tl_r = r
     // t = (r - d) / l_r
-    this.getWorldPosition(this.o);
-    this.o.multiplyScalar(-1);
-    this.o.add(ray.origin);
+    this.o.copy(ray.origin);
+    this.worldToLocal(this.o);
+    const d = ray.direction;
 
-    const d = Math.sqrt(this.o.x * this.o.x + this.o.z * this.o.z);
-    const l_r = Math.sqrt(ray.direction.x * ray.direction.x +
-      ray.direction.z * ray.direction.z);
-    const t = (this.radius - d) / l_r;
+    const a = d.x * d.x + d.z * d.z;
+    const b = 2 * (this.o.x * d.x + this.o.z * d.z);
+    const c = this.o.x * this.o.x + this.o.z * this.o.z -
+      this.radius * this.radius;
+
+    const determinant = b * b - 4 * a * c;
+    if (determinant < 0) {
+      return null;
+    }
+
+    const t = (-b + Math.sqrt(determinant)) / (2 * a);
     this.p.copy(ray.direction);
     this.p.multiplyScalar(t);
-    this.p.add(ray.origin);
-    this.getWorldPosition(this.o);
-    this.p.sub(this.o);
+    this.p.add(this.o);
     const theta = Math.atan2(this.p.x, -this.p.z);
     const rho = Math.atan2(this.p.y, this.radius);
     return new Polar(theta, rho);
@@ -55,9 +60,13 @@ export class PaintCylinder extends THREE.Object3D {
 
   private getXY(ray: THREE.Ray): number[] {
     const polar = this.intersectRayOnCylinder(ray);
-    const x = this.canvas.width * (polar.theta / 2 / Math.PI + 0.5);
-    const y = this.canvas.height * (-polar.rho * 2 / Math.PI + 0.5);
-    return [x, y];
+    if (polar) {
+      const x = this.canvas.width * (polar.theta / 2 / Math.PI + 0.5);
+      const y = this.canvas.height * (-polar.rho * 2 / Math.PI + 0.5);
+      return [x, y];
+    } else {
+      return null;
+    }
   }
 
   private zoom(left1: THREE.Ray, right1: THREE.Ray,
@@ -66,6 +75,10 @@ export class PaintCylinder extends THREE.Object3D {
     const r1 = this.getXY(right1);
     const l2 = this.getXY(left2);
     const r2 = this.getXY(right2);
+
+    if (!l1 || !r1 || !l2 || !r2) {
+      return;
+    }
 
     const d1 = [r1[0] - l1[0], r1[1], l1[1]];
     const d2 = [r2[0] - l2[0], r2[1], l2[1]];
@@ -76,7 +89,6 @@ export class PaintCylinder extends THREE.Object3D {
     const zoomChange = len2 / len1;
     const center1 = [(l1[0] + r1[0]) / 2, (l1[1] + r1[1]) / 2];
     const center2 = [(l2[0] + r2[0]) / 2, (l2[1] + r2[1]) / 2];
-
   }
 
   private lastX = 0;
