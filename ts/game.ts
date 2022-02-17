@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
 import { Hand } from "./hand";
 import { PaintCylinder } from "./paintCylinder";
 import { ParticleSystem } from "./particleSystem";
@@ -45,6 +47,17 @@ export class Game {
     this.whiteBoard.position.set(0, 1.7, 0);
     this.scene.add(this.whiteBoard);
 
+    {
+      const light = new THREE.DirectionalLight('white', 2.0);
+      light.position.set(0, 5, 0);
+      this.scene.add(light);
+      const light2 = new THREE.DirectionalLight('white', 2.0);
+      light2.position.set(2, 1, -5);
+      this.scene.add(light2);
+    }
+
+    this.loadPlatform();
+
     this.tactile = new TactileInterface(this.whiteBoard);
 
     this.setUpRenderer();
@@ -55,6 +68,13 @@ export class Game {
       new Hand('right', this.scene, this.renderer, this.tactile, this.particles))
     this.setUpKeyHandler();
     this.setUpTouchHandlers();
+  }
+
+  private loadPlatform() {
+    const loader = new GLTFLoader();
+    loader.load('model/platform.gltf', (gltf) => {
+      this.scene.add(gltf.scene);
+    });
   }
 
   private getRay(ev: Touch | MouseEvent): THREE.Ray {
@@ -110,7 +130,7 @@ export class Game {
     for (const h of this.hands) {
       h.tick();
     }
-    for (let i = 0; i < 10; ++i) {
+    for (let i = 0; i < 1; ++i) {
       const v = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5);
       v.setLength(2);
       this.particles.AddParticle(
