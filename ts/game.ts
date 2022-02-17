@@ -3,6 +3,7 @@ import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import { Hand } from "./hand";
 import { PaintCylinder } from "./paintCylinder";
 import { ParticleSystem } from "./particleSystem";
+import { TactileInterface } from "./tactileInterface";
 
 export class Game {
   private scene: THREE.Scene;
@@ -11,6 +12,8 @@ export class Game {
   private whiteBoard: PaintCylinder;
   private particles: ParticleSystem;
   private keysDown = new Set<string>();
+
+  private tactile: TactileInterface;
 
   private hands: Hand[] = [];
 
@@ -42,12 +45,14 @@ export class Game {
     this.whiteBoard.position.set(0, 1.7, 0);
     this.scene.add(this.whiteBoard);
 
+    this.tactile = new TactileInterface(this.whiteBoard);
+
     this.setUpRenderer();
     this.setUpAnimation();
     this.hands.push(
-      new Hand('left', this.scene, this.renderer, this.whiteBoard, this.particles))
+      new Hand('left', this.scene, this.renderer, this.tactile, this.particles))
     this.hands.push(
-      new Hand('right', this.scene, this.renderer, this.whiteBoard, this.particles))
+      new Hand('right', this.scene, this.renderer, this.tactile, this.particles))
     this.setUpKeyHandler();
     this.setUpTouchHandlers();
   }
@@ -65,7 +70,7 @@ export class Game {
       (ev: TouchEvent) => {
         if (ev.touches.length === 1) {
           const ray = this.getRay(ev.touches[0]);
-          this.whiteBoard.paintDown(ray);
+          this.tactile.start(ray, 1);
         }
         ev.preventDefault();
       });
@@ -73,7 +78,7 @@ export class Game {
       (ev: TouchEvent) => {
         if (ev.touches.length === 1) {
           const ray = this.getRay(ev.touches[0]);
-          this.whiteBoard.paintMove(ray);
+          this.tactile.move(ray, 1);
         }
         ev.preventDefault();
       });
@@ -81,7 +86,7 @@ export class Game {
       (ev: TouchEvent) => {
         if (ev.touches.length === 1) {
           const ray = this.getRay(ev.touches[0]);
-          this.whiteBoard.paintUp(ray);
+          this.tactile.end(ray, 1);
         }
         ev.preventDefault();
       });

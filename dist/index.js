@@ -32,6 +32,7 @@ const VRButton_js_1 = __webpack_require__(652);
 const hand_1 = __webpack_require__(673);
 const paintCylinder_1 = __webpack_require__(183);
 const particleSystem_1 = __webpack_require__(564);
+const tactileInterface_1 = __webpack_require__(791);
 class Game {
     audioCtx;
     scene;
@@ -40,6 +41,7 @@ class Game {
     whiteBoard;
     particles;
     keysDown = new Set();
+    tactile;
     hands = [];
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
@@ -63,12 +65,13 @@ class Game {
         this.whiteBoard = new paintCylinder_1.PaintCylinder();
         this.whiteBoard.position.set(0, 1.7, 0);
         this.scene.add(this.whiteBoard);
-        this.setUpTouchHandlers();
+        this.tactile = new tactileInterface_1.TactileInterface(this.whiteBoard);
         this.setUpRenderer();
         this.setUpAnimation();
-        this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.whiteBoard, this.particles));
-        this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.whiteBoard, this.particles));
+        this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.tactile, this.particles));
+        this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.tactile, this.particles));
         this.setUpKeyHandler();
+        this.setUpTouchHandlers();
     }
     getRay(ev) {
         const x = (ev.clientX / 1280) * 2 - 1;
@@ -77,24 +80,28 @@ class Game {
         return ray;
     }
     setUpTouchHandlers() {
-        document.body.addEventListener('touchstart', (ev) => {
+        const canvas = document.querySelector('canvas');
+        canvas.addEventListener('touchstart', (ev) => {
             if (ev.touches.length === 1) {
                 const ray = this.getRay(ev.touches[0]);
-                this.whiteBoard.paintDown(ray);
+                this.tactile.start(ray, 1);
             }
-        }, false);
-        document.body.addEventListener('touchmove', (ev) => {
+            ev.preventDefault();
+        });
+        canvas.addEventListener('touchmove', (ev) => {
             if (ev.touches.length === 1) {
                 const ray = this.getRay(ev.touches[0]);
-                this.whiteBoard.paintMove(ray);
+                this.tactile.move(ray, 1);
             }
-        }, false);
-        document.body.addEventListener('touchend', (ev) => {
+            ev.preventDefault();
+        });
+        canvas.addEventListener('touchend', (ev) => {
             if (ev.touches.length === 1) {
                 const ray = this.getRay(ev.touches[0]);
-                this.whiteBoard.paintUp(ray);
+                this.tactile.end(ray, 1);
             }
-        }, false);
+            ev.preventDefault();
+        });
     }
     rayFromCamera(x, y) {
         const ray = new THREE.Ray();
@@ -208,16 +215,16 @@ const THREE = __importStar(__webpack_require__(578));
 class Hand {
     side;
     scene;
-    paint;
+    tactile;
     particles;
     gamepad;
     grip;
     line;
     penDown;
-    constructor(side, scene, renderer, paint, particles) {
+    constructor(side, scene, renderer, tactile, particles) {
         this.side = side;
         this.scene = scene;
-        this.paint = paint;
+        this.tactile = tactile;
         this.particles = particles;
         const index = (side == 'left') ? 0 : 1;
         this.grip = renderer.xr.getControllerGrip(index);
@@ -243,11 +250,11 @@ class Hand {
     ray = new THREE.Ray();
     minusZ = new THREE.Vector3(0, -1, 0);
     handleSelectStart(ev) {
-        this.paint.paintDown(this.ray);
+        this.tactile.start(this.ray, this.side == 'left' ? 0 : 1);
         this.penDown = true;
     }
     handleSelectEnd(ev) {
-        this.paint.paintUp(this.ray);
+        this.tactile.end(this.ray, this.side == 'left' ? 0 : 1);
         this.penDown = false;
     }
     v = new THREE.Vector3();
@@ -264,7 +271,7 @@ class Hand {
         this.v.multiplyScalar(0.05);
         if (this.penDown) {
             this.particles.AddParticle(this.ray.origin, this.v, this.penDownColor);
-            this.paint.paintMove(this.ray);
+            this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
         }
         else {
             this.particles.AddParticle(this.ray.origin, this.v, this.penUpColor);
@@ -302,6 +309,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PaintCylinder = void 0;
 const THREE = __importStar(__webpack_require__(578));
+const zoom_1 = __webpack_require__(950);
 class Polar {
     theta;
     rho;
@@ -371,21 +379,15 @@ class PaintCylinder extends THREE.Object3D {
         const r1 = this.getXY(right1);
         const l2 = this.getXY(left2);
         const r2 = this.getXY(right2);
-        if (!l1 || !r1 || !l2 || !r2) {
-            return;
-        }
-        const d1 = [r1[0] - l1[0], r1[1], l1[1]];
-        const d2 = [r2[0] - l2[0], r2[1], l2[1]];
-        const len1 = Math.sqrt(d1[0] * d1[0] + d1[1] * d1[1]);
-        const len2 = Math.sqrt(d2[0] * d2[0] + d2[1] * d2[1]);
-        const zoomChange = len2 / len1;
-        const center1 = [(l1[0] + r1[0]) / 2, (l1[1] + r1[1]) / 2];
-        const center2 = [(l2[0] + r2[0]) / 2, (l2[1] + r2[1]) / 2];
+        return zoom_1.Zoom.makeZoomMatrix(l1, r1, l2, r2);
     }
     lastX = 0;
     lastY = 0;
     paintDown(ray) {
-        const [x, y] = this.getXY(ray);
+        const xy = this.getXY(ray);
+        if (!xy)
+            return;
+        const [x, y] = xy;
         this.lastX = x;
         this.lastY = y;
         this.ctx.beginPath();
@@ -394,7 +396,10 @@ class PaintCylinder extends THREE.Object3D {
         this.canvasTexture.needsUpdate = true;
     }
     paintMove(ray) {
-        const [x, y] = this.getXY(ray);
+        const xy = this.getXY(ray);
+        if (!xy)
+            return;
+        const [x, y] = xy;
         this.ctx.beginPath();
         this.ctx.moveTo(this.lastX, this.lastY);
         this.ctx.lineTo(x, y);
@@ -418,6 +423,15 @@ class PaintCylinder extends THREE.Object3D {
                 this.ctx.fillRect(x - 3, y - 1, 7, 3);
             }
         }
+        this.ctx.strokeStyle = '#9af';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(0.5, 0.5);
+        this.ctx.lineTo(this.canvas.width - 0.5, 0.5);
+        this.ctx.lineTo(this.canvas.width - 0.5, this.canvas.height - 0.5);
+        this.ctx.lineTo(0.5, this.canvas.height - 0.5);
+        this.ctx.lineTo(0.5, 0.5);
+        this.ctx.stroke();
         this.ctx.fillStyle = '#000';
         this.ctx.strokeStyle = '#000';
         this.ctx.lineCap = 'round';
@@ -626,6 +640,114 @@ void main() {
 }
 exports.ParticleSystem = ParticleSystem;
 //# sourceMappingURL=particleSystem.js.map
+
+/***/ }),
+
+/***/ 791:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.TactileInterface = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class TactileInterface {
+    paint;
+    matrix = new THREE.Matrix3();
+    activeHands = new Set();
+    constructor(paint) {
+        this.paint = paint;
+        this.matrix.identity();
+    }
+    start(ray, handIndex) {
+        this.activeHands.add(handIndex);
+        this.paint.paintDown(ray);
+    }
+    move(ray, handIndex) {
+        this.paint.paintMove(ray);
+    }
+    end(ray, handIndex) {
+        this.paint.paintUp(ray);
+        this.activeHands.delete(handIndex);
+    }
+    takeMatrix() {
+        const result = this.matrix;
+        this.matrix = new THREE.Matrix3();
+        this.matrix.identity();
+        return result;
+    }
+}
+exports.TactileInterface = TactileInterface;
+//# sourceMappingURL=tactileInterface.js.map
+
+/***/ }),
+
+/***/ 950:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Zoom = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class Zoom {
+    static makePerpendicular(l, r) {
+        const dx = r[0] - l[0];
+        const dy = r[1] - l[1];
+        return [l[0] - dy, l[1] + dx];
+    }
+    static makeZoomMatrix(l1, r1, l2, r2) {
+        const p1 = Zoom.makePerpendicular(l1, r1);
+        const p2 = Zoom.makePerpendicular(l2, r2);
+        const initialPosition = new THREE.Matrix3();
+        initialPosition.set(l1[0], r1[0], p1[0], l1[1], r1[1], p1[1], 1, 1, 1);
+        const newPosition = new THREE.Matrix3();
+        newPosition.set(l2[0], r2[0], p2[0], l2[1], r2[1], p2[1], 1, 1, 1);
+        // console.log(initialPosition);
+        // console.log(newPosition);
+        initialPosition.invert();
+        newPosition.multiplyMatrices(newPosition, initialPosition);
+        return newPosition;
+    }
+}
+exports.Zoom = Zoom;
+//# sourceMappingURL=zoom.js.map
 
 /***/ }),
 

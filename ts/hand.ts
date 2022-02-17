@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { Object3D } from "three";
 import { PaintCylinder } from "./paintCylinder";
 import { ParticleSystem } from "./particleSystem";
+import { TactileInterface } from "./tactileInterface";
 
 export type Side = 'left' | 'right';
 
@@ -12,7 +13,7 @@ export class Hand {
   private penDown: boolean;
 
   constructor(readonly side: Side, private scene: THREE.Object3D,
-    renderer: THREE.WebGLRenderer, private paint: PaintCylinder,
+    renderer: THREE.WebGLRenderer, private tactile: TactileInterface,
     private particles: ParticleSystem) {
     const index = (side == 'left') ? 0 : 1;
     this.grip = renderer.xr.getControllerGrip(index);
@@ -44,12 +45,12 @@ export class Hand {
   private minusZ = new THREE.Vector3(0, -1, 0);
 
   private handleSelectStart(ev: any) {
-    this.paint.paintDown(this.ray);
+    this.tactile.start(this.ray, this.side == 'left' ? 0 : 1);
     this.penDown = true;
   }
 
   private handleSelectEnd(ev: any) {
-    this.paint.paintUp(this.ray);
+    this.tactile.end(this.ray, this.side == 'left' ? 0 : 1);
     this.penDown = false;
   }
 
@@ -69,7 +70,7 @@ export class Hand {
 
     if (this.penDown) {
       this.particles.AddParticle(this.ray.origin, this.v, this.penDownColor);
-      this.paint.paintMove(this.ray);
+      this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
     } else {
       this.particles.AddParticle(this.ray.origin, this.v, this.penUpColor);
     }
