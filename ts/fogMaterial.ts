@@ -24,7 +24,7 @@ void main() {
     float a = clamp(-y * 20.0, 0.0, 1.0);
     gl_FragColor = mix(
       vec4(0.5, 0.5, 0.5, 1.0),
-      vec4(0.3, 0.2, 0.4, 1.0), a);
+      vec4(0.017 * 2.0, 0.0, 0.073 * 2.0, 1.0), a);
   }
 }`,
       depthTest: true,
