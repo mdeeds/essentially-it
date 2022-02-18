@@ -8,7 +8,7 @@ export interface Tool {
 
 export class TactileInterface {
   private matrix = new THREE.Matrix3();
-  private activeHands = new Map<number, THREE.Ray>();
+  private activeHands = new Map<number, THREE.Vector2>();
 
   constructor(private paint: PaintCylinder,
     private projection: ProjectionCylinder) {
@@ -17,7 +17,7 @@ export class TactileInterface {
 
   public start(ray: THREE.Ray, handIndex: number) {
     const uv = this.projection.getUV(ray);
-    this.activeHands.set(handIndex, ray);
+    this.activeHands.set(handIndex, uv);
     if (this.activeHands.size > 1) {
       // TODO: Cancel / undo last action
       this.paint.paintUp(uv);
@@ -28,15 +28,19 @@ export class TactileInterface {
 
   public move(ray: THREE.Ray, handIndex: number) {
     const uv = this.projection.getUV(ray);
+    const lastUV = this.activeHands.get(handIndex);
+    lastUV.lerp(uv, 0.25);
     if (this.activeHands.size > 1) {
       // TODO: Zoom
     } else {
-      this.paint.paintMove(uv);
+      this.paint.paintMove(lastUV);
     }
   }
 
   public end(ray: THREE.Ray, handIndex: number) {
     const uv = this.projection.getUV(ray);
+    const lastUV = this.activeHands.get(handIndex);
+    lastUV.lerp(uv, 0.2);
     if (this.activeHands.size == 1) {
       this.paint.paintUp(uv);
     }

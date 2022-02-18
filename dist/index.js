@@ -34,6 +34,7 @@ const hand_1 = __webpack_require__(673);
 const paintCylinder_1 = __webpack_require__(183);
 const particleSystem_1 = __webpack_require__(564);
 const tactileInterface_1 = __webpack_require__(791);
+const projectionCylinder_1 = __webpack_require__(233);
 class Game {
     audioCtx;
     scene;
@@ -75,7 +76,8 @@ class Game {
             this.scene.add(light2);
         }
         this.loadPlatform();
-        this.tactile = new tactileInterface_1.TactileInterface(this.whiteBoard);
+        const projection = new projectionCylinder_1.ProjectionCylinder(this.whiteBoard, 1.5);
+        this.tactile = new tactileInterface_1.TactileInterface(this.whiteBoard, projection);
         this.setUpRenderer();
         this.setUpAnimation();
         this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.tactile, this.particles));
@@ -354,41 +356,8 @@ class PaintCylinder extends THREE.Object3D {
         this.mesh.position.set(0, 0, 0);
         this.add(this.mesh);
     }
-    o = new THREE.Vector3();
-    p = new THREE.Vector3();
-    intersectRayOnCylinder(ray) {
-        // (d, y) + tl = (r, h)
-        // d + tl_r = r
-        // t = (r - d) / l_r
-        this.o.copy(ray.origin);
-        this.worldToLocal(this.o);
-        const d = ray.direction;
-        const a = d.x * d.x + d.z * d.z;
-        const b = 2 * (this.o.x * d.x + this.o.z * d.z);
-        const c = this.o.x * this.o.x + this.o.z * this.o.z -
-            this.radius * this.radius;
-        const determinant = b * b - 4 * a * c;
-        if (determinant < 0) {
-            return null;
-        }
-        const t = (-b + Math.sqrt(determinant)) / (2 * a);
-        this.p.copy(ray.direction);
-        this.p.multiplyScalar(t);
-        this.p.add(this.o);
-        const theta = Math.atan2(this.p.x, -this.p.z);
-        const rho = Math.atan2(this.p.y, this.radius);
-        return new Polar(theta, rho);
-    }
-    getXY(ray) {
-        const polar = this.intersectRayOnCylinder(ray);
-        if (polar) {
-            const x = this.canvas.width * (polar.theta / 2 / Math.PI + 0.5);
-            const y = this.canvas.height * (-polar.rho * 2 / Math.PI + 0.5);
-            return [x, y];
-        }
-        else {
-            return null;
-        }
+    getXY(uv) {
+        return new THREE.Vector2(this.canvas.width * (uv.x / 2 + 0.5), this.canvas.height * (uv.y * 2 + 0.5));
     }
     zoom(left1, right1, left2, right2) {
         const l1 = this.getXY(left1);
@@ -399,33 +368,31 @@ class PaintCylinder extends THREE.Object3D {
     }
     lastX = 0;
     lastY = 0;
-    paintDown(ray) {
-        const xy = this.getXY(ray);
+    paintDown(uv) {
+        const xy = this.getXY(uv);
         if (!xy)
             return;
-        const [x, y] = xy;
-        this.lastX = x;
-        this.lastY = y;
+        this.lastX = xy.x;
+        this.lastY = xy.y;
         this.ctx.beginPath();
-        this.ctx.arc(x, y, 5, -Math.PI, Math.PI);
+        this.ctx.arc(xy.x, xy.y, 5, -Math.PI, Math.PI);
         this.ctx.fill();
         this.canvasTexture.needsUpdate = true;
     }
-    paintMove(ray) {
-        const xy = this.getXY(ray);
+    paintMove(uv) {
+        const xy = this.getXY(uv);
         if (!xy)
             return;
-        const [x, y] = xy;
         this.ctx.beginPath();
         this.ctx.moveTo(this.lastX, this.lastY);
-        this.ctx.lineTo(x, y);
+        this.ctx.lineTo(xy.x, xy.y);
         this.ctx.stroke();
         this.canvasTexture.needsUpdate = true;
-        this.lastX = x;
-        this.lastY = y;
+        this.lastX = xy.x;
+        this.lastY = xy.y;
         this.canvasTexture.needsUpdate = true;
     }
-    paintUp(ray) {
+    paintUp(uv) {
     }
     getMaterial() {
         this.canvas = document.createElement('canvas');
@@ -659,6 +626,82 @@ exports.ParticleSystem = ParticleSystem;
 
 /***/ }),
 
+/***/ 233:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ProjectionCylinder = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class ProjectionCylinder {
+    reference;
+    radius;
+    constructor(reference, radius) {
+        this.reference = reference;
+        this.radius = radius;
+    }
+    o = new THREE.Vector3();
+    p = new THREE.Vector3();
+    intersectRayOnCylinder(ray) {
+        // (d, y) + tl = (r, h)
+        // d + tl_r = r
+        // t = (r - d) / l_r
+        this.o.copy(ray.origin);
+        this.reference.worldToLocal(this.o);
+        const d = ray.direction;
+        const a = d.x * d.x + d.z * d.z;
+        const b = 2 * (this.o.x * d.x + this.o.z * d.z);
+        const c = this.o.x * this.o.x + this.o.z * this.o.z -
+            this.radius * this.radius;
+        const determinant = b * b - 4 * a * c;
+        if (determinant < 0) {
+            return null;
+        }
+        const t = (-b + Math.sqrt(determinant)) / (2 * a);
+        this.p.copy(ray.direction);
+        this.p.multiplyScalar(t);
+        this.p.add(this.o);
+        const theta = Math.atan2(this.p.x, -this.p.z);
+        const rho = Math.atan2(this.p.y, this.radius);
+        return new THREE.Vector2(theta, rho);
+    }
+    // Returns posiiton in UV space (between -1 and 1)
+    getUV(ray) {
+        const polar = this.intersectRayOnCylinder(ray);
+        if (polar) {
+            const x = polar.x / Math.PI;
+            const y = -polar.y / Math.PI;
+            return new THREE.Vector2(x, y);
+        }
+        else {
+            return null;
+        }
+    }
+}
+exports.ProjectionCylinder = ProjectionCylinder;
+//# sourceMappingURL=projectionCylinder.js.map
+
+/***/ }),
+
 /***/ 791:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -687,21 +730,43 @@ exports.TactileInterface = void 0;
 const THREE = __importStar(__webpack_require__(578));
 class TactileInterface {
     paint;
+    projection;
     matrix = new THREE.Matrix3();
-    activeHands = new Set();
-    constructor(paint) {
+    activeHands = new Map();
+    constructor(paint, projection) {
         this.paint = paint;
+        this.projection = projection;
         this.matrix.identity();
     }
     start(ray, handIndex) {
-        this.activeHands.add(handIndex);
-        this.paint.paintDown(ray);
+        const uv = this.projection.getUV(ray);
+        this.activeHands.set(handIndex, uv);
+        if (this.activeHands.size > 1) {
+            // TODO: Cancel / undo last action
+            this.paint.paintUp(uv);
+        }
+        else {
+            this.paint.paintDown(uv);
+        }
     }
     move(ray, handIndex) {
-        this.paint.paintMove(ray);
+        const uv = this.projection.getUV(ray);
+        const lastUV = this.activeHands.get(handIndex);
+        lastUV.lerp(uv, 0.25);
+        if (this.activeHands.size > 1) {
+            // TODO: Zoom
+        }
+        else {
+            this.paint.paintMove(lastUV);
+        }
     }
     end(ray, handIndex) {
-        this.paint.paintUp(ray);
+        const uv = this.projection.getUV(ray);
+        const lastUV = this.activeHands.get(handIndex);
+        lastUV.lerp(uv, 0.2);
+        if (this.activeHands.size == 1) {
+            this.paint.paintUp(uv);
+        }
         this.activeHands.delete(handIndex);
     }
     takeMatrix() {
@@ -744,17 +809,17 @@ exports.Zoom = void 0;
 const THREE = __importStar(__webpack_require__(578));
 class Zoom {
     static makePerpendicular(l, r) {
-        const dx = r[0] - l[0];
-        const dy = r[1] - l[1];
-        return [l[0] - dy, l[1] + dx];
+        const dx = r.x - l.x;
+        const dy = r.y - l.y;
+        return new THREE.Vector2(l.x - dy, l.y + dx);
     }
     static makeZoomMatrix(l1, r1, l2, r2) {
         const p1 = Zoom.makePerpendicular(l1, r1);
         const p2 = Zoom.makePerpendicular(l2, r2);
         const initialPosition = new THREE.Matrix3();
-        initialPosition.set(l1[0], r1[0], p1[0], l1[1], r1[1], p1[1], 1, 1, 1);
+        initialPosition.set(l1.x, r1.x, p1.x, l1.y, r1.y, p1.y, 1, 1, 1);
         const newPosition = new THREE.Matrix3();
-        newPosition.set(l2[0], r2[0], p2[0], l2[1], r2[1], p2[1], 1, 1, 1);
+        newPosition.set(l2.x, r2.x, p2.x, l2.y, r2.y, p2.y, 1, 1, 1);
         // console.log(initialPosition);
         // console.log(newPosition);
         initialPosition.invert();
