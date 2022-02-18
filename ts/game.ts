@@ -7,6 +7,7 @@ import { PaintCylinder } from "./paintCylinder";
 import { ParticleSystem } from "./particleSystem";
 import { TactileInterface } from "./tactileInterface";
 import { ProjectionCylinder } from "./projectionCylinder";
+import { FogMaterial } from "./fogMaterial";
 
 export class Game {
   private scene: THREE.Scene;
@@ -25,7 +26,7 @@ export class Game {
 
     const fogSphere = new THREE.Mesh(
       new THREE.IcosahedronBufferGeometry(20, 3),
-      new THREE.MeshBasicMaterial({ color: '#fff', side: THREE.BackSide }));
+      new FogMaterial());
     this.scene.add(fogSphere);
 
     this.renderer = new THREE.WebGLRenderer();
@@ -122,7 +123,6 @@ export class Game {
     return ray;
   }
 
-  private particleColor = new THREE.Color('#df3');
   private clock = new THREE.Clock(/*autostart=*/true);
   private animationLoop() {
     let deltaS = this.clock.getDelta();
@@ -131,14 +131,6 @@ export class Game {
     this.handleKeys();
     for (const h of this.hands) {
       h.tick();
-    }
-    for (let i = 0; i < 1; ++i) {
-      const v = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5);
-      v.setLength(2);
-      this.particles.AddParticle(
-        new THREE.Vector3((Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10),
-        v,
-        this.particleColor);
     }
     this.particles.step(deltaS);
   }
@@ -172,11 +164,17 @@ export class Game {
     this.r.set(0.01, 0, 0);
     this.r.applyMatrix4(this.camera.matrix);
     this.r.sub(this.p);
-    if (this.keysDown.has('KeyQ')) {
+    if (this.keysDown.has('ArrowLeft')) {
       this.camera.rotateY(0.03);
     }
-    if (this.keysDown.has('KeyE')) {
+    if (this.keysDown.has('ArrowRight')) {
       this.camera.rotateY(-0.03);
+    }
+    if (this.keysDown.has('ArrowUp')) {
+      this.camera.rotateX(0.03);
+    }
+    if (this.keysDown.has('ArrowDown')) {
+      this.camera.rotateX(-0.03);
     }
     if (this.keysDown.has('KeyW')) {
       this.camera.position.sub(this.f);

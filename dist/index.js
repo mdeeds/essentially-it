@@ -2,6 +2,71 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 927:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.FogMaterial = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class FogMaterial extends THREE.ShaderMaterial {
+    constructor() {
+        super({
+            uniforms: {},
+            vertexShader: `
+varying vec4 vWorldPosition;
+void main() {
+  vWorldPosition = modelMatrix * vec4(position, 1.0);
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * mvPosition;
+}`,
+            fragmentShader: `
+varying vec4 vWorldPosition;
+void main() {
+  float y = vWorldPosition.y;
+  if (y > 0.0) {
+    float a = pow(clamp(y / 5.0, 0.0, 1.0), 0.2);
+    gl_FragColor = mix(
+      vec4(0.5, 0.5, 0.5, 1.0),
+      vec4(1.0, 1.0, 1.0, 1.0), a);
+  } else {
+    float a = clamp(-y * 20.0, 0.0, 1.0);
+    gl_FragColor = mix(
+      vec4(0.5, 0.5, 0.5, 1.0),
+      vec4(0.3, 0.2, 0.4, 1.0), a);
+  }
+}`,
+            depthTest: true,
+            depthWrite: true,
+            transparent: false,
+            side: THREE.BackSide,
+        });
+    }
+}
+exports.FogMaterial = FogMaterial;
+//# sourceMappingURL=fogMaterial.js.map
+
+/***/ }),
+
 /***/ 417:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -35,6 +100,7 @@ const paintCylinder_1 = __webpack_require__(183);
 const particleSystem_1 = __webpack_require__(564);
 const tactileInterface_1 = __webpack_require__(791);
 const projectionCylinder_1 = __webpack_require__(233);
+const fogMaterial_1 = __webpack_require__(927);
 class Game {
     audioCtx;
     scene;
@@ -48,7 +114,7 @@ class Game {
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
         this.scene = new THREE.Scene();
-        const fogSphere = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 3), new THREE.MeshBasicMaterial({ color: '#fff', side: THREE.BackSide }));
+        const fogSphere = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 3), new fogMaterial_1.FogMaterial());
         this.scene.add(fogSphere);
         this.renderer = new THREE.WebGLRenderer();
         this.camera = new THREE.PerspectiveCamera(
@@ -128,7 +194,6 @@ class Game {
             .sub(ray.origin).normalize();
         return ray;
     }
-    particleColor = new THREE.Color('#df3');
     clock = new THREE.Clock(/*autostart=*/ true);
     animationLoop() {
         let deltaS = this.clock.getDelta();
@@ -137,11 +202,6 @@ class Game {
         this.handleKeys();
         for (const h of this.hands) {
             h.tick();
-        }
-        for (let i = 0; i < 1; ++i) {
-            const v = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5);
-            v.setLength(2);
-            this.particles.AddParticle(new THREE.Vector3((Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10), v, this.particleColor);
         }
         this.particles.step(deltaS);
     }
@@ -171,11 +231,17 @@ class Game {
         this.r.set(0.01, 0, 0);
         this.r.applyMatrix4(this.camera.matrix);
         this.r.sub(this.p);
-        if (this.keysDown.has('KeyQ')) {
+        if (this.keysDown.has('ArrowLeft')) {
             this.camera.rotateY(0.03);
         }
-        if (this.keysDown.has('KeyE')) {
+        if (this.keysDown.has('ArrowRight')) {
             this.camera.rotateY(-0.03);
+        }
+        if (this.keysDown.has('ArrowUp')) {
+            this.camera.rotateX(0.03);
+        }
+        if (this.keysDown.has('ArrowDown')) {
+            this.camera.rotateX(-0.03);
         }
         if (this.keysDown.has('KeyW')) {
             this.camera.position.sub(this.f);
