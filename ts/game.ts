@@ -6,6 +6,7 @@ import { Hand } from "./hand";
 import { PaintCylinder } from "./paintCylinder";
 import { ParticleSystem } from "./particleSystem";
 import { TactileInterface } from "./tactileInterface";
+import { ProjectionCylinder } from "./projectionCylinder";
 
 export class Game {
   private scene: THREE.Scene;
@@ -58,7 +59,8 @@ export class Game {
 
     this.loadPlatform();
 
-    this.tactile = new TactileInterface(this.whiteBoard);
+    const projection = new ProjectionCylinder(this.whiteBoard, 1.5);
+    this.tactile = new TactileInterface(this.whiteBoard, projection);
 
     this.setUpRenderer();
     this.setUpAnimation();

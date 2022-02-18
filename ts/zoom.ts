@@ -1,29 +1,30 @@
 import * as THREE from "three";
 
 export class Zoom {
-  public static makePerpendicular(l: number[], r: number[]) {
-    const dx = r[0] - l[0];
-    const dy = r[1] - l[1];
-    return [l[0] - dy, l[1] + dx];
+  public static makePerpendicular(l: THREE.Vector2, r: THREE.Vector2):
+    THREE.Vector2 {
+    const dx = r.x - l.x;
+    const dy = r.y - l.y;
+    return new THREE.Vector2(l.x - dy, l.y + dx);
   }
 
   public static makeZoomMatrix(
-    l1: number[], r1: number[],
-    l2: number[], r2: number[]): THREE.Matrix3 {
+    l1: THREE.Vector2, r1: THREE.Vector2,
+    l2: THREE.Vector2, r2: THREE.Vector2): THREE.Matrix3 {
 
     const p1 = Zoom.makePerpendicular(l1, r1);
     const p2 = Zoom.makePerpendicular(l2, r2);
 
     const initialPosition = new THREE.Matrix3();
     initialPosition.set(
-      l1[0], r1[0], p1[0],
-      l1[1], r1[1], p1[1],
+      l1.x, r1.x, p1.x,
+      l1.y, r1.y, p1.y,
       1, 1, 1);
 
     const newPosition = new THREE.Matrix3();
     newPosition.set(
-      l2[0], r2[0], p2[0],
-      l2[1], r2[1], p2[1],
+      l2.x, r2.x, p2.x,
+      l2.y, r2.y, p2.y,
       1, 1, 1);
 
     // console.log(initialPosition);

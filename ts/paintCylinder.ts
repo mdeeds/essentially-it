@@ -30,48 +30,16 @@ export class PaintCylinder extends THREE.Object3D {
     this.add(this.mesh);
   }
 
-  private o = new THREE.Vector3();
-  private p = new THREE.Vector3();
-  private intersectRayOnCylinder(ray: THREE.Ray): Polar {
-    // (d, y) + tl = (r, h)
-    // d + tl_r = r
-    // t = (r - d) / l_r
-    this.o.copy(ray.origin);
-    this.worldToLocal(this.o);
-    const d = ray.direction;
 
-    const a = d.x * d.x + d.z * d.z;
-    const b = 2 * (this.o.x * d.x + this.o.z * d.z);
-    const c = this.o.x * this.o.x + this.o.z * this.o.z -
-      this.radius * this.radius;
 
-    const determinant = b * b - 4 * a * c;
-    if (determinant < 0) {
-      return null;
-    }
-
-    const t = (-b + Math.sqrt(determinant)) / (2 * a);
-    this.p.copy(ray.direction);
-    this.p.multiplyScalar(t);
-    this.p.add(this.o);
-    const theta = Math.atan2(this.p.x, -this.p.z);
-    const rho = Math.atan2(this.p.y, this.radius);
-    return new Polar(theta, rho);
+  private getXY(uv: THREE.Vector2): THREE.Vector2 {
+    return new THREE.Vector2(
+      this.canvas.width * (uv.x / 2 + 0.5),
+      this.canvas.height * (uv.y * 2 + 0.5));
   }
 
-  private getXY(ray: THREE.Ray): number[] {
-    const polar = this.intersectRayOnCylinder(ray);
-    if (polar) {
-      const x = this.canvas.width * (polar.theta / 2 / Math.PI + 0.5);
-      const y = this.canvas.height * (-polar.rho * 2 / Math.PI + 0.5);
-      return [x, y];
-    } else {
-      return null;
-    }
-  }
-
-  private zoom(left1: THREE.Ray, right1: THREE.Ray,
-    left2: THREE.Ray, right2: THREE.Ray) {
+  private zoom(left1: THREE.Vector2, right1: THREE.Vector2,
+    left2: THREE.Vector2, right2: THREE.Vector2) {
     const l1 = this.getXY(left1);
     const r1 = this.getXY(right1);
     const l2 = this.getXY(left2);
@@ -82,33 +50,31 @@ export class PaintCylinder extends THREE.Object3D {
   private lastX = 0;
   private lastY = 0;
 
-  paintDown(ray: THREE.Ray) {
-    const xy = this.getXY(ray);
+  paintDown(uv: THREE.Vector2) {
+    const xy = this.getXY(uv);
     if (!xy) return;
-    const [x, y] = xy;
-    this.lastX = x;
-    this.lastY = y;
+    this.lastX = xy.x;
+    this.lastY = xy.y;
     this.ctx.beginPath();
-    this.ctx.arc(x, y, 5, -Math.PI, Math.PI);
+    this.ctx.arc(xy.x, xy.y, 5, -Math.PI, Math.PI);
     this.ctx.fill();
     this.canvasTexture.needsUpdate = true;
   }
 
-  paintMove(ray: THREE.Ray) {
-    const xy = this.getXY(ray);
+  paintMove(uv: THREE.Vector2) {
+    const xy = this.getXY(uv);
     if (!xy) return;
-    const [x, y] = xy;
     this.ctx.beginPath();
     this.ctx.moveTo(this.lastX, this.lastY);
-    this.ctx.lineTo(x, y);
+    this.ctx.lineTo(xy.x, xy.y);
     this.ctx.stroke();
     this.canvasTexture.needsUpdate = true;
-    this.lastX = x;
-    this.lastY = y;
+    this.lastX = xy.x;
+    this.lastY = xy.y;
     this.canvasTexture.needsUpdate = true;
   }
 
-  paintUp(ray: THREE.Ray) {
+  paintUp(uv: THREE.Vector2) {
   }
 
   private getMaterial(): THREE.Material {
