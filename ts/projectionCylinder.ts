@@ -33,12 +33,12 @@ export class ProjectionCylinder {
     return new THREE.Vector2(theta, rho);
   }
 
-  // Returns posiiton in UV space (between -1 and 1)
+  // Returns posiiton in UV space (between 0 and 1)
   getUV(ray: THREE.Ray): THREE.Vector2 {
     const polar = this.intersectRayOnCylinder(ray);
     if (polar) {
-      const x = polar.x / Math.PI;
-      const y = -polar.y / Math.PI;
+      const x = 0.5 + (polar.x / Math.PI / 2);
+      const y = 0.5 - (polar.y / Math.PI / 2);
       return new THREE.Vector2(x, y);
     } else {
       return null;

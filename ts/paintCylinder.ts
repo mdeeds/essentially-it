@@ -1,16 +1,14 @@
 import * as THREE from "three";
 import { Zoom } from "./zoom";
 
-class Polar {
-  constructor(readonly theta: number, readonly rho: number) { }
-}
-
 export class PaintCylinder extends THREE.Object3D {
   private mesh: THREE.Mesh;
   private canvasTexture: THREE.CanvasTexture;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private radius: number;
+  private material: THREE.ShaderMaterial;
+
   // private panelMaterial: THREE.MeshStandardMaterial = null;
   constructor() {
     super();
@@ -18,33 +16,23 @@ export class PaintCylinder extends THREE.Object3D {
     const circumfrence = 2 * Math.PI * this.radius;
     const height = circumfrence / 4;
 
+    this.material = this.getMaterial();
     this.mesh = new THREE.Mesh(
       new THREE.CylinderBufferGeometry(
         /*top=*/this.radius, /*bottom=*/this.radius,
         /*height=*/height,
         /*radial=*/32, /*vertical=*/8,
         /*open=*/true),
-      this.getMaterial());
+      this.material);
     this.mesh.position.set(0, 0, 0);
 
     this.add(this.mesh);
   }
 
-
-
   private getXY(uv: THREE.Vector2): THREE.Vector2 {
     return new THREE.Vector2(
-      this.canvas.width * (uv.x / 2 + 0.5),
-      this.canvas.height * (uv.y * 2 + 0.5));
-  }
-
-  private zoom(left1: THREE.Vector2, right1: THREE.Vector2,
-    left2: THREE.Vector2, right2: THREE.Vector2) {
-    const l1 = this.getXY(left1);
-    const r1 = this.getXY(right1);
-    const l2 = this.getXY(left2);
-    const r2 = this.getXY(right2);
-    return Zoom.makeZoomMatrix(l1, r1, l2, r2);
+      this.canvas.width * uv.x,
+      this.canvas.height * (4 * uv.y - 1.5));
   }
 
   private lastX = 0;
@@ -77,7 +65,39 @@ export class PaintCylinder extends THREE.Object3D {
   paintUp(uv: THREE.Vector2) {
   }
 
-  private getMaterial(): THREE.Material {
+  private startLeftUV = new THREE.Vector2();
+  private startRightUV = new THREE.Vector2();
+  zoomStart(leftUV: THREE.Vector2, rightUV: THREE.Vector2) {
+    this.startLeftUV.copy(leftUV);
+    this.startRightUV.copy(rightUV);
+  }
+
+  private finalizedZoomMatrix = new THREE.Matrix3();
+  private zoomInternal(leftUV: THREE.Vector2, rightUV: THREE.Vector2,
+    finalize: boolean) {
+    const m = this.material.uniforms['uvMatrix'].value as THREE.Matrix3;
+    m.copy(Zoom.makeZoomMatrix(
+      this.startLeftUV, this.startRightUV,
+      leftUV, rightUV));
+    m.premultiply(this.finalizedZoomMatrix);
+    if (finalize) {
+      this.finalizedZoomMatrix.copy(m);
+    }
+    m.invert();
+    this.material.uniformsNeedUpdate = true;
+  }
+
+
+  zoomUpdate(leftUV: THREE.Vector2, rightUV: THREE.Vector2) {
+    this.zoomInternal(leftUV, rightUV, false);
+  }
+
+  zoomEnd(leftUV: THREE.Vector2, rightUV: THREE.Vector2) {
+    this.zoomInternal(leftUV, rightUV, true);
+
+  }
+
+  private getMaterial(): THREE.ShaderMaterial {
     this.canvas = document.createElement('canvas');
     this.canvas.width = 4096;
     this.canvas.height = 1024;
@@ -120,22 +140,31 @@ export class PaintCylinder extends THREE.Object3D {
         },
         zoomAmount: {
           value: 1.0,
-        }
+        },
+        uvMatrix: {
+          value: new THREE.Matrix3(),
+        },
       },
       vertexShader: `
 varying vec2 v_uv;
-uniform vec2 zoomCenter;
-uniform float zoomAmount;
+uniform mat3 uvMatrix;
 void main() {
   float r = length(position.xz);
   float u = (atan(position.x, -position.z) / 3.14 / 2.0) + 0.5;
-  float v = (atan(position.y, r) / 3.14 * 2.0) + 0.5;
-  u = (u - zoomCenter.x) / zoomAmount + zoomCenter.x;
-  v = (v - zoomCenter.y) / zoomAmount + zoomCenter.y;
+  float v = (atan(position.y, r) / 3.14 / 2.0) + 0.5;
+  vec3 uv = uvMatrix * vec3(u, v, 1.0);
+
+  // 0 = k * 0.375 + o
+  // 1 = k * 0.625 + o
+  // 1 = k * 0.25
+  // k = 4
+  // 0 = 4 * 0.375 + o = 1.5 + o
+  // -1.5 = o
+
+  v_uv = (uv.xy / uv.z) * vec2(1.0, 4.0) + vec2(0.0, -1.5);
 
   gl_Position = projectionMatrix * modelViewMatrix * 
     vec4(position, 1.0);
-  v_uv = vec2(u, v);
 }`,
       fragmentShader: `
 varying vec2 v_uv;

@@ -91,25 +91,25 @@ export class Game {
     const canvas = document.querySelector('canvas');
     canvas.addEventListener('touchstart',
       (ev: TouchEvent) => {
-        if (ev.touches.length === 1) {
-          const ray = this.getRay(ev.touches[0]);
-          this.tactile.start(ray, 1);
+        for (let i = 0; i < ev.touches.length; ++i) {
+          const ray = this.getRay(ev.touches[i]);
+          this.tactile.start(ray, i);
         }
         ev.preventDefault();
       });
     canvas.addEventListener('touchmove',
       (ev: TouchEvent) => {
-        if (ev.touches.length === 1) {
-          const ray = this.getRay(ev.touches[0]);
-          this.tactile.move(ray, 1);
+        for (let i = 0; i < ev.touches.length; ++i) {
+          const ray = this.getRay(ev.touches[i]);
+          this.tactile.move(ray, i);
         }
         ev.preventDefault();
       });
     canvas.addEventListener('touchend',
       (ev: TouchEvent) => {
-        if (ev.touches.length === 1) {
-          const ray = this.getRay(ev.touches[0]);
-          this.tactile.end(ray, 1);
+        for (let i = 0; i < ev.touches.length; ++i) {
+          const ray = this.getRay(ev.touches[i]);
+          this.tactile.end(ray, i);
         }
         ev.preventDefault();
       });

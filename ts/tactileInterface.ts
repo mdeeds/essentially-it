@@ -17,10 +17,14 @@ export class TactileInterface {
 
   public start(ray: THREE.Ray, handIndex: number) {
     const uv = this.projection.getUV(ray);
+    if (!uv) {
+      return;
+    }
     this.activeHands.set(handIndex, uv);
     if (this.activeHands.size > 1) {
       // TODO: Cancel / undo last action
       this.paint.paintUp(uv);
+      this.paint.zoomStart(this.activeHands.get(0), this.activeHands.get(1));
     } else {
       this.paint.paintDown(uv);
     }
@@ -28,29 +32,31 @@ export class TactileInterface {
 
   public move(ray: THREE.Ray, handIndex: number) {
     const uv = this.projection.getUV(ray);
-    const lastUV = this.activeHands.get(handIndex);
-    lastUV.lerp(uv, 0.25);
+    if (!uv) {
+      return;
+    }
+    const lastUV = this.activeHands.get(handIndex) ?? uv;
+    lastUV.lerp(uv, 0.2);
     if (this.activeHands.size > 1) {
-      // TODO: Zoom
+      this.paint.zoomUpdate(this.activeHands.get(0), this.activeHands.get(1));
     } else {
       this.paint.paintMove(lastUV);
     }
+    this.activeHands.set(handIndex, lastUV);
   }
 
   public end(ray: THREE.Ray, handIndex: number) {
     const uv = this.projection.getUV(ray);
-    const lastUV = this.activeHands.get(handIndex);
+    if (!uv) {
+      return;
+    }
+    const lastUV = this.activeHands.get(handIndex) ?? uv;
     lastUV.lerp(uv, 0.2);
-    if (this.activeHands.size == 1) {
+    if (this.activeHands.size > 1) {
+      this.paint.zoomEnd(this.activeHands.get(0), this.activeHands.get(1));
+    } else {
       this.paint.paintUp(uv);
     }
     this.activeHands.delete(handIndex);
-  }
-
-  public takeMatrix(): THREE.Matrix3 {
-    const result = this.matrix;
-    this.matrix = new THREE.Matrix3();
-    this.matrix.identity();
-    return result;
   }
 }
