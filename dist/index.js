@@ -52,7 +52,7 @@ void main() {
     float a = clamp(-y * 20.0, 0.0, 1.0);
     gl_FragColor = mix(
       vec4(0.5, 0.5, 0.5, 1.0),
-      vec4(0.3, 0.2, 0.4, 1.0), a);
+      vec4(0.017 * 2.0, 0.0, 0.073 * 2.0, 1.0), a);
   }
 }`,
             depthTest: true,
@@ -163,26 +163,37 @@ class Game {
         const ray = this.rayFromCamera(x, y);
         return ray;
     }
+    getTouchIndex(id, idToIndex) {
+        if (idToIndex.has(id)) {
+            return idToIndex.get(id);
+        }
+        const index = idToIndex.size % 2;
+        idToIndex.set(id, index);
+        return index;
+    }
     setUpTouchHandlers() {
         const canvas = document.querySelector('canvas');
+        const lastIndex = 0;
+        const idToIndex = new Map();
         canvas.addEventListener('touchstart', (ev) => {
-            if (ev.touches.length === 1) {
-                const ray = this.getRay(ev.touches[0]);
-                this.tactile.start(ray, 1);
+            for (let i = 0; i < ev.touches.length; ++i) {
+                const index = this.getTouchIndex(ev.touches[i].identifier, idToIndex);
+                const ray = this.getRay(ev.touches[i]);
+                this.tactile.start(ray, index);
             }
             ev.preventDefault();
         });
         canvas.addEventListener('touchmove', (ev) => {
-            if (ev.touches.length === 1) {
-                const ray = this.getRay(ev.touches[0]);
-                this.tactile.move(ray, 1);
+            for (let i = 0; i < ev.touches.length; ++i) {
+                const ray = this.getRay(ev.touches[i]);
+                this.tactile.move(ray, i);
             }
             ev.preventDefault();
         });
         canvas.addEventListener('touchend', (ev) => {
-            if (ev.touches.length === 1) {
-                const ray = this.getRay(ev.touches[0]);
-                this.tactile.end(ray, 1);
+            for (let i = 0; i < ev.touches.length; ++i) {
+                const ray = this.getRay(ev.touches[i]);
+                this.tactile.end(ray, i);
             }
             ev.preventDefault();
         });
@@ -394,43 +405,30 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PaintCylinder = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const zoom_1 = __webpack_require__(950);
-class Polar {
-    theta;
-    rho;
-    constructor(theta, rho) {
-        this.theta = theta;
-        this.rho = rho;
-    }
-}
 class PaintCylinder extends THREE.Object3D {
     mesh;
     canvasTexture;
     canvas;
     ctx;
     radius;
+    material;
     // private panelMaterial: THREE.MeshStandardMaterial = null;
     constructor() {
         super();
         this.radius = 1.5;
         const circumfrence = 2 * Math.PI * this.radius;
         const height = circumfrence / 4;
+        this.material = this.getMaterial();
         this.mesh = new THREE.Mesh(new THREE.CylinderBufferGeometry(
         /*top=*/ this.radius, /*bottom=*/ this.radius, 
         /*height=*/ height, 
         /*radial=*/ 32, /*vertical=*/ 8, 
-        /*open=*/ true), this.getMaterial());
+        /*open=*/ true), this.material);
         this.mesh.position.set(0, 0, 0);
         this.add(this.mesh);
     }
     getXY(uv) {
-        return new THREE.Vector2(this.canvas.width * (uv.x / 2 + 0.5), this.canvas.height * (uv.y * 2 + 0.5));
-    }
-    zoom(left1, right1, left2, right2) {
-        const l1 = this.getXY(left1);
-        const r1 = this.getXY(right1);
-        const l2 = this.getXY(left2);
-        const r2 = this.getXY(right2);
-        return zoom_1.Zoom.makeZoomMatrix(l1, r1, l2, r2);
+        return new THREE.Vector2(this.canvas.width * uv.x, this.canvas.height * (4 * uv.y - 1.5));
     }
     lastX = 0;
     lastY = 0;
@@ -459,6 +457,29 @@ class PaintCylinder extends THREE.Object3D {
         this.canvasTexture.needsUpdate = true;
     }
     paintUp(uv) {
+    }
+    startLeftUV = new THREE.Vector2();
+    startRightUV = new THREE.Vector2();
+    zoomStart(leftUV, rightUV) {
+        this.startLeftUV.copy(leftUV);
+        this.startRightUV.copy(rightUV);
+    }
+    finalizedZoomMatrix = new THREE.Matrix3();
+    zoomInternal(leftUV, rightUV, finalize) {
+        const m = this.material.uniforms['uvMatrix'].value;
+        m.copy(zoom_1.Zoom.makeZoomMatrix(this.startLeftUV, this.startRightUV, leftUV, rightUV));
+        m.premultiply(this.finalizedZoomMatrix);
+        if (finalize) {
+            this.finalizedZoomMatrix.copy(m);
+        }
+        m.invert();
+        this.material.uniformsNeedUpdate = true;
+    }
+    zoomUpdate(leftUV, rightUV) {
+        this.zoomInternal(leftUV, rightUV, false);
+    }
+    zoomEnd(leftUV, rightUV) {
+        this.zoomInternal(leftUV, rightUV, true);
     }
     getMaterial() {
         this.canvas = document.createElement('canvas');
@@ -499,22 +520,31 @@ class PaintCylinder extends THREE.Object3D {
                 },
                 zoomAmount: {
                     value: 1.0,
-                }
+                },
+                uvMatrix: {
+                    value: new THREE.Matrix3(),
+                },
             },
             vertexShader: `
 varying vec2 v_uv;
-uniform vec2 zoomCenter;
-uniform float zoomAmount;
+uniform mat3 uvMatrix;
 void main() {
   float r = length(position.xz);
   float u = (atan(position.x, -position.z) / 3.14 / 2.0) + 0.5;
-  float v = (atan(position.y, r) / 3.14 * 2.0) + 0.5;
-  u = (u - zoomCenter.x) / zoomAmount + zoomCenter.x;
-  v = (v - zoomCenter.y) / zoomAmount + zoomCenter.y;
+  float v = (atan(position.y, r) / 3.14 / 2.0) + 0.5;
+  vec3 uv = uvMatrix * vec3(u, v, 1.0);
+
+  // 0 = k * 0.375 + o
+  // 1 = k * 0.625 + o
+  // 1 = k * 0.25
+  // k = 4
+  // 0 = 4 * 0.375 + o = 1.5 + o
+  // -1.5 = o
+
+  v_uv = (uv.xy / uv.z) * vec2(1.0, 4.0) + vec2(0.0, -1.5);
 
   gl_Position = projectionMatrix * modelViewMatrix * 
     vec4(position, 1.0);
-  v_uv = vec2(u, v);
 }`,
             fragmentShader: `
 varying vec2 v_uv;
@@ -750,12 +780,12 @@ class ProjectionCylinder {
         const rho = Math.atan2(this.p.y, this.radius);
         return new THREE.Vector2(theta, rho);
     }
-    // Returns posiiton in UV space (between -1 and 1)
+    // Returns posiiton in UV space (between 0 and 1)
     getUV(ray) {
         const polar = this.intersectRayOnCylinder(ray);
         if (polar) {
-            const x = polar.x / Math.PI;
-            const y = -polar.y / Math.PI;
+            const x = 0.5 + (polar.x / Math.PI / 2);
+            const y = 0.5 + (polar.y / Math.PI / 2);
             return new THREE.Vector2(x, y);
         }
         else {
@@ -806,10 +836,14 @@ class TactileInterface {
     }
     start(ray, handIndex) {
         const uv = this.projection.getUV(ray);
+        if (!uv) {
+            return;
+        }
         this.activeHands.set(handIndex, uv);
         if (this.activeHands.size > 1) {
             // TODO: Cancel / undo last action
             this.paint.paintUp(uv);
+            this.paint.zoomStart(this.activeHands.get(0), this.activeHands.get(1));
         }
         else {
             this.paint.paintDown(uv);
@@ -817,29 +851,33 @@ class TactileInterface {
     }
     move(ray, handIndex) {
         const uv = this.projection.getUV(ray);
-        const lastUV = this.activeHands.get(handIndex);
-        lastUV.lerp(uv, 0.25);
+        if (!uv) {
+            return;
+        }
+        const lastUV = this.activeHands.get(handIndex) ?? uv;
+        lastUV.lerp(uv, 0.2);
         if (this.activeHands.size > 1) {
-            // TODO: Zoom
+            this.paint.zoomUpdate(this.activeHands.get(0), this.activeHands.get(1));
         }
         else {
             this.paint.paintMove(lastUV);
         }
+        this.activeHands.set(handIndex, lastUV);
     }
     end(ray, handIndex) {
         const uv = this.projection.getUV(ray);
-        const lastUV = this.activeHands.get(handIndex);
+        if (!uv) {
+            return;
+        }
+        const lastUV = this.activeHands.get(handIndex) ?? uv;
         lastUV.lerp(uv, 0.2);
-        if (this.activeHands.size == 1) {
+        if (this.activeHands.size > 1) {
+            this.paint.zoomEnd(this.activeHands.get(0), this.activeHands.get(1));
+        }
+        else {
             this.paint.paintUp(uv);
         }
         this.activeHands.delete(handIndex);
-    }
-    takeMatrix() {
-        const result = this.matrix;
-        this.matrix = new THREE.Matrix3();
-        this.matrix.identity();
-        return result;
     }
 }
 exports.TactileInterface = TactileInterface;
@@ -890,6 +928,12 @@ class Zoom {
         // console.log(newPosition);
         initialPosition.invert();
         newPosition.multiplyMatrices(newPosition, initialPosition);
+        // Remove rotation.
+        // this.x = e[ 0 ] * x + e[ 3 ] * y + e[ 6 ] * z;
+        // this.y = e[ 1 ] * x + e[ 4 ] * y + e[ 7 ] * z;
+        // this.z = e[ 2 ] * x + e[ 5 ] * y + e[ 8 ] * z;
+        // newPosition.elements[1] = 0;
+        // newPosition.elements[3] = 0;
         return newPosition;
     }
 }

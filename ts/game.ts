@@ -87,13 +87,28 @@ export class Game {
     return ray;
   }
 
+  private getTouchIndex(id: number, idToIndex: Map<number, number>): number {
+    if (idToIndex.has(id)) {
+      return idToIndex.get(id);
+    }
+    const index = idToIndex.size % 2;
+    idToIndex.set(id, index);
+    return index;
+  }
+
   private setUpTouchHandlers() {
     const canvas = document.querySelector('canvas');
+
+    const lastIndex = 0;
+    const idToIndex = new Map<number, number>();
+
     canvas.addEventListener('touchstart',
       (ev: TouchEvent) => {
         for (let i = 0; i < ev.touches.length; ++i) {
+          const index = this.getTouchIndex(ev.touches[i].identifier,
+            idToIndex);
           const ray = this.getRay(ev.touches[i]);
-          this.tactile.start(ray, i);
+          this.tactile.start(ray, index);
         }
         ev.preventDefault();
       });
