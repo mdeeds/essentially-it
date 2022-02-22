@@ -82,7 +82,7 @@ export class Game {
 
   private getRay(ev: Touch | MouseEvent): THREE.Ray {
     const x = (ev.clientX / 1280) * 2 - 1;
-    const y = -(ev.clientY / 720) * 2 + 1;
+    const y = (ev.clientY / 720) * 2 - 1;
     const ray = this.rayFromCamera(x, y);
     return ray;
   }
