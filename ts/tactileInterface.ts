@@ -45,17 +45,9 @@ export class TactileInterface {
     this.activeHands.set(handIndex, lastUV);
   }
 
-  public end(ray: THREE.Ray, handIndex: number) {
-    const uv = this.projection.getUV(ray);
-    if (!uv) {
-      return;
-    }
-    const lastUV = this.activeHands.get(handIndex) ?? uv;
-    lastUV.lerp(uv, 0.2);
+  public end(handIndex: number) {
     if (this.activeHands.size > 1) {
       this.paint.zoomEnd(this.activeHands.get(0), this.activeHands.get(1));
-    } else {
-      this.paint.paintUp(uv);
     }
     this.activeHands.delete(handIndex);
   }

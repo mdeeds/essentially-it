@@ -50,7 +50,7 @@ export class Hand {
   }
 
   private handleSelectEnd(ev: any) {
-    this.tactile.end(this.ray, this.side == 'left' ? 0 : 1);
+    this.tactile.end(this.side == 'left' ? 0 : 1);
     this.penDown = false;
   }
 

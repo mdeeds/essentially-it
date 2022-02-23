@@ -80,7 +80,7 @@ export class Game {
     });
   }
 
-  private getRay(ev: Touch | MouseEvent): THREE.Ray {
+  private getRay(ev: Touch | PointerEvent): THREE.Ray {
     const x = (ev.clientX / 1280) * 2 - 1;
     const y = (ev.clientY / 720) * 2 - 1;
     const ray = this.rayFromCamera(x, y);
@@ -105,6 +105,7 @@ export class Game {
     canvas.addEventListener('touchstart',
       (ev: TouchEvent) => {
         for (let i = 0; i < ev.touches.length; ++i) {
+          console.log(`Start: ${ev.touches[i].identifier} (${ev.type})`);
           const index = this.getTouchIndex(ev.touches[i].identifier,
             idToIndex);
           const ray = this.getRay(ev.touches[i]);
@@ -115,19 +116,23 @@ export class Game {
     canvas.addEventListener('touchmove',
       (ev: TouchEvent) => {
         for (let i = 0; i < ev.touches.length; ++i) {
+          const index = this.getTouchIndex(ev.touches[i].identifier,
+            idToIndex);
           const ray = this.getRay(ev.touches[i]);
-          this.tactile.move(ray, i);
+          this.tactile.move(ray, index);
         }
         ev.preventDefault();
       });
-    canvas.addEventListener('touchend',
-      (ev: TouchEvent) => {
-        for (let i = 0; i < ev.touches.length; ++i) {
-          const ray = this.getRay(ev.touches[i]);
-          this.tactile.end(ray, i);
-        }
-        ev.preventDefault();
-      });
+    const handleEnd = (ev: TouchEvent) => {
+      console.log(`End: [${ev.touches.length}] (${ev.type})`);
+      for (const index of idToIndex.values()) {
+        this.tactile.end(index);
+      }
+      idToIndex.clear();
+      ev.preventDefault();
+    };
+    canvas.addEventListener('touchend', handleEnd);
+    canvas.addEventListener('touchcancel', handleEnd);
   }
 
   private rayFromCamera(x: number, y: number): THREE.Ray {
