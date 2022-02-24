@@ -151,7 +151,7 @@ uniform mat3 uvMatrix;
 void main() {
   float r = length(position.xz);
   float u = (atan(position.x, -position.z) / 3.14 / 2.0) + 0.5;
-  float v = (atan(position.y, r) / 3.14 / 2.0) + 0.5;
+  float v = -(atan(position.y, r) / 3.14 / 2.0) + 0.5;
   vec3 uv = uvMatrix * vec3(u, v, 1.0);
 
   // 0 = k * 0.375 + o
@@ -161,7 +161,7 @@ void main() {
   // 0 = 4 * 0.375 + o = 1.5 + o
   // -1.5 = o
 
-  v_uv = (uv.xy / uv.z) * vec2(1.0, 4.0) + vec2(0.0, -1.5);
+  v_uv = (uv.xy / uv.z) * vec2(1.0, -4.0) + vec2(0.0, 2.5);
 
   gl_Position = projectionMatrix * modelViewMatrix * 
     vec4(position, 1.0);

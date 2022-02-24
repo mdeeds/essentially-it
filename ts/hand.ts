@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { Object3D } from "three";
-import { PaintCylinder } from "./paintCylinder";
 import { ParticleSystem } from "./particleSystem";
 import { TactileInterface } from "./tactileInterface";
 
@@ -56,23 +55,14 @@ export class Hand {
 
   private v = new THREE.Vector3();
   private p = new THREE.Vector3();
-  private penUpColor = new THREE.Color('#0ff');
-  private penDownColor = new THREE.Color('#ff0');
   tick() {
     this.grip.getWorldPosition(this.p);
     this.v.copy(this.minusZ);
     this.grip.localToWorld(this.v);
     this.v.sub(this.p);
     this.ray.set(this.p, this.v);
-
-    this.v.copy(this.ray.direction);
-    this.v.multiplyScalar(0.05);
-
     if (this.penDown) {
-      this.particles.AddParticle(this.ray.origin, this.v, this.penDownColor);
       this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
-    } else {
-      this.particles.AddParticle(this.ray.origin, this.v, this.penUpColor);
     }
   }
 }

@@ -20,7 +20,8 @@ export class TactileInterface {
     if (!uv) {
       return;
     }
-    this.activeHands.set(handIndex, uv);
+    const flipped = new THREE.Vector2(uv.x, uv.y);
+    this.activeHands.set(handIndex, flipped);
     if (this.activeHands.size > 1) {
       // TODO: Cancel / undo last action
       this.paint.paintUp(uv);
@@ -35,6 +36,7 @@ export class TactileInterface {
     if (!uv) {
       return;
     }
+    uv.applyMatrix3(this.matrix);
     const lastUV = this.activeHands.get(handIndex) ?? uv;
     lastUV.lerp(uv, 0.2);
     if (this.activeHands.size > 1) {
@@ -42,7 +44,8 @@ export class TactileInterface {
     } else {
       this.paint.paintMove(lastUV);
     }
-    this.activeHands.set(handIndex, lastUV);
+    const flipped = new THREE.Vector2(lastUV.x, lastUV.y);
+    this.activeHands.set(handIndex, flipped);
   }
 
   public end(handIndex: number) {

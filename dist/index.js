@@ -159,7 +159,7 @@ class Game {
     }
     getRay(ev) {
         const x = (ev.clientX / 1280) * 2 - 1;
-        const y = -(ev.clientY / 720) * 2 + 1;
+        const y = (ev.clientY / 720) * 2 - 1;
         const ray = this.rayFromCamera(x, y);
         return ray;
     }
@@ -177,6 +177,7 @@ class Game {
         const idToIndex = new Map();
         canvas.addEventListener('touchstart', (ev) => {
             for (let i = 0; i < ev.touches.length; ++i) {
+                console.log(`Start: ${ev.touches[i].identifier} (${ev.type})`);
                 const index = this.getTouchIndex(ev.touches[i].identifier, idToIndex);
                 const ray = this.getRay(ev.touches[i]);
                 this.tactile.start(ray, index);
@@ -185,18 +186,22 @@ class Game {
         });
         canvas.addEventListener('touchmove', (ev) => {
             for (let i = 0; i < ev.touches.length; ++i) {
+                const index = this.getTouchIndex(ev.touches[i].identifier, idToIndex);
                 const ray = this.getRay(ev.touches[i]);
-                this.tactile.move(ray, i);
+                this.tactile.move(ray, index);
             }
             ev.preventDefault();
         });
-        canvas.addEventListener('touchend', (ev) => {
-            for (let i = 0; i < ev.touches.length; ++i) {
-                const ray = this.getRay(ev.touches[i]);
-                this.tactile.end(ray, i);
+        const handleEnd = (ev) => {
+            console.log(`End: [${ev.touches.length}] (${ev.type})`);
+            for (const index of idToIndex.values()) {
+                this.tactile.end(index);
             }
+            idToIndex.clear();
             ev.preventDefault();
-        });
+        };
+        canvas.addEventListener('touchend', handleEnd);
+        canvas.addEventListener('touchcancel', handleEnd);
     }
     rayFromCamera(x, y) {
         const ray = new THREE.Ray();
@@ -349,27 +354,19 @@ class Hand {
         this.penDown = true;
     }
     handleSelectEnd(ev) {
-        this.tactile.end(this.ray, this.side == 'left' ? 0 : 1);
+        this.tactile.end(this.side == 'left' ? 0 : 1);
         this.penDown = false;
     }
     v = new THREE.Vector3();
     p = new THREE.Vector3();
-    penUpColor = new THREE.Color('#0ff');
-    penDownColor = new THREE.Color('#ff0');
     tick() {
         this.grip.getWorldPosition(this.p);
         this.v.copy(this.minusZ);
         this.grip.localToWorld(this.v);
         this.v.sub(this.p);
         this.ray.set(this.p, this.v);
-        this.v.copy(this.ray.direction);
-        this.v.multiplyScalar(0.05);
         if (this.penDown) {
-            this.particles.AddParticle(this.ray.origin, this.v, this.penDownColor);
             this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
-        }
-        else {
-            this.particles.AddParticle(this.ray.origin, this.v, this.penUpColor);
         }
     }
 }
@@ -531,7 +528,7 @@ uniform mat3 uvMatrix;
 void main() {
   float r = length(position.xz);
   float u = (atan(position.x, -position.z) / 3.14 / 2.0) + 0.5;
-  float v = (atan(position.y, r) / 3.14 / 2.0) + 0.5;
+  float v = -(atan(position.y, r) / 3.14 / 2.0) + 0.5;
   vec3 uv = uvMatrix * vec3(u, v, 1.0);
 
   // 0 = k * 0.375 + o
@@ -541,7 +538,7 @@ void main() {
   // 0 = 4 * 0.375 + o = 1.5 + o
   // -1.5 = o
 
-  v_uv = (uv.xy / uv.z) * vec2(1.0, 4.0) + vec2(0.0, -1.5);
+  v_uv = (uv.xy / uv.z) * vec2(1.0, -4.0) + vec2(0.0, 2.5);
 
   gl_Position = projectionMatrix * modelViewMatrix * 
     vec4(position, 1.0);
@@ -839,7 +836,8 @@ class TactileInterface {
         if (!uv) {
             return;
         }
-        this.activeHands.set(handIndex, uv);
+        const flipped = new THREE.Vector2(uv.x, uv.y);
+        this.activeHands.set(handIndex, flipped);
         if (this.activeHands.size > 1) {
             // TODO: Cancel / undo last action
             this.paint.paintUp(uv);
@@ -854,6 +852,7 @@ class TactileInterface {
         if (!uv) {
             return;
         }
+        uv.applyMatrix3(this.matrix);
         const lastUV = this.activeHands.get(handIndex) ?? uv;
         lastUV.lerp(uv, 0.2);
         if (this.activeHands.size > 1) {
@@ -862,20 +861,12 @@ class TactileInterface {
         else {
             this.paint.paintMove(lastUV);
         }
-        this.activeHands.set(handIndex, lastUV);
+        const flipped = new THREE.Vector2(lastUV.x, lastUV.y);
+        this.activeHands.set(handIndex, flipped);
     }
-    end(ray, handIndex) {
-        const uv = this.projection.getUV(ray);
-        if (!uv) {
-            return;
-        }
-        const lastUV = this.activeHands.get(handIndex) ?? uv;
-        lastUV.lerp(uv, 0.2);
+    end(handIndex) {
         if (this.activeHands.size > 1) {
             this.paint.zoomEnd(this.activeHands.get(0), this.activeHands.get(1));
-        }
-        else {
-            this.paint.paintUp(uv);
         }
         this.activeHands.delete(handIndex);
     }
@@ -918,12 +909,16 @@ class Zoom {
         return new THREE.Vector2(l.x - dy, l.y + dx);
     }
     static makeZoomMatrix(l1, r1, l2, r2) {
-        const p1 = Zoom.makePerpendicular(l1, r1);
-        const p2 = Zoom.makePerpendicular(l2, r2);
+        const ll1 = new THREE.Vector2(l1.x, l1.y);
+        const ll2 = new THREE.Vector2(l2.x, l2.y);
+        const rr1 = new THREE.Vector2(r1.x, r1.y);
+        const rr2 = new THREE.Vector2(r2.x, r2.y);
+        const p1 = Zoom.makePerpendicular(ll1, rr1);
+        const p2 = Zoom.makePerpendicular(ll2, rr2);
         const initialPosition = new THREE.Matrix3();
-        initialPosition.set(l1.x, r1.x, p1.x, l1.y, r1.y, p1.y, 1, 1, 1);
+        initialPosition.set(ll1.x, rr1.x, p1.x, ll1.y, rr1.y, p1.y, 1, 1, 1);
         const newPosition = new THREE.Matrix3();
-        newPosition.set(l2.x, r2.x, p2.x, l2.y, r2.y, p2.y, 1, 1, 1);
+        newPosition.set(ll2.x, rr2.x, p2.x, ll2.y, rr2.y, p2.y, 1, 1, 1);
         // console.log(initialPosition);
         // console.log(newPosition);
         initialPosition.invert();

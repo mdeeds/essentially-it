@@ -12,19 +12,24 @@ export class Zoom {
     l1: THREE.Vector2, r1: THREE.Vector2,
     l2: THREE.Vector2, r2: THREE.Vector2): THREE.Matrix3 {
 
-    const p1 = Zoom.makePerpendicular(l1, r1);
-    const p2 = Zoom.makePerpendicular(l2, r2);
+    const ll1 = new THREE.Vector2(l1.x, l1.y);
+    const ll2 = new THREE.Vector2(l2.x, l2.y);
+    const rr1 = new THREE.Vector2(r1.x, r1.y);
+    const rr2 = new THREE.Vector2(r2.x, r2.y);
+
+    const p1 = Zoom.makePerpendicular(ll1, rr1);
+    const p2 = Zoom.makePerpendicular(ll2, rr2);
 
     const initialPosition = new THREE.Matrix3();
     initialPosition.set(
-      l1.x, r1.x, p1.x,
-      l1.y, r1.y, p1.y,
+      ll1.x, rr1.x, p1.x,
+      ll1.y, rr1.y, p1.y,
       1, 1, 1);
 
     const newPosition = new THREE.Matrix3();
     newPosition.set(
-      l2.x, r2.x, p2.x,
-      l2.y, r2.y, p2.y,
+      ll2.x, rr2.x, p2.x,
+      ll2.y, rr2.y, p2.y,
       1, 1, 1);
 
     // console.log(initialPosition);
