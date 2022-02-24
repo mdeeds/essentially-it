@@ -1,16 +1,16 @@
 import * as THREE from "three";
 import { PaintCylinder } from "./paintCylinder";
+import { PenTool } from "./penTool";
 import { ProjectionCylinder } from "./projectionCylinder";
-
-export interface Tool {
-
-}
 
 export class TactileInterface {
   private activeHands = new Map<number, THREE.Vector2>();
+  private handTool = new Map<number, PenTool>();
 
   constructor(private paint: PaintCylinder,
     private projection: ProjectionCylinder) {
+    this.handTool.set(0, new PenTool(paint.getContext(), 'turquoise'));
+    this.handTool.set(0, new PenTool(paint.getContext(), 'purple'));
   }
 
   public start(ray: THREE.Ray, handIndex: number) {
@@ -24,7 +24,9 @@ export class TactileInterface {
       this.paint.paintUp(uv);
       this.paint.zoomStart(this.activeHands.get(0), this.activeHands.get(1));
     } else {
-      this.paint.paintDown(uv);
+      const xy = this.paint.getXY(uv);
+      this.handTool.get(handIndex).paintDown(xy);
+      this.paint.setNeedsUpdate();
     }
   }
 
@@ -38,7 +40,9 @@ export class TactileInterface {
     if (this.activeHands.size > 1) {
       this.paint.zoomUpdate(this.activeHands.get(0), this.activeHands.get(1));
     } else {
-      this.paint.paintMove(lastUV);
+      const xy = this.paint.getXY(uv);
+      this.handTool.get(handIndex).paintMove(xy);
+      this.paint.setNeedsUpdate();
     }
     this.activeHands.set(handIndex, lastUV);
   }
@@ -46,6 +50,8 @@ export class TactileInterface {
   public end(handIndex: number) {
     if (this.activeHands.size > 1) {
       this.paint.zoomEnd(this.activeHands.get(0), this.activeHands.get(1));
+    } else {
+      this.handTool.get(handIndex).paintEnd();
     }
     this.activeHands.delete(handIndex);
   }

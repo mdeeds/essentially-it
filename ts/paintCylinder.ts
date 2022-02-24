@@ -29,30 +29,11 @@ export class PaintCylinder extends THREE.Object3D {
     this.add(this.mesh);
   }
 
-  private lastX = 0;
-  private lastY = 0;
-
-  paintDown(uv: THREE.Vector2) {
-    const xy = this.getXY(uv);
-    if (!xy) return;
-    this.lastX = xy.x;
-    this.lastY = xy.y;
-    this.ctx.beginPath();
-    this.ctx.arc(xy.x, xy.y, 5, -Math.PI, Math.PI);
-    this.ctx.fill();
-    this.canvasTexture.needsUpdate = true;
+  public getContext(): CanvasRenderingContext2D {
+    return this.ctx;
   }
 
-  paintMove(uv: THREE.Vector2) {
-    const xy = this.getXY(uv);
-    if (!xy) return;
-    this.ctx.beginPath();
-    this.ctx.moveTo(this.lastX, this.lastY);
-    this.ctx.lineTo(xy.x, xy.y);
-    this.ctx.stroke();
-    this.canvasTexture.needsUpdate = true;
-    this.lastX = xy.x;
-    this.lastY = xy.y;
+  public setNeedsUpdate() {
     this.canvasTexture.needsUpdate = true;
   }
 
@@ -184,7 +165,7 @@ void main() {
     return material;
   }
 
-  private getXY(uv: THREE.Vector2): THREE.Vector2 {
+  public getXY(uv: THREE.Vector2): THREE.Vector2 {
     const tx = new THREE.Vector2();
     tx.copy(uv);
     tx.applyMatrix3(this.finalizedInverseMatrix);
