@@ -8,6 +8,7 @@ import { ParticleSystem } from "./particleSystem";
 import { TactileInterface } from "./tactileInterface";
 import { ProjectionCylinder } from "./projectionCylinder";
 import { FogMaterial } from "./fogMaterial";
+import { FloorMaterial } from "./floorMaterial";
 
 export class Game {
   private scene: THREE.Scene;
@@ -21,13 +22,24 @@ export class Game {
 
   private hands: Hand[] = [];
 
+  private floorMaterial: FloorMaterial;
+
   constructor(private audioCtx: AudioContext) {
     this.scene = new THREE.Scene();
 
     const fogSphere = new THREE.Mesh(
       new THREE.IcosahedronBufferGeometry(20, 3),
       new FogMaterial());
+    fogSphere.position.set(0, -0.4, 0);
     this.scene.add(fogSphere);
+
+    this.floorMaterial = new FloorMaterial();
+    const groundPlane = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(40, 40),
+      this.floorMaterial);
+    groundPlane.rotateX(Math.PI / 2);
+    groundPlane.position.set(0, -0.4, 0);
+    this.scene.add(groundPlane);
 
     this.renderer = new THREE.WebGLRenderer();
     this.camera = new THREE.PerspectiveCamera(
@@ -147,6 +159,7 @@ export class Game {
   private animationLoop() {
     let deltaS = this.clock.getDelta();
     deltaS = Math.min(0.1, deltaS);
+    this.floorMaterial.setT(0.05 * this.clock.elapsedTime);
     this.renderer.render(this.scene, this.camera);
     this.handleKeys();
     for (const h of this.hands) {

@@ -5,16 +5,16 @@ export class FogMaterial extends THREE.ShaderMaterial {
     super({
       uniforms: {},
       vertexShader: `
-varying vec4 vWorldPosition;
+varying vec4 vLocalPosition;
 void main() {
-  vWorldPosition = modelMatrix * vec4(position, 1.0);
+  vLocalPosition = vec4(position, 1.0);
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
   gl_Position = projectionMatrix * mvPosition;
 }`,
       fragmentShader: `
-varying vec4 vWorldPosition;
+varying vec4 vLocalPosition;
 void main() {
-  float y = vWorldPosition.y;
+  float y = vLocalPosition.y;
   if (y > 0.0) {
     float a = pow(clamp(y / 5.0, 0.0, 1.0), 0.2);
     gl_FragColor = mix(

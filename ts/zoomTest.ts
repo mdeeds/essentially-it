@@ -10,9 +10,9 @@ import * as THREE from "three";
 }
 
 function logMatrix3(m: THREE.Matrix3) {
-  console.log(`[ ${m.elements[0]}, ${m.elements[1]} ${m.elements[2]} ]`);
-  console.log(`[ ${m.elements[3]}, ${m.elements[4]} ${m.elements[5]} ]`);
-  console.log(`[ ${m.elements[6]}, ${m.elements[7]} ${m.elements[8]} ]`);
+  console.log(`[ ${m.elements[0]}, ${m.elements[1]}, ${m.elements[2]} ]`);
+  console.log(`[ ${m.elements[3]}, ${m.elements[4]}, ${m.elements[5]} ]`);
+  console.log(`[ ${m.elements[6]}, ${m.elements[7]}, ${m.elements[8]} ]`);
 }
 
 {

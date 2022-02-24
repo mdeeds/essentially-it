@@ -2,6 +2,92 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 41:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.FloorMaterial = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class FloorMaterial extends THREE.ShaderMaterial {
+    constructor() {
+        super({
+            uniforms: {
+                t: { value: 0.0 }
+            },
+            vertexShader: `
+varying vec4 vWorldPosition;
+void main() {
+  vWorldPosition = modelMatrix * vec4(position, 1.0);
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * mvPosition;
+}`,
+            fragmentShader: `
+uniform float t;
+varying vec4 vWorldPosition;
+
+vec2 noiseM(vec2 v, vec2 v0) {
+  return vec2(
+    v0.x + v.x * v.x + v.y * v.y,
+    v0.y + 2.0 * v.x * v.y);
+}
+
+vec2 noiseS(vec2 v, vec2 v0) {
+  vec2 n = noiseM(v, v0);
+  return vec2(sin(n.x), sin(n.y));
+}
+
+vec3 noiseV(vec2 v) {
+  v = v * 0.1;
+  vec2 v0 = v + vec2(cos(t * 0.9), sin(t * 1.09));
+  for (int i = 0; i < 16; ++i) {
+    v = noiseS(v, v0);
+  }
+  v = v * 0.707;
+
+  float mag = length(v) * 0.5 + 0.5;
+  return vec3(mag, mag, mag);
+}
+
+void main() {
+  vec3 c = noiseV(vWorldPosition.xz);
+  gl_FragColor = vec4(c, 1.0);
+}`,
+            depthTest: true,
+            depthWrite: true,
+            transparent: false,
+            side: THREE.DoubleSide,
+        });
+    }
+    setT(t) {
+        this.uniforms['t'].value = t;
+        this.uniformsNeedUpdate = true;
+    }
+}
+exports.FloorMaterial = FloorMaterial;
+//# sourceMappingURL=floorMaterial.js.map
+
+/***/ }),
+
 /***/ 927:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -33,16 +119,16 @@ class FogMaterial extends THREE.ShaderMaterial {
         super({
             uniforms: {},
             vertexShader: `
-varying vec4 vWorldPosition;
+varying vec4 vLocalPosition;
 void main() {
-  vWorldPosition = modelMatrix * vec4(position, 1.0);
+  vLocalPosition = vec4(position, 1.0);
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
   gl_Position = projectionMatrix * mvPosition;
 }`,
             fragmentShader: `
-varying vec4 vWorldPosition;
+varying vec4 vLocalPosition;
 void main() {
-  float y = vWorldPosition.y;
+  float y = vLocalPosition.y;
   if (y > 0.0) {
     float a = pow(clamp(y / 5.0, 0.0, 1.0), 0.2);
     gl_FragColor = mix(
@@ -101,6 +187,7 @@ const particleSystem_1 = __webpack_require__(564);
 const tactileInterface_1 = __webpack_require__(791);
 const projectionCylinder_1 = __webpack_require__(233);
 const fogMaterial_1 = __webpack_require__(927);
+const floorMaterial_1 = __webpack_require__(41);
 class Game {
     audioCtx;
     scene;
@@ -111,11 +198,18 @@ class Game {
     keysDown = new Set();
     tactile;
     hands = [];
+    floorMaterial;
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
         this.scene = new THREE.Scene();
         const fogSphere = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 3), new fogMaterial_1.FogMaterial());
+        fogSphere.position.set(0, -0.4, 0);
         this.scene.add(fogSphere);
+        this.floorMaterial = new floorMaterial_1.FloorMaterial();
+        const groundPlane = new THREE.Mesh(new THREE.PlaneBufferGeometry(40, 40), this.floorMaterial);
+        groundPlane.rotateX(Math.PI / 2);
+        groundPlane.position.set(0, -0.4, 0);
+        this.scene.add(groundPlane);
         this.renderer = new THREE.WebGLRenderer();
         this.camera = new THREE.PerspectiveCamera(
         /*fov=*/ 75, /*aspec=*/ 1280 / 720, /*near=*/ 0.1, 
@@ -214,6 +308,7 @@ class Game {
     animationLoop() {
         let deltaS = this.clock.getDelta();
         deltaS = Math.min(0.1, deltaS);
+        this.floorMaterial.setT(0.05 * this.clock.elapsedTime);
         this.renderer.render(this.scene, this.camera);
         this.handleKeys();
         for (const h of this.hands) {
@@ -425,7 +520,10 @@ class PaintCylinder extends THREE.Object3D {
         this.add(this.mesh);
     }
     getXY(uv) {
-        return new THREE.Vector2(this.canvas.width * uv.x, this.canvas.height * (4 * uv.y - 1.5));
+        const tx = new THREE.Vector2();
+        tx.copy(uv);
+        tx.applyMatrix3(this.finalizedInverseMatrix);
+        return new THREE.Vector2(this.canvas.width * tx.x, this.canvas.height * (4 * tx.y - 1.5));
     }
     lastX = 0;
     lastY = 0;
@@ -462,12 +560,15 @@ class PaintCylinder extends THREE.Object3D {
         this.startRightUV.copy(rightUV);
     }
     finalizedZoomMatrix = new THREE.Matrix3();
+    finalizedInverseMatrix = new THREE.Matrix3();
     zoomInternal(leftUV, rightUV, finalize) {
         const m = this.material.uniforms['uvMatrix'].value;
         m.copy(zoom_1.Zoom.makeZoomMatrix(this.startLeftUV, this.startRightUV, leftUV, rightUV));
         m.premultiply(this.finalizedZoomMatrix);
         if (finalize) {
             this.finalizedZoomMatrix.copy(m);
+            this.finalizedInverseMatrix.copy(m);
+            this.finalizedInverseMatrix.invert();
         }
         m.invert();
         this.material.uniformsNeedUpdate = true;
@@ -824,12 +925,10 @@ const THREE = __importStar(__webpack_require__(578));
 class TactileInterface {
     paint;
     projection;
-    matrix = new THREE.Matrix3();
     activeHands = new Map();
     constructor(paint, projection) {
         this.paint = paint;
         this.projection = projection;
-        this.matrix.identity();
     }
     start(ray, handIndex) {
         const uv = this.projection.getUV(ray);
@@ -852,7 +951,6 @@ class TactileInterface {
         if (!uv) {
             return;
         }
-        uv.applyMatrix3(this.matrix);
         const lastUV = this.activeHands.get(handIndex) ?? uv;
         lastUV.lerp(uv, 0.2);
         if (this.activeHands.size > 1) {

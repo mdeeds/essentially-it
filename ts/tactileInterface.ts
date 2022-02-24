@@ -7,12 +7,10 @@ export interface Tool {
 }
 
 export class TactileInterface {
-  private matrix = new THREE.Matrix3();
   private activeHands = new Map<number, THREE.Vector2>();
 
   constructor(private paint: PaintCylinder,
     private projection: ProjectionCylinder) {
-    this.matrix.identity();
   }
 
   public start(ray: THREE.Ray, handIndex: number) {
@@ -36,7 +34,6 @@ export class TactileInterface {
     if (!uv) {
       return;
     }
-    uv.applyMatrix3(this.matrix);
     const lastUV = this.activeHands.get(handIndex) ?? uv;
     lastUV.lerp(uv, 0.2);
     if (this.activeHands.size > 1) {
