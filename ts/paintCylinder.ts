@@ -96,8 +96,8 @@ export class PaintCylinder extends THREE.Object3D {
 
   private getMaterial(): THREE.ShaderMaterial {
     this.canvas = document.createElement('canvas');
-    this.canvas.width = 4096;
-    this.canvas.height = 1024;
+    this.canvas.width = 1024 * 8;
+    this.canvas.height = 1024 * 2;
     this.ctx = this.canvas.getContext('2d');
 
     this.ctx.fillStyle = '#9af4';
@@ -120,7 +120,7 @@ export class PaintCylinder extends THREE.Object3D {
     this.ctx.fillStyle = '#000';
     this.ctx.strokeStyle = '#000';
     this.ctx.lineCap = 'round';
-    this.ctx.lineWidth = 10;
+    this.ctx.lineWidth = 25;
 
     this.canvasTexture = new THREE.CanvasTexture(this.canvas);
     this.canvasTexture.needsUpdate = true;

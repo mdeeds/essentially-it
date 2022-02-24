@@ -28,6 +28,15 @@ vec2 noiseS(vec2 v, vec2 v0) {
   return vec2(sin(n.x), sin(n.y));
 }
 
+// All components are in the range [0…1], including hue.
+// https://stackoverflow.com/questions/15095909/from-rgb-to-hsv-in-opengl-glsl
+vec3 hsv2rgb(vec3 c)
+{
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
 vec3 noiseV(vec2 v) {
   v = v * 0.1;
   vec2 v0 = v + vec2(cos(t * 0.9), sin(t * 1.09));
@@ -37,7 +46,8 @@ vec3 noiseV(vec2 v) {
   v = v * 0.707;
 
   float mag = length(v) * 0.5 + 0.5;
-  return vec3(mag, mag, mag);
+  float h = atan(v.x, v.y) / 3.1416 / 2.0 + 0.5;
+  return hsv2rgb(vec3(h, 0.05, mag));
 }
 
 void main() {
