@@ -253,7 +253,7 @@ class Game {
     }
     getRay(ev) {
         const x = (ev.clientX / 1280) * 2 - 1;
-        const y = (ev.clientY / 720) * 2 - 1;
+        const y = 1 - (ev.clientY / 720) * 2;
         const ray = this.rayFromCamera(x, y);
         return ray;
     }
@@ -519,12 +519,6 @@ class PaintCylinder extends THREE.Object3D {
         this.mesh.position.set(0, 0, 0);
         this.add(this.mesh);
     }
-    getXY(uv) {
-        const tx = new THREE.Vector2();
-        tx.copy(uv);
-        tx.applyMatrix3(this.finalizedInverseMatrix);
-        return new THREE.Vector2(this.canvas.width * tx.x, this.canvas.height * (4 * tx.y - 1.5));
-    }
     lastX = 0;
     lastY = 0;
     paintDown(uv) {
@@ -628,18 +622,13 @@ varying vec2 v_uv;
 uniform mat3 uvMatrix;
 void main() {
   float r = length(position.xz);
-  float u = (atan(position.x, -position.z) / 3.14 / 2.0) + 0.5;
-  float v = -(atan(position.y, r) / 3.14 / 2.0) + 0.5;
+  float u = (atan(position.x, -position.z) / 3.1416 / 2.0) + 0.5;
+  float v = (atan(position.y, r) / 3.1416 / 2.0) + 0.5;
   vec3 uv = uvMatrix * vec3(u, v, 1.0);
 
-  // 0 = k * 0.375 + o
-  // 1 = k * 0.625 + o
-  // 1 = k * 0.25
-  // k = 4
-  // 0 = 4 * 0.375 + o = 1.5 + o
-  // -1.5 = o
-
-  v_uv = (uv.xy / uv.z) * vec2(1.0, -4.0) + vec2(0.0, 2.5);
+  v_uv = (uv.xy / uv.z);
+  v_uv.y = 1.0 - v_uv.y;
+  v_uv.y = (v_uv.y - 0.375) * 4.0;
 
   gl_Position = projectionMatrix * modelViewMatrix * 
     vec4(position, 1.0);
@@ -654,6 +643,12 @@ void main() {
         });
         this.canvasTexture.needsUpdate = true;
         return material;
+    }
+    getXY(uv) {
+        const tx = new THREE.Vector2();
+        tx.copy(uv);
+        tx.applyMatrix3(this.finalizedInverseMatrix);
+        return new THREE.Vector2(this.canvas.width * tx.x, this.canvas.height * (tx.y - 0.375) * 4.0);
     }
 }
 exports.PaintCylinder = PaintCylinder;
@@ -882,9 +877,9 @@ class ProjectionCylinder {
     getUV(ray) {
         const polar = this.intersectRayOnCylinder(ray);
         if (polar) {
-            const x = 0.5 + (polar.x / Math.PI / 2);
-            const y = 0.5 + (polar.y / Math.PI / 2);
-            return new THREE.Vector2(x, y);
+            const u = 0.5 + (polar.x / Math.PI / 2);
+            const v = 0.5 + (polar.y / Math.PI / 2);
+            return new THREE.Vector2(u, v);
         }
         else {
             return null;
@@ -897,31 +892,11 @@ exports.ProjectionCylinder = ProjectionCylinder;
 /***/ }),
 
 /***/ 791:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ ((__unused_webpack_module, exports) => {
 
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TactileInterface = void 0;
-const THREE = __importStar(__webpack_require__(578));
 class TactileInterface {
     paint;
     projection;
@@ -935,8 +910,7 @@ class TactileInterface {
         if (!uv) {
             return;
         }
-        const flipped = new THREE.Vector2(uv.x, uv.y);
-        this.activeHands.set(handIndex, flipped);
+        this.activeHands.set(handIndex, uv);
         if (this.activeHands.size > 1) {
             // TODO: Cancel / undo last action
             this.paint.paintUp(uv);
@@ -959,8 +933,7 @@ class TactileInterface {
         else {
             this.paint.paintMove(lastUV);
         }
-        const flipped = new THREE.Vector2(lastUV.x, lastUV.y);
-        this.activeHands.set(handIndex, flipped);
+        this.activeHands.set(handIndex, lastUV);
     }
     end(handIndex) {
         if (this.activeHands.size > 1) {

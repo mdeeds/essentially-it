@@ -37,9 +37,9 @@ export class ProjectionCylinder {
   getUV(ray: THREE.Ray): THREE.Vector2 {
     const polar = this.intersectRayOnCylinder(ray);
     if (polar) {
-      const x = 0.5 + (polar.x / Math.PI / 2);
-      const y = 0.5 + (polar.y / Math.PI / 2);
-      return new THREE.Vector2(x, y);
+      const u = 0.5 + (polar.x / Math.PI / 2);
+      const v = 0.5 + (polar.y / Math.PI / 2);
+      return new THREE.Vector2(u, v);
     } else {
       return null;
     }

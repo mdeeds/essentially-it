@@ -29,15 +29,6 @@ export class PaintCylinder extends THREE.Object3D {
     this.add(this.mesh);
   }
 
-  private getXY(uv: THREE.Vector2): THREE.Vector2 {
-    const tx = new THREE.Vector2();
-    tx.copy(uv);
-    tx.applyMatrix3(this.finalizedInverseMatrix);
-    return new THREE.Vector2(
-      this.canvas.width * tx.x,
-      this.canvas.height * (4 * tx.y - 1.5));
-  }
-
   private lastX = 0;
   private lastY = 0;
 
@@ -156,18 +147,13 @@ varying vec2 v_uv;
 uniform mat3 uvMatrix;
 void main() {
   float r = length(position.xz);
-  float u = (atan(position.x, -position.z) / 3.14 / 2.0) + 0.5;
-  float v = -(atan(position.y, r) / 3.14 / 2.0) + 0.5;
+  float u = (atan(position.x, -position.z) / 3.1416 / 2.0) + 0.5;
+  float v = (atan(position.y, r) / 3.1416 / 2.0) + 0.5;
   vec3 uv = uvMatrix * vec3(u, v, 1.0);
 
-  // 0 = k * 0.375 + o
-  // 1 = k * 0.625 + o
-  // 1 = k * 0.25
-  // k = 4
-  // 0 = 4 * 0.375 + o = 1.5 + o
-  // -1.5 = o
-
-  v_uv = (uv.xy / uv.z) * vec2(1.0, -4.0) + vec2(0.0, 2.5);
+  v_uv = (uv.xy / uv.z);
+  v_uv.y = 1.0 - v_uv.y;
+  v_uv.y = (v_uv.y - 0.375) * 4.0;
 
   gl_Position = projectionMatrix * modelViewMatrix * 
     vec4(position, 1.0);
@@ -184,6 +170,14 @@ void main() {
     this.canvasTexture.needsUpdate = true;
 
     return material;
+  }
 
+  private getXY(uv: THREE.Vector2): THREE.Vector2 {
+    const tx = new THREE.Vector2();
+    tx.copy(uv);
+    tx.applyMatrix3(this.finalizedInverseMatrix);
+    return new THREE.Vector2(
+      this.canvas.width * tx.x,
+      this.canvas.height * (tx.y - 0.375) * 4.0);
   }
 }
