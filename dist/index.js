@@ -56,6 +56,15 @@ vec2 noiseS(vec2 v, vec2 v0) {
   return vec2(sin(n.x), sin(n.y));
 }
 
+// All components are in the range [0…1], including hue.
+// https://stackoverflow.com/questions/15095909/from-rgb-to-hsv-in-opengl-glsl
+vec3 hsv2rgb(vec3 c)
+{
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
 vec3 noiseV(vec2 v) {
   v = v * 0.1;
   vec2 v0 = v + vec2(cos(t * 0.9), sin(t * 1.09));
@@ -65,7 +74,8 @@ vec3 noiseV(vec2 v) {
   v = v * 0.707;
 
   float mag = length(v) * 0.5 + 0.5;
-  return vec3(mag, mag, mag);
+  float h = atan(v.x, v.y) / 3.1416 / 2.0 + 0.5;
+  return hsv2rgb(vec3(h, 0.05, mag));
 }
 
 void main() {
@@ -550,14 +560,26 @@ class PaintCylinder extends THREE.Object3D {
     startLeftUV = new THREE.Vector2();
     startRightUV = new THREE.Vector2();
     zoomStart(leftUV, rightUV) {
-        this.startLeftUV.copy(leftUV);
-        this.startRightUV.copy(rightUV);
+        const luv = new THREE.Vector2();
+        const ruv = new THREE.Vector2();
+        luv.copy(leftUV);
+        ruv.copy(rightUV);
+        luv.applyMatrix3(this.finalizedInverseMatrix);
+        ruv.applyMatrix3(this.finalizedInverseMatrix);
+        this.startLeftUV.copy(luv);
+        this.startRightUV.copy(ruv);
     }
     finalizedZoomMatrix = new THREE.Matrix3();
     finalizedInverseMatrix = new THREE.Matrix3();
     zoomInternal(leftUV, rightUV, finalize) {
         const m = this.material.uniforms['uvMatrix'].value;
-        m.copy(zoom_1.Zoom.makeZoomMatrix(this.startLeftUV, this.startRightUV, leftUV, rightUV));
+        const luv = new THREE.Vector2();
+        const ruv = new THREE.Vector2();
+        luv.copy(leftUV);
+        ruv.copy(rightUV);
+        luv.applyMatrix3(this.finalizedInverseMatrix);
+        ruv.applyMatrix3(this.finalizedInverseMatrix);
+        m.copy(zoom_1.Zoom.makeZoomMatrix(this.startLeftUV, this.startRightUV, luv, ruv));
         m.premultiply(this.finalizedZoomMatrix);
         if (finalize) {
             this.finalizedZoomMatrix.copy(m);
@@ -575,8 +597,8 @@ class PaintCylinder extends THREE.Object3D {
     }
     getMaterial() {
         this.canvas = document.createElement('canvas');
-        this.canvas.width = 4096;
-        this.canvas.height = 1024;
+        this.canvas.width = 1024 * 8;
+        this.canvas.height = 1024 * 2;
         this.ctx = this.canvas.getContext('2d');
         this.ctx.fillStyle = '#9af4';
         for (let x = 0; x < this.canvas.width; x += 64) {
@@ -597,7 +619,7 @@ class PaintCylinder extends THREE.Object3D {
         this.ctx.fillStyle = '#000';
         this.ctx.strokeStyle = '#000';
         this.ctx.lineCap = 'round';
-        this.ctx.lineWidth = 10;
+        this.ctx.lineWidth = 25;
         this.canvasTexture = new THREE.CanvasTexture(this.canvas);
         this.canvasTexture.needsUpdate = true;
         const material = new THREE.ShaderMaterial({

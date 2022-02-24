@@ -62,8 +62,14 @@ export class PaintCylinder extends THREE.Object3D {
   private startLeftUV = new THREE.Vector2();
   private startRightUV = new THREE.Vector2();
   zoomStart(leftUV: THREE.Vector2, rightUV: THREE.Vector2) {
-    this.startLeftUV.copy(leftUV);
-    this.startRightUV.copy(rightUV);
+    const luv = new THREE.Vector2();
+    const ruv = new THREE.Vector2();
+    luv.copy(leftUV);
+    ruv.copy(rightUV);
+    luv.applyMatrix3(this.finalizedInverseMatrix);
+    ruv.applyMatrix3(this.finalizedInverseMatrix);
+    this.startLeftUV.copy(luv);
+    this.startRightUV.copy(ruv);
   }
 
   private finalizedZoomMatrix = new THREE.Matrix3();
@@ -71,9 +77,15 @@ export class PaintCylinder extends THREE.Object3D {
   private zoomInternal(leftUV: THREE.Vector2, rightUV: THREE.Vector2,
     finalize: boolean) {
     const m = this.material.uniforms['uvMatrix'].value as THREE.Matrix3;
+    const luv = new THREE.Vector2();
+    const ruv = new THREE.Vector2();
+    luv.copy(leftUV);
+    ruv.copy(rightUV);
+    luv.applyMatrix3(this.finalizedInverseMatrix);
+    ruv.applyMatrix3(this.finalizedInverseMatrix);
     m.copy(Zoom.makeZoomMatrix(
       this.startLeftUV, this.startRightUV,
-      leftUV, rightUV));
+      luv, ruv));
     m.premultiply(this.finalizedZoomMatrix);
     if (finalize) {
       this.finalizedZoomMatrix.copy(m);
