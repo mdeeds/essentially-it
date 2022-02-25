@@ -65,7 +65,7 @@ export class Game {
       const light = new THREE.DirectionalLight('white', 2.0);
       light.position.set(0, 5, 0);
       this.scene.add(light);
-      const light2 = new THREE.DirectionalLight('white', 2.0);
+      const light2 = new THREE.AmbientLight('white', 0.8);
       light2.position.set(2, 1, -5);
       this.scene.add(light2);
     }

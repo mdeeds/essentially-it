@@ -3,4 +3,5 @@ export interface Tool {
   paintMove(xy: THREE.Vector2): void;
   paintEnd(): void;
 
+  getIconObject(): THREE.Object3D;
 }

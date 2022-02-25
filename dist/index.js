@@ -2,6 +2,83 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 847:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.EraseTool = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class EraseTool {
+    ctx;
+    constructor(ctx) {
+        this.ctx = ctx;
+    }
+    lastX = null;
+    lastY = null;
+    paintDown(xy) {
+        this.ctx.save();
+        this.ctx.globalCompositeOperation = "destination-out";
+        this.ctx.lineWidth = 75;
+        this.lastX = xy.x;
+        this.lastY = xy.y;
+        this.ctx.beginPath();
+        this.ctx.arc(xy.x, xy.y, 5, -Math.PI, Math.PI);
+        this.ctx.fill();
+        this.ctx.restore();
+    }
+    paintMove(xy) {
+        if (this.lastX === null) {
+            return;
+        }
+        this.ctx.save();
+        this.ctx.globalCompositeOperation = "destination-out";
+        this.ctx.lineWidth = 75;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.lastX, this.lastY);
+        this.ctx.lineTo(xy.x, xy.y);
+        this.ctx.stroke();
+        this.lastX = xy.x;
+        this.lastY = xy.y;
+        this.ctx.restore();
+    }
+    paintEnd() {
+        this.lastX = null;
+        this.lastY = null;
+    }
+    icon = null;
+    getIconObject() {
+        if (this.icon != null) {
+            return this.icon;
+        }
+        this.icon = new THREE.Mesh(new THREE.BoxBufferGeometry(0.12, 0.03, 0.05), new THREE.MeshStandardMaterial({ color: '#333' }));
+        return this.icon;
+    }
+}
+exports.EraseTool = EraseTool;
+//# sourceMappingURL=eraseTool.js.map
+
+/***/ }),
+
 /***/ 41:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -241,7 +318,7 @@ class Game {
             const light = new THREE.DirectionalLight('white', 2.0);
             light.position.set(0, 5, 0);
             this.scene.add(light);
-            const light2 = new THREE.DirectionalLight('white', 2.0);
+            const light2 = new THREE.AmbientLight('white', 0.8);
             light2.position.set(2, 1, -5);
             this.scene.add(light2);
         }
@@ -281,7 +358,6 @@ class Game {
         const idToIndex = new Map();
         canvas.addEventListener('touchstart', (ev) => {
             for (let i = 0; i < ev.touches.length; ++i) {
-                console.log(`Start: ${ev.touches[i].identifier} (${ev.type})`);
                 const index = this.getTouchIndex(ev.touches[i].identifier, idToIndex);
                 const ray = this.getRay(ev.touches[i]);
                 this.tactile.start(ray, index);
@@ -297,7 +373,6 @@ class Game {
             ev.preventDefault();
         });
         const handleEnd = (ev) => {
-            console.log(`End: [${ev.touches.length}] (${ev.type})`);
             for (const index of idToIndex.values()) {
                 this.tactile.end(index);
             }
@@ -507,7 +582,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PaintCylinder = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const zoom_1 = __webpack_require__(950);
-class PaintCylinder extends THREE.Object3D {
+class PaintCylinder extends THREE.Group {
     mesh;
     canvasTexture;
     canvas;
@@ -529,30 +604,10 @@ class PaintCylinder extends THREE.Object3D {
         this.mesh.position.set(0, 0, 0);
         this.add(this.mesh);
     }
-    lastX = 0;
-    lastY = 0;
-    paintDown(uv) {
-        const xy = this.getXY(uv);
-        if (!xy)
-            return;
-        this.lastX = xy.x;
-        this.lastY = xy.y;
-        this.ctx.beginPath();
-        this.ctx.arc(xy.x, xy.y, 5, -Math.PI, Math.PI);
-        this.ctx.fill();
-        this.canvasTexture.needsUpdate = true;
+    getContext() {
+        return this.ctx;
     }
-    paintMove(uv) {
-        const xy = this.getXY(uv);
-        if (!xy)
-            return;
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.lastX, this.lastY);
-        this.ctx.lineTo(xy.x, xy.y);
-        this.ctx.stroke();
-        this.canvasTexture.needsUpdate = true;
-        this.lastX = xy.x;
-        this.lastY = xy.y;
+    setNeedsUpdate() {
         this.canvasTexture.needsUpdate = true;
     }
     paintUp(uv) {
@@ -619,7 +674,6 @@ class PaintCylinder extends THREE.Object3D {
         this.ctx.fillStyle = '#000';
         this.ctx.strokeStyle = '#000';
         this.ctx.lineCap = 'round';
-        this.ctx.lineWidth = 25;
         this.canvasTexture = new THREE.CanvasTexture(this.canvas);
         this.canvasTexture.needsUpdate = true;
         const material = new THREE.ShaderMaterial({
@@ -756,7 +810,6 @@ void main() {
                 value: window.innerHeight / (2.0 * Math.tan(0.5 * 60.0 * Math.PI / 180.0))
             }
         };
-        console.log(`Multiplier: ${uniforms.pointMultiplier.value}`);
         this.material = new THREE.ShaderMaterial({
             uniforms: uniforms,
             vertexShader: ParticleSystem.kVS,
@@ -837,6 +890,82 @@ exports.ParticleSystem = ParticleSystem;
 
 /***/ }),
 
+/***/ 547:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PenTool = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class PenTool {
+    ctx;
+    color;
+    constructor(ctx, color) {
+        this.ctx = ctx;
+        this.color = color;
+    }
+    lastX = null;
+    lastY = null;
+    paintDown(xy) {
+        this.ctx.strokeStyle = this.color;
+        this.ctx.lineWidth = 25;
+        this.lastX = xy.x;
+        this.lastY = xy.y;
+        this.ctx.beginPath();
+        this.ctx.arc(xy.x, xy.y, 5, -Math.PI, Math.PI);
+        this.ctx.fill();
+    }
+    paintMove(xy) {
+        if (this.lastX === null) {
+            return;
+        }
+        this.ctx.strokeStyle = this.color;
+        this.ctx.lineWidth = 25;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.lastX, this.lastY);
+        this.ctx.lineTo(xy.x, xy.y);
+        this.ctx.stroke();
+        this.lastX = xy.x;
+        this.lastY = xy.y;
+    }
+    paintEnd() {
+        this.lastX = null;
+        this.lastY = null;
+    }
+    icon = null;
+    getIconObject() {
+        if (this.icon != null) {
+            return this.icon;
+        }
+        this.icon = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.02, 0.02, 0.12, 16), new THREE.MeshStandardMaterial({ color: this.color }));
+        this.icon.rotateZ(Math.PI / 2);
+        return this.icon;
+    }
+}
+exports.PenTool = PenTool;
+//# sourceMappingURL=penTool.js.map
+
+/***/ }),
+
 /***/ 233:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -914,22 +1043,85 @@ exports.ProjectionCylinder = ProjectionCylinder;
 /***/ }),
 
 /***/ 791:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TactileInterface = void 0;
+const THREE = __importStar(__webpack_require__(578));
+const eraseTool_1 = __webpack_require__(847);
+const penTool_1 = __webpack_require__(547);
 class TactileInterface {
     paint;
     projection;
     activeHands = new Map();
+    handTool = new Map();
+    toolBelt = [];
     constructor(paint, projection) {
         this.paint = paint;
         this.projection = projection;
+        this.toolBelt.push(new eraseTool_1.EraseTool(paint.getContext()));
+        this.toolBelt.push(new penTool_1.PenTool(paint.getContext(), 'black'));
+        this.toolBelt.push(new penTool_1.PenTool(paint.getContext(), 'turquoise'));
+        this.toolBelt.push(new penTool_1.PenTool(paint.getContext(), 'purple'));
+        this.handTool.set(0, this.toolBelt[0]);
+        this.handTool.set(1, this.toolBelt[1]);
+        let theta = 0;
+        for (const t of this.toolBelt) {
+            const o = t.getIconObject();
+            o.position.set(Math.sin(theta) * 1.45, -1.15, -Math.cos(theta) * 1.45);
+            o.rotateY(-theta);
+            theta += 0.12;
+            this.paint.add(o);
+        }
+    }
+    p = new THREE.Vector3();
+    c = new THREE.Vector3();
+    maybeChangeTool(ray, handIndex) {
+        let tool = null;
+        let closest = 0.1;
+        for (const t of this.toolBelt) {
+            const o = t.getIconObject();
+            o.getWorldPosition(this.p);
+            ray.closestPointToPoint(this.p, this.c);
+            this.c.sub(this.p);
+            const closestDistance = this.c.length();
+            if (closestDistance < closest) {
+                closest = closestDistance;
+                tool = t;
+            }
+        }
+        if (tool !== null) {
+            this.handTool.set(handIndex, tool);
+        }
+        return (tool !== null);
     }
     start(ray, handIndex) {
         const uv = this.projection.getUV(ray);
         if (!uv) {
+            return;
+        }
+        if (this.maybeChangeTool(ray, handIndex)) {
+            console.log(`Tool change!`);
             return;
         }
         this.activeHands.set(handIndex, uv);
@@ -939,7 +1131,9 @@ class TactileInterface {
             this.paint.zoomStart(this.activeHands.get(0), this.activeHands.get(1));
         }
         else {
-            this.paint.paintDown(uv);
+            const xy = this.paint.getXY(uv);
+            this.handTool.get(handIndex).paintDown(xy);
+            this.paint.setNeedsUpdate();
         }
     }
     move(ray, handIndex) {
@@ -953,13 +1147,18 @@ class TactileInterface {
             this.paint.zoomUpdate(this.activeHands.get(0), this.activeHands.get(1));
         }
         else {
-            this.paint.paintMove(lastUV);
+            const xy = this.paint.getXY(uv);
+            this.handTool.get(handIndex).paintMove(xy);
+            this.paint.setNeedsUpdate();
         }
         this.activeHands.set(handIndex, lastUV);
     }
     end(handIndex) {
         if (this.activeHands.size > 1) {
             this.paint.zoomEnd(this.activeHands.get(0), this.activeHands.get(1));
+        }
+        else {
+            this.handTool.get(handIndex).paintEnd();
         }
         this.activeHands.delete(handIndex);
     }
@@ -1012,16 +1211,8 @@ class Zoom {
         initialPosition.set(ll1.x, rr1.x, p1.x, ll1.y, rr1.y, p1.y, 1, 1, 1);
         const newPosition = new THREE.Matrix3();
         newPosition.set(ll2.x, rr2.x, p2.x, ll2.y, rr2.y, p2.y, 1, 1, 1);
-        // console.log(initialPosition);
-        // console.log(newPosition);
         initialPosition.invert();
         newPosition.multiplyMatrices(newPosition, initialPosition);
-        // Remove rotation.
-        // this.x = e[ 0 ] * x + e[ 3 ] * y + e[ 6 ] * z;
-        // this.y = e[ 1 ] * x + e[ 4 ] * y + e[ 7 ] * z;
-        // this.z = e[ 2 ] * x + e[ 5 ] * y + e[ 8 ] * z;
-        // newPosition.elements[1] = 0;
-        // newPosition.elements[3] = 0;
         return newPosition;
     }
 }

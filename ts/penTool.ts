@@ -5,8 +5,8 @@ export class PenTool implements Tool {
   constructor(private ctx: CanvasRenderingContext2D,
     readonly color: string) { }
 
-  private lastX = 0;
-  private lastY = 0;
+  private lastX = null;
+  private lastY = null;
 
   paintDown(xy: THREE.Vector2) {
     this.ctx.strokeStyle = this.color;
@@ -35,5 +35,17 @@ export class PenTool implements Tool {
   paintEnd() {
     this.lastX = null;
     this.lastY = null;
+  }
+
+  private icon: THREE.Object3D = null;
+  getIconObject(): THREE.Object3D {
+    if (this.icon != null) {
+      return this.icon;
+    }
+    this.icon = new THREE.Mesh(
+      new THREE.CylinderBufferGeometry(0.02, 0.02, 0.12, 16),
+      new THREE.MeshStandardMaterial({ color: this.color }));
+    this.icon.rotateZ(Math.PI / 2);
+    return this.icon;
   }
 }

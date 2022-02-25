@@ -4,13 +4,13 @@ import { Tool } from "./tool";
 export class EraseTool implements Tool {
   constructor(private ctx: CanvasRenderingContext2D) { }
 
-  private lastX = 0;
-  private lastY = 0;
+  private lastX = null;
+  private lastY = null;
 
   paintDown(xy: THREE.Vector2) {
     this.ctx.save();
     this.ctx.globalCompositeOperation = "destination-out";
-    this.ctx.lineWidth = 35;
+    this.ctx.lineWidth = 75;
     this.lastX = xy.x;
     this.lastY = xy.y;
     this.ctx.beginPath();
@@ -25,7 +25,7 @@ export class EraseTool implements Tool {
     }
     this.ctx.save();
     this.ctx.globalCompositeOperation = "destination-out";
-    this.ctx.lineWidth = 35;
+    this.ctx.lineWidth = 75;
     this.ctx.beginPath();
     this.ctx.moveTo(this.lastX, this.lastY);
     this.ctx.lineTo(xy.x, xy.y);
@@ -39,4 +39,16 @@ export class EraseTool implements Tool {
     this.lastX = null;
     this.lastY = null;
   }
+
+  private icon = null;
+  getIconObject(): THREE.Object3D {
+    if (this.icon != null) {
+      return this.icon;
+    }
+    this.icon = new THREE.Mesh(
+      new THREE.BoxBufferGeometry(0.12, 0.03, 0.05),
+      new THREE.MeshStandardMaterial({ color: '#333' }));
+    return this.icon;
+  }
+
 }

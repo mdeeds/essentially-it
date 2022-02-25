@@ -1,7 +1,8 @@
 import * as THREE from "three";
+import { CylinderBufferGeometry } from "three";
 import { Zoom } from "./zoom";
 
-export class PaintCylinder extends THREE.Object3D {
+export class PaintCylinder extends THREE.Group {
   private mesh: THREE.Mesh;
   private canvasTexture: THREE.CanvasTexture;
   private canvas: HTMLCanvasElement;
