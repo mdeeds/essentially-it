@@ -117,7 +117,6 @@ export class Game {
     canvas.addEventListener('touchstart',
       (ev: TouchEvent) => {
         for (let i = 0; i < ev.touches.length; ++i) {
-          console.log(`Start: ${ev.touches[i].identifier} (${ev.type})`);
           const index = this.getTouchIndex(ev.touches[i].identifier,
             idToIndex);
           const ray = this.getRay(ev.touches[i]);
@@ -136,7 +135,6 @@ export class Game {
         ev.preventDefault();
       });
     const handleEnd = (ev: TouchEvent) => {
-      console.log(`End: [${ev.touches.length}] (${ev.type})`);
       for (const index of idToIndex.values()) {
         this.tactile.end(index);
       }

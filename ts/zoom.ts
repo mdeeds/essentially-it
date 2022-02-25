@@ -32,18 +32,8 @@ export class Zoom {
       ll2.y, rr2.y, p2.y,
       1, 1, 1);
 
-    // console.log(initialPosition);
-    // console.log(newPosition);
-
     initialPosition.invert();
     newPosition.multiplyMatrices(newPosition, initialPosition);
-
-    // Remove rotation.
-    // this.x = e[ 0 ] * x + e[ 3 ] * y + e[ 6 ] * z;
-    // this.y = e[ 1 ] * x + e[ 4 ] * y + e[ 7 ] * z;
-    // this.z = e[ 2 ] * x + e[ 5 ] * y + e[ 8 ] * z;
-    // newPosition.elements[1] = 0;
-    // newPosition.elements[3] = 0;
 
     return newPosition;
   }

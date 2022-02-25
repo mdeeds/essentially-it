@@ -51,8 +51,6 @@ void main() {
       }
     };
 
-    console.log(`Multiplier: ${uniforms.pointMultiplier.value}`);
-
     this.material = new THREE.ShaderMaterial({
       uniforms: uniforms,
       vertexShader: ParticleSystem.kVS,

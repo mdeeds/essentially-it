@@ -1,21 +1,29 @@
 import * as THREE from "three";
+import { EraseTool } from "./eraseTool";
 import { PaintCylinder } from "./paintCylinder";
 import { PenTool } from "./penTool";
 import { ProjectionCylinder } from "./projectionCylinder";
+import { Tool } from "./tool";
 
 export class TactileInterface {
   private activeHands = new Map<number, THREE.Vector2>();
-  private handTool = new Map<number, PenTool>();
+  private handTool = new Map<number, Tool>();
 
   constructor(private paint: PaintCylinder,
     private projection: ProjectionCylinder) {
-    this.handTool.set(0, new PenTool(paint.getContext(), 'turquoise'));
-    this.handTool.set(0, new PenTool(paint.getContext(), 'purple'));
+    // this.handTool.set(0, new PenTool(paint.getContext(), 'turquoise'));
+    // this.handTool.set(1, new PenTool(paint.getContext(), 'purple'));
+    this.handTool.set(0, new EraseTool(paint.getContext()));
+    this.handTool.set(1, new EraseTool(paint.getContext()));
   }
 
   public start(ray: THREE.Ray, handIndex: number) {
     const uv = this.projection.getUV(ray);
     if (!uv) {
+      return;
+    }
+    if (uv.y < 0.4) {
+      console.log(`Rail at: ${JSON.stringify(uv)}`);
       return;
     }
     this.activeHands.set(handIndex, uv);

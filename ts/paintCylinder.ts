@@ -113,7 +113,6 @@ export class PaintCylinder extends THREE.Object3D {
     this.ctx.fillStyle = '#000';
     this.ctx.strokeStyle = '#000';
     this.ctx.lineCap = 'round';
-    this.ctx.lineWidth = 25;
 
     this.canvasTexture = new THREE.CanvasTexture(this.canvas);
     this.canvasTexture.needsUpdate = true;
