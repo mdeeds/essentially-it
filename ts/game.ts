@@ -163,12 +163,12 @@ export class Game {
   private addRandomDot(deltaS: number) {
     const r = 1.5 * Math.sqrt(Math.random());
     const t = Math.PI * 2 * Math.random();
-    const y = Math.random() * 0.6;
+    const y = Math.random() * 0.3;
     const p = new THREE.Vector3(
       r * Math.cos(t), y, r * Math.sin(t));
     const v = new THREE.Vector3(
       0.1 * (Math.random() - 0.5),
-      0.1 * (Math.random() - 0.2),
+      0.05 * (Math.random() + 0.05),
       0.1 * (Math.random() - 0.5));
     let color = this.fastColor;
     if (deltaS > 1 / 50) {
