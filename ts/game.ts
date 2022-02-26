@@ -43,7 +43,7 @@ export class Game {
 
     this.renderer = new THREE.WebGLRenderer();
     this.camera = new THREE.PerspectiveCamera(
-      /*fov=*/75, /*aspec=*/512 / 512, /*near=*/0.1,
+      /*fov=*/75, /*aspec=*/1024 / 512, /*near=*/0.1,
       /*far=*/100);
     this.camera.position.set(0, 1.7, 0);
     this.camera.lookAt(0, 1.7, -2);
@@ -96,7 +96,7 @@ export class Game {
   }
 
   private getRay(ev: Touch | PointerEvent): THREE.Ray {
-    const x = (ev.clientX / 512) * 2 - 1;
+    const x = (ev.clientX / 1024) * 2 - 1;
     const y = 1 - (ev.clientY / 512) * 2;
     const ray = this.rayFromCamera(x, y);
     return ray;
@@ -201,7 +201,7 @@ export class Game {
   }
 
   private setUpRenderer() {
-    this.renderer.setSize(512, 512);
+    this.renderer.setSize(1024, 512);
     document.body.appendChild(this.renderer.domElement);
     document.body.appendChild(VRButton.createButton(this.renderer));
     this.renderer.xr.enabled = true;
