@@ -8,7 +8,7 @@ export class PenTool implements Tool {
   private lastX = null;
   private lastY = null;
 
-  paintDown(xy: THREE.Vector2) {
+  start(xy: THREE.Vector2) {
     this.ctx.strokeStyle = this.color;
     this.ctx.lineWidth = 25;
     this.lastX = xy.x;
@@ -18,7 +18,7 @@ export class PenTool implements Tool {
     this.ctx.fill();
   }
 
-  paintMove(xy: THREE.Vector2) {
+  move(xy: THREE.Vector2) {
     if (this.lastX === null) {
       return;
     }
@@ -32,7 +32,7 @@ export class PenTool implements Tool {
     this.lastY = xy.y;
   }
 
-  paintEnd() {
+  end() {
     this.lastX = null;
     this.lastY = null;
   }

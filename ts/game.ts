@@ -63,18 +63,21 @@ export class Game {
     this.scene.add(this.whiteBoard);
 
     {
-      const light = new THREE.DirectionalLight('white', 2.0);
-      light.position.set(0, 5, 0);
-      this.scene.add(light);
-      const light2 = new THREE.AmbientLight('white', 0.8);
-      light2.position.set(2, 1, -5);
-      this.scene.add(light2);
+      const light1 = new THREE.DirectionalLight('white', 0.8);
+      light1.position.set(0, 5, 0);
+      this.scene.add(light1);
+      // const light2 = new THREE.DirectionalLight('white', 0.1);
+      // light2.position.set(0, -5, 0);
+      // this.scene.add(light2);
+      const light3 = new THREE.AmbientLight('white', 0.2);
+      this.scene.add(light3);
     }
 
     this.loadPlatform();
 
     const projection = new ProjectionCylinder(this.whiteBoard, 1.5);
-    this.tactile = new TactileInterface(this.whiteBoard, projection);
+    this.tactile = new TactileInterface(
+      this.whiteBoard, projection, this.scene);
 
     this.setUpAnimation();
     this.hands.push(

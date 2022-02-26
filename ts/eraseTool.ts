@@ -7,7 +7,7 @@ export class EraseTool implements Tool {
   private lastX = null;
   private lastY = null;
 
-  paintDown(xy: THREE.Vector2) {
+  start(xy: THREE.Vector2) {
     this.ctx.save();
     this.ctx.globalCompositeOperation = "destination-out";
     this.ctx.lineWidth = 75;
@@ -19,7 +19,7 @@ export class EraseTool implements Tool {
     this.ctx.restore();
   }
 
-  paintMove(xy: THREE.Vector2) {
+  move(xy: THREE.Vector2) {
     if (this.lastX === null) {
       return;
     }
@@ -35,12 +35,12 @@ export class EraseTool implements Tool {
     this.ctx.restore();
   }
 
-  paintEnd() {
+  end() {
     this.lastX = null;
     this.lastY = null;
   }
 
-  private icon = null;
+  private icon: THREE.Object3D = null;
   getIconObject(): THREE.Object3D {
     if (this.icon != null) {
       return this.icon;

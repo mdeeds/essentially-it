@@ -1,7 +1,7 @@
 export interface Tool {
-  paintDown(xy: THREE.Vector2): void;
-  paintMove(xy: THREE.Vector2): void;
-  paintEnd(): void;
+  start(xy: THREE.Vector2, ray: THREE.Ray): void;
+  move(xy: THREE.Vector2, ray: THREE.Ray): void;
+  end(): void;
 
   getIconObject(): THREE.Object3D;
 }

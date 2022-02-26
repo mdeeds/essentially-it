@@ -12,9 +12,10 @@ export class TactileInterface {
   private toolBelt: ToolBelt = null;
 
   constructor(private paint: PaintCylinder,
-    private projection: ProjectionCylinder) {
+    private projection: ProjectionCylinder,
+    scene: THREE.Object3D) {
 
-    this.toolBelt = new ToolBelt(paint.getContext());
+    this.toolBelt = new ToolBelt(paint.getContext(), scene);
     this.paint.add(this.toolBelt);
 
     this.handTool.set(0, this.toolBelt.getTool(0));
@@ -40,7 +41,7 @@ export class TactileInterface {
       this.paint.zoomStart(this.activeHands.get(0), this.activeHands.get(1));
     } else {
       const xy = this.paint.getXY(uv);
-      this.handTool.get(handIndex).paintDown(xy);
+      this.handTool.get(handIndex).start(xy, ray);
       this.paint.setNeedsUpdate();
     }
   }
@@ -56,7 +57,7 @@ export class TactileInterface {
       this.paint.zoomUpdate(this.activeHands.get(0), this.activeHands.get(1));
     } else {
       const xy = this.paint.getXY(uv);
-      this.handTool.get(handIndex).paintMove(xy);
+      this.handTool.get(handIndex).move(xy, ray);
       this.paint.setNeedsUpdate();
     }
     this.activeHands.set(handIndex, lastUV);
@@ -66,7 +67,7 @@ export class TactileInterface {
     if (this.activeHands.size > 1) {
       this.paint.zoomEnd(this.activeHands.get(0), this.activeHands.get(1));
     } else {
-      this.handTool.get(handIndex).paintEnd();
+      this.handTool.get(handIndex).end();
     }
     this.activeHands.delete(handIndex);
   }
