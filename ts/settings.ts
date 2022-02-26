@@ -4,10 +4,12 @@ export class S {
 
   static {
     S.default.set('mi', 6);  // Mandelbrot iterations.
+    S.default.set('s', 0.1);  // Smoothness, lower = more smooth.
   }
 
   public static float(name: string): number {
     if (S.cache.has(name)) {
+
       return S.cache.get(name);
     }
     const url = new URL(document.URL);

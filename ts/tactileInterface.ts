@@ -3,6 +3,7 @@ import { EraseTool } from "./eraseTool";
 import { PaintCylinder } from "./paintCylinder";
 import { PenTool } from "./penTool";
 import { ProjectionCylinder } from "./projectionCylinder";
+import { S } from "./settings";
 import { Tool } from "./tool";
 
 export class TactileInterface {
@@ -83,7 +84,7 @@ export class TactileInterface {
       return;
     }
     const lastUV = this.activeHands.get(handIndex) ?? uv;
-    lastUV.lerp(uv, 0.2);
+    lastUV.lerp(uv, S.float('s'));
     if (this.activeHands.size > 1) {
       this.paint.zoomUpdate(this.activeHands.get(0), this.activeHands.get(1));
     } else {

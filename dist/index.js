@@ -1092,6 +1092,7 @@ class S {
     static default = new Map();
     static {
         S.default.set('mi', 6); // Mandelbrot iterations.
+        S.default.set('s', 0.1); // Smoothness, lower = more smooth.
     }
     static float(name) {
         if (S.cache.has(name)) {
@@ -1142,6 +1143,7 @@ exports.TactileInterface = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const eraseTool_1 = __webpack_require__(847);
 const penTool_1 = __webpack_require__(547);
+const settings_1 = __webpack_require__(451);
 class TactileInterface {
     paint;
     projection;
@@ -1214,7 +1216,7 @@ class TactileInterface {
             return;
         }
         const lastUV = this.activeHands.get(handIndex) ?? uv;
-        lastUV.lerp(uv, 0.2);
+        lastUV.lerp(uv, settings_1.S.float('s'));
         if (this.activeHands.size > 1) {
             this.paint.zoomUpdate(this.activeHands.get(0), this.activeHands.get(1));
         }
