@@ -153,10 +153,34 @@ export class Game {
     return ray;
   }
 
+  private slowColor = new THREE.Color('#0ff');
+  private mediumColor = new THREE.Color('#00f');
+  private fastColor = new THREE.Color('#f0f');
+
+  private addRandomDot(deltaS: number) {
+    const r = 1.5 * Math.sqrt(Math.random());
+    const t = Math.PI * 2 * Math.random();
+    const y = Math.random() * 0.6;
+    const p = new THREE.Vector3(
+      r * Math.cos(t), y, r * Math.sin(t));
+    const v = new THREE.Vector3(
+      0.1 * (Math.random() - 0.5),
+      0.1 * (Math.random() - 0.2),
+      0.1 * (Math.random() - 0.5));
+    let color = this.fastColor;
+    if (deltaS > 1 / 50) {
+      color = this.slowColor;
+    } else if (deltaS > 1 / 85) {
+      color = this.mediumColor;
+    }
+    this.particles.AddParticle(p, v, color);
+  }
+
   private clock = new THREE.Clock(/*autostart=*/true);
   private animationLoop() {
     let deltaS = this.clock.getDelta();
     deltaS = Math.min(0.1, deltaS);
+    this.addRandomDot(deltaS);
     this.floorMaterial.setT(0.05 * this.clock.elapsedTime);
     this.renderer.render(this.scene, this.camera);
     this.handleKeys();
