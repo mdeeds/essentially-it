@@ -43,7 +43,7 @@ export class Game {
 
     this.renderer = new THREE.WebGLRenderer();
     this.camera = new THREE.PerspectiveCamera(
-      /*fov=*/75, /*aspec=*/1280 / 720, /*near=*/0.1,
+      /*fov=*/75, /*aspec=*/512 / 512, /*near=*/0.1,
       /*far=*/100);
     this.camera.position.set(0, 1.7, 0);
     this.camera.lookAt(0, 1.7, -2);
@@ -51,6 +51,7 @@ export class Game {
 
     this.particles = new ParticleSystem();
     this.scene.add(this.particles);
+    this.setUpRenderer();
 
     // const sphere = new THREE.Mesh(
     //   new THREE.SphereBufferGeometry(0.1),
@@ -75,7 +76,6 @@ export class Game {
     const projection = new ProjectionCylinder(this.whiteBoard, 1.5);
     this.tactile = new TactileInterface(this.whiteBoard, projection);
 
-    this.setUpRenderer();
     this.setUpAnimation();
     this.hands.push(
       new Hand('left', this.scene, this.renderer, this.tactile, this.particles))
@@ -93,8 +93,8 @@ export class Game {
   }
 
   private getRay(ev: Touch | PointerEvent): THREE.Ray {
-    const x = (ev.clientX / 1280) * 2 - 1;
-    const y = 1 - (ev.clientY / 720) * 2;
+    const x = (ev.clientX / 512) * 2 - 1;
+    const y = 1 - (ev.clientY / 512) * 2;
     const ray = this.rayFromCamera(x, y);
     return ray;
   }
@@ -174,7 +174,7 @@ export class Game {
   }
 
   private setUpRenderer() {
-    this.renderer.setSize(1280, 720);
+    this.renderer.setSize(512, 512);
     document.body.appendChild(this.renderer.domElement);
     document.body.appendChild(VRButton.createButton(this.renderer));
     this.renderer.xr.enabled = true;

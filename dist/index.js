@@ -299,13 +299,14 @@ class Game {
         this.scene.add(groundPlane);
         this.renderer = new THREE.WebGLRenderer();
         this.camera = new THREE.PerspectiveCamera(
-        /*fov=*/ 75, /*aspec=*/ 1280 / 720, /*near=*/ 0.1, 
+        /*fov=*/ 75, /*aspec=*/ 512 / 512, /*near=*/ 0.1, 
         /*far=*/ 100);
         this.camera.position.set(0, 1.7, 0);
         this.camera.lookAt(0, 1.7, -2);
         this.scene.add(this.camera);
         this.particles = new particleSystem_1.ParticleSystem();
         this.scene.add(this.particles);
+        this.setUpRenderer();
         // const sphere = new THREE.Mesh(
         //   new THREE.SphereBufferGeometry(0.1),
         //   new THREE.MeshBasicMaterial({ color: 'white' }));
@@ -325,7 +326,6 @@ class Game {
         this.loadPlatform();
         const projection = new projectionCylinder_1.ProjectionCylinder(this.whiteBoard, 1.5);
         this.tactile = new tactileInterface_1.TactileInterface(this.whiteBoard, projection);
-        this.setUpRenderer();
         this.setUpAnimation();
         this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.tactile, this.particles));
         this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.tactile, this.particles));
@@ -339,8 +339,8 @@ class Game {
         });
     }
     getRay(ev) {
-        const x = (ev.clientX / 1280) * 2 - 1;
-        const y = 1 - (ev.clientY / 720) * 2;
+        const x = (ev.clientX / 512) * 2 - 1;
+        const y = 1 - (ev.clientY / 512) * 2;
         const ray = this.rayFromCamera(x, y);
         return ray;
     }
@@ -407,7 +407,7 @@ class Game {
         })(this));
     }
     setUpRenderer() {
-        this.renderer.setSize(1280, 720);
+        this.renderer.setSize(512, 512);
         document.body.appendChild(this.renderer.domElement);
         document.body.appendChild(VRButton_js_1.VRButton.createButton(this.renderer));
         this.renderer.xr.enabled = true;
@@ -603,12 +603,18 @@ class PaintCylinder extends THREE.Group {
         /*open=*/ true), this.material);
         this.mesh.position.set(0, 0, 0);
         this.add(this.mesh);
+        const a = document.createElement('a');
+        a.id = 'download';
+        a.download = 'infographic.png';
+        a.innerText = 'Download Infograpic';
+        document.body.appendChild(a);
     }
     getContext() {
         return this.ctx;
     }
     setNeedsUpdate() {
         this.canvasTexture.needsUpdate = true;
+        this.updateSaveUrl();
     }
     paintUp(uv) {
     }
@@ -675,7 +681,6 @@ class PaintCylinder extends THREE.Group {
         this.ctx.strokeStyle = '#000';
         this.ctx.lineCap = 'round';
         this.canvasTexture = new THREE.CanvasTexture(this.canvas);
-        this.canvasTexture.needsUpdate = true;
         const material = new THREE.ShaderMaterial({
             side: THREE.BackSide,
             transparent: true,
@@ -703,7 +708,7 @@ void main() {
   vec3 uv = uvMatrix * vec3(u, v, 1.0);
 
   v_uv = (uv.xy / uv.z);
-  v_uv.y = 1.0 - v_uv.y;
+  // v_uv.y = 1.0 - v_uv.y;
   v_uv.y = (v_uv.y - 0.375) * 4.0;
 
   gl_Position = projectionMatrix * modelViewMatrix * 
@@ -724,7 +729,16 @@ void main() {
         const tx = new THREE.Vector2();
         tx.copy(uv);
         tx.applyMatrix3(this.finalizedInverseMatrix);
-        return new THREE.Vector2(this.canvas.width * tx.x, this.canvas.height * (tx.y - 0.375) * 4.0);
+        return new THREE.Vector2(this.canvas.width * tx.x, this.canvas.height * (2.5 - (tx.y * 4.0)));
+    }
+    timeout = null;
+    updateSaveUrl() {
+        clearTimeout(this.timeout);
+        this.timeout = setTimeout(() => {
+            console.log('Saving...');
+            const link = document.getElementById('download');
+            link.href = this.canvas.toDataURL("image/png");
+        }, 500);
     }
 }
 exports.PaintCylinder = PaintCylinder;
@@ -55952,11 +55966,10 @@ var __webpack_unused_export__;
 __webpack_unused_export__ = ({ value: true });
 const game_1 = __webpack_require__(417);
 async function getAudioContext() {
-    const body = document.querySelector('body');
     const div = document.createElement('div');
     div.innerHTML = '<div>Essentially It.</div>';
     div.classList.add('begin');
-    body.appendChild(div);
+    document.body.appendChild(div);
     return new Promise((resolve) => {
         div.addEventListener('click', (ev) => {
             div.remove();

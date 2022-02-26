@@ -28,6 +28,12 @@ export class PaintCylinder extends THREE.Group {
     this.mesh.position.set(0, 0, 0);
 
     this.add(this.mesh);
+
+    const a = document.createElement('a');
+    a.id = 'download';
+    a.download = 'infographic.png';
+    a.innerText = 'Download Infograpic';
+    document.body.appendChild(a);
   }
 
   public getContext(): CanvasRenderingContext2D {
@@ -36,6 +42,7 @@ export class PaintCylinder extends THREE.Group {
 
   public setNeedsUpdate() {
     this.canvasTexture.needsUpdate = true;
+    this.updateSaveUrl();
   }
 
   paintUp(uv: THREE.Vector2) {
@@ -116,7 +123,6 @@ export class PaintCylinder extends THREE.Group {
     this.ctx.lineCap = 'round';
 
     this.canvasTexture = new THREE.CanvasTexture(this.canvas);
-    this.canvasTexture.needsUpdate = true;
 
     const material = new THREE.ShaderMaterial({
       side: THREE.BackSide,
@@ -145,7 +151,7 @@ void main() {
   vec3 uv = uvMatrix * vec3(u, v, 1.0);
 
   v_uv = (uv.xy / uv.z);
-  v_uv.y = 1.0 - v_uv.y;
+  // v_uv.y = 1.0 - v_uv.y;
   v_uv.y = (v_uv.y - 0.375) * 4.0;
 
   gl_Position = projectionMatrix * modelViewMatrix * 
@@ -171,6 +177,16 @@ void main() {
     tx.applyMatrix3(this.finalizedInverseMatrix);
     return new THREE.Vector2(
       this.canvas.width * tx.x,
-      this.canvas.height * (tx.y - 0.375) * 4.0);
+      this.canvas.height * (2.5 - (tx.y * 4.0)));
+  }
+
+  private timeout: NodeJS.Timeout = null;
+  private updateSaveUrl() {
+    clearTimeout(this.timeout);
+    this.timeout = setTimeout(() => {
+      console.log('Saving...');
+      const link = document.getElementById('download') as HTMLAnchorElement;
+      link.href = this.canvas.toDataURL("image/png");
+    }, 500);
   }
 }
