@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { EraseTool } from "./eraseTool";
+import { HighlighterTool } from "./highlighterTool";
 import { PenTool } from "./penTool";
 import { ShaderSphereTool1, ShaderSphereTool2, SphereTool, StandardSphereTool } from "./sphereTool";
 import { Tool } from "./tool";
@@ -14,6 +15,7 @@ export class ToolBelt extends THREE.Group {
     this.tools.push(new PenTool(ctx, 'black'));
     this.tools.push(new PenTool(ctx, 'turquoise'));
     this.tools.push(new PenTool(ctx, 'purple'));
+    this.tools.push(new HighlighterTool(ctx, 'mediumpurple'));
     this.tools.push(new StandardSphereTool(scene, false));
     this.tools.push(new StandardSphereTool(scene, true));
     this.tools.push(new ShaderSphereTool1(scene));

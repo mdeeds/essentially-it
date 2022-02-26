@@ -1,18 +1,15 @@
 import * as THREE from "three";
 import { Tool } from "./tool";
 
-export class PenTool implements Tool {
+export class HighlighterTool implements Tool {
+  private strokeStyle: string = null;
   constructor(private ctx: CanvasRenderingContext2D,
     readonly color: string) { }
 
   private lastX = null;
   private lastY = null;
-  private kInitialWidth = 35;
-  private kTargetWidth = 25;
-  private kBlend = 0.1;
 
   start(xy: THREE.Vector2) {
-    this.ctx.lineWidth = this.kInitialWidth;
     this.lastX = xy.x;
     this.lastY = xy.y;
   }
@@ -21,15 +18,17 @@ export class PenTool implements Tool {
     if (this.lastX === null) {
       return;
     }
+    this.ctx.save();
+    this.ctx.globalCompositeOperation = "darken";
     this.ctx.strokeStyle = this.color;
-    this.ctx.lineWidth =
-      this.ctx.lineWidth * (1 - this.kBlend) + this.kBlend * this.kTargetWidth;
+    this.ctx.lineWidth = 65;
     this.ctx.beginPath();
     this.ctx.moveTo(this.lastX, this.lastY);
     this.ctx.lineTo(xy.x, xy.y);
     this.ctx.stroke();
     this.lastX = xy.x;
     this.lastY = xy.y;
+    this.ctx.restore();
   }
 
   end() {

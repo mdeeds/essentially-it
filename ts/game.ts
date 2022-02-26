@@ -52,12 +52,6 @@ export class Game {
     this.particles = new ParticleSystem();
     this.scene.add(this.particles);
     this.setUpRenderer();
-
-    // const sphere = new THREE.Mesh(
-    //   new THREE.SphereBufferGeometry(0.1),
-    //   new THREE.MeshBasicMaterial({ color: 'white' }));
-    // sphere.position.set(0, 1.7, -5);
-    // this.scene.add(sphere);
     this.whiteBoard = new PaintCylinder();
     this.whiteBoard.position.set(0, 1.7, 0);
     this.scene.add(this.whiteBoard);
