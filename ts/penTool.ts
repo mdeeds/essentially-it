@@ -7,10 +7,13 @@ export class PenTool implements Tool {
 
   private lastX = null;
   private lastY = null;
+  private kInitialWidth = 35;
+  private kTargetWidth = 15;
+  private kBlend = 0.1;
 
   start(xy: THREE.Vector2) {
     this.ctx.strokeStyle = this.color;
-    this.ctx.lineWidth = 25;
+    this.ctx.lineWidth = this.kInitialWidth;
     this.lastX = xy.x;
     this.lastY = xy.y;
     this.ctx.beginPath();
@@ -23,7 +26,8 @@ export class PenTool implements Tool {
       return;
     }
     this.ctx.strokeStyle = this.color;
-    this.ctx.lineWidth = 25;
+    this.ctx.lineWidth =
+      this.ctx.lineWidth * (1 - this.kBlend) + this.kBlend * this.kTargetWidth;
     this.ctx.beginPath();
     this.ctx.moveTo(this.lastX, this.lastY);
     this.ctx.lineTo(xy.x, xy.y);
