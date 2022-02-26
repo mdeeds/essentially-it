@@ -33,7 +33,14 @@ export class PaintCylinder extends THREE.Group {
     a.id = 'download';
     a.download = 'infographic.png';
     a.innerText = 'Download Infograpic';
+    a.addEventListener('mouseenter', () => { this.updateSaveUrl(); });
     document.body.appendChild(a);
+
+    const b = document.createElement('span');
+    b.innerText = 'update';
+    b.style.border = '2px outset';
+    b.addEventListener('click', () => { this.updateSaveUrl(); });
+    document.body.appendChild(b);
   }
 
   public getContext(): CanvasRenderingContext2D {
@@ -42,7 +49,6 @@ export class PaintCylinder extends THREE.Group {
 
   public setNeedsUpdate() {
     this.canvasTexture.needsUpdate = true;
-    this.updateSaveUrl();
   }
 
   paintUp(uv: THREE.Vector2) {
