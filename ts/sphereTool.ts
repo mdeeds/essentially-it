@@ -34,6 +34,10 @@ export class SphereTool implements Tool {
   }
 
   move(xy: THREE.Vector2, ray: THREE.Ray): void {
+    if (!this.worldObject) {
+      this.worldObject = this.objectFactory();
+      this.scene.add(this.worldObject);
+    }
     this.worldObject.position.copy(ray.direction);
     this.worldObject.position.multiplyScalar(2);
     this.worldObject.position.add(ray.origin);
