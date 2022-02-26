@@ -8,7 +8,7 @@ export class PenTool implements Tool {
   private lastX = null;
   private lastY = null;
   private kInitialWidth = 35;
-  private kTargetWidth = 15;
+  private kTargetWidth = 25;
   private kBlend = 0.1;
 
   start(xy: THREE.Vector2) {

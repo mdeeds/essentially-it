@@ -4,7 +4,7 @@ export class S {
 
   static {
     S.default.set('mi', 6);  // Mandelbrot iterations.
-    S.default.set('s', 0.1);  // Smoothness, lower = more smooth.
+    S.default.set('s', 0.05);  // Smoothness, lower = more smooth.
   }
 
   public static float(name: string): number {
