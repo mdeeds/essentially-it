@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { S } from "./settings";
 
 export class FloorMaterial extends THREE.ShaderMaterial {
   constructor() {
@@ -40,7 +41,7 @@ vec3 hsv2rgb(vec3 c)
 vec3 noiseV(vec2 v) {
   v = v * 0.1;
   vec2 v0 = v + vec2(cos(t * 0.9), sin(t * 1.09));
-  for (int i = 0; i < 16; ++i) {
+  for (int i = 0; i < ${S.float('mi')}; ++i) {
     v = noiseS(v, v0);
   }
   v = v * 0.707;

@@ -105,6 +105,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.FloorMaterial = void 0;
 const THREE = __importStar(__webpack_require__(578));
+const settings_1 = __webpack_require__(451);
 class FloorMaterial extends THREE.ShaderMaterial {
     constructor() {
         super({
@@ -145,7 +146,7 @@ vec3 hsv2rgb(vec3 c)
 vec3 noiseV(vec2 v) {
   v = v * 0.1;
   vec2 v0 = v + vec2(cos(t * 0.9), sin(t * 1.09));
-  for (int i = 0; i < 16; ++i) {
+  for (int i = 0; i < ${settings_1.S.float('mi')}; ++i) {
     v = noiseS(v, v0);
   }
   v = v * 0.707;
@@ -389,10 +390,29 @@ class Game {
             .sub(ray.origin).normalize();
         return ray;
     }
+    slowColor = new THREE.Color('#0ff');
+    mediumColor = new THREE.Color('#00f');
+    fastColor = new THREE.Color('#f0f');
+    addRandomDot(deltaS) {
+        const r = 1.5 * Math.sqrt(Math.random());
+        const t = Math.PI * 2 * Math.random();
+        const y = Math.random() * 0.6;
+        const p = new THREE.Vector3(r * Math.cos(t), y, r * Math.sin(t));
+        const v = new THREE.Vector3(0.1 * (Math.random() - 0.5), 0.1 * (Math.random() - 0.2), 0.1 * (Math.random() - 0.5));
+        let color = this.fastColor;
+        if (deltaS > 1 / 50) {
+            color = this.slowColor;
+        }
+        else if (deltaS > 1 / 85) {
+            color = this.mediumColor;
+        }
+        this.particles.AddParticle(p, v, color);
+    }
     clock = new THREE.Clock(/*autostart=*/ true);
     animationLoop() {
         let deltaS = this.clock.getDelta();
         deltaS = Math.min(0.1, deltaS);
+        this.addRandomDot(deltaS);
         this.floorMaterial.setT(0.05 * this.clock.elapsedTime);
         this.renderer.render(this.scene, this.camera);
         this.handleKeys();
@@ -1053,6 +1073,39 @@ class ProjectionCylinder {
 }
 exports.ProjectionCylinder = ProjectionCylinder;
 //# sourceMappingURL=projectionCylinder.js.map
+
+/***/ }),
+
+/***/ 451:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.S = void 0;
+class S {
+    static cache = new Map();
+    static default = new Map();
+    static {
+        S.default.set('mi', 6); // Mandelbrot iterations.
+    }
+    static float(name) {
+        if (S.cache.has(name)) {
+            return S.cache.get(name);
+        }
+        const url = new URL(document.URL);
+        const stringVal = url.searchParams.get(name);
+        if (!stringVal) {
+            S.cache.set(name, S.default.get(name));
+        }
+        else {
+            const val = parseFloat(stringVal);
+            S.cache.set(name, val);
+        }
+        return S.cache.get(name);
+    }
+}
+exports.S = S;
+//# sourceMappingURL=settings.js.map
 
 /***/ }),
 
