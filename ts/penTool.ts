@@ -1,40 +1,38 @@
 import * as THREE from "three";
+import { S } from "./settings";
 import { Tool } from "./tool";
 
 export class PenTool implements Tool {
   constructor(private ctx: CanvasRenderingContext2D,
     readonly color: string) { }
 
-  private lastX = null;
-  private lastY = null;
+  private lastXY: THREE.Vector2 = null;
   private kInitialWidth = 35;
   private kTargetWidth = 25;
   private kBlend = 0.1;
 
   start(xy: THREE.Vector2) {
     this.ctx.lineWidth = this.kInitialWidth;
-    this.lastX = xy.x;
-    this.lastY = xy.y;
+    this.lastXY = new THREE.Vector2();
+    this.lastXY.copy(xy);
   }
 
   move(xy: THREE.Vector2) {
-    if (this.lastX === null) {
+    if (this.lastXY === null) {
       return;
     }
     this.ctx.strokeStyle = this.color;
     this.ctx.lineWidth =
       this.ctx.lineWidth * (1 - this.kBlend) + this.kBlend * this.kTargetWidth;
     this.ctx.beginPath();
-    this.ctx.moveTo(this.lastX, this.lastY);
+    this.ctx.moveTo(this.lastXY.x, this.lastXY.y);
     this.ctx.lineTo(xy.x, xy.y);
     this.ctx.stroke();
-    this.lastX = xy.x;
-    this.lastY = xy.y;
+    this.lastXY.copy(xy);
   }
 
   end() {
-    this.lastX = null;
-    this.lastY = null;
+    this.lastXY = null;
   }
 
   private icon: THREE.Object3D = null;

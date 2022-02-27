@@ -1034,33 +1034,30 @@ class PenTool {
         this.ctx = ctx;
         this.color = color;
     }
-    lastX = null;
-    lastY = null;
+    lastXY = null;
     kInitialWidth = 35;
     kTargetWidth = 25;
     kBlend = 0.1;
     start(xy) {
         this.ctx.lineWidth = this.kInitialWidth;
-        this.lastX = xy.x;
-        this.lastY = xy.y;
+        this.lastXY = new THREE.Vector2();
+        this.lastXY.copy(xy);
     }
     move(xy) {
-        if (this.lastX === null) {
+        if (this.lastXY === null) {
             return;
         }
         this.ctx.strokeStyle = this.color;
         this.ctx.lineWidth =
             this.ctx.lineWidth * (1 - this.kBlend) + this.kBlend * this.kTargetWidth;
         this.ctx.beginPath();
-        this.ctx.moveTo(this.lastX, this.lastY);
+        this.ctx.moveTo(this.lastXY.x, this.lastXY.y);
         this.ctx.lineTo(xy.x, xy.y);
         this.ctx.stroke();
-        this.lastX = xy.x;
-        this.lastY = xy.y;
+        this.lastXY.copy(xy);
     }
     end() {
-        this.lastX = null;
-        this.lastY = null;
+        this.lastXY = null;
     }
     icon = null;
     getIconObject() {
@@ -1172,7 +1169,7 @@ class S {
         for (const k of S.default.keys()) {
             const d = document.createElement('div');
             const desc = S.description.get(k);
-            const val = S.default.get(k);
+            const val = S.float(k);
             d.innerText = (`${k} = ${val}: ${desc}`);
             helpText.appendChild(d);
         }
@@ -1180,7 +1177,7 @@ class S {
     }
     static {
         S.setDefault('mi', 6, 'Mandelbrot iterations.');
-        S.setDefault('s', 0.05, 'Smoothness, lower = more smooth.');
+        S.setDefault('s', 0.2, 'Smoothness, lower = more smooth.');
     }
     static float(name) {
         if (S.cache.has(name)) {
@@ -1395,7 +1392,7 @@ class TactileInterface {
             this.paint.zoomUpdate(this.activeHands.get(0), this.activeHands.get(1));
         }
         else {
-            const xy = this.paint.getXY(uv);
+            const xy = this.paint.getXY(lastUV);
             this.handTool.get(handIndex).move(xy, ray);
             this.paint.setNeedsUpdate();
         }

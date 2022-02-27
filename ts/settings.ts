@@ -13,7 +13,7 @@ export class S {
     for (const k of S.default.keys()) {
       const d = document.createElement('div');
       const desc = S.description.get(k);
-      const val = S.default.get(k);
+      const val = S.float(k);
       d.innerText = (`${k} = ${val}: ${desc}`);
       helpText.appendChild(d);
     }
@@ -22,7 +22,7 @@ export class S {
 
   static {
     S.setDefault('mi', 6, 'Mandelbrot iterations.');
-    S.setDefault('s', 0.05, 'Smoothness, lower = more smooth.');
+    S.setDefault('s', 0.2, 'Smoothness, lower = more smooth.');
   }
 
   public static float(name: string): number {

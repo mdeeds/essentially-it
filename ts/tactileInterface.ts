@@ -56,7 +56,7 @@ export class TactileInterface {
     if (this.activeHands.size > 1) {
       this.paint.zoomUpdate(this.activeHands.get(0), this.activeHands.get(1));
     } else {
-      const xy = this.paint.getXY(uv);
+      const xy = this.paint.getXY(lastUV);
       this.handTool.get(handIndex).move(xy, ray);
       this.paint.setNeedsUpdate();
     }
