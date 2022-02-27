@@ -13,10 +13,11 @@ export class SphereTool implements Tool {
   public static makeSphere(material: THREE.Material,
     smooth: boolean): THREE.Object3D {
     let sphereGeometry: BufferGeometry =
-      new THREE.IcosahedronBufferGeometry(0.5, 0);
+      new THREE.IcosahedronBufferGeometry(0.5, 1);
+    sphereGeometry.computeVertexNormals();
     if (smooth) {
-      console.log('smoothing...');
       sphereGeometry.deleteAttribute('normal');
+      sphereGeometry.deleteAttribute('uv');
       sphereGeometry = BufferGeometryUtils.mergeVertices(sphereGeometry, 0.01);
       sphereGeometry.computeVertexNormals();
     }
@@ -41,6 +42,10 @@ export class SphereTool implements Tool {
     this.worldObject.position.copy(ray.direction);
     this.worldObject.position.multiplyScalar(2);
     this.worldObject.position.add(ray.origin);
+    const theta = -Math.atan2(
+      ray.direction.x, ray.direction.z);
+    this.worldObject.rotation.y = theta;
+    this.worldObject.updateMatrix();
   }
 
   end(): void {
