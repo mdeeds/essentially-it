@@ -1,10 +1,28 @@
 export class S {
   private static cache = new Map<string, number>();
   private static default = new Map<string, number>();
+  private static description = new Map<string, string>();
+
+  static setDefault(key: string, value: number, description: string) {
+    S.default.set(key, value);
+    S.description.set(key, description)
+  }
+
+  static appendHelpText(container: HTMLElement) {
+    const helpText = document.createElement('div');
+    for (const k of S.default.keys()) {
+      const d = document.createElement('div');
+      const desc = S.description.get(k);
+      const val = S.default.get(k);
+      d.innerText = (`${k} = ${val}: ${desc}`);
+      helpText.appendChild(d);
+    }
+    container.appendChild(helpText);
+  }
 
   static {
-    S.default.set('mi', 6);  // Mandelbrot iterations.
-    S.default.set('s', 0.05);  // Smoothness, lower = more smooth.
+    S.setDefault('mi', 6, 'Mandelbrot iterations.');
+    S.setDefault('s', 0.05, 'Smoothness, lower = more smooth.');
   }
 
   public static float(name: string): number {

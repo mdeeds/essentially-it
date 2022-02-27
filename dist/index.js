@@ -300,7 +300,7 @@ class Game {
         this.scene.add(groundPlane);
         this.renderer = new THREE.WebGLRenderer();
         this.camera = new THREE.PerspectiveCamera(
-        /*fov=*/ 75, /*aspec=*/ 512 / 512, /*near=*/ 0.1, 
+        /*fov=*/ 75, /*aspec=*/ 1024 / 512, /*near=*/ 0.1, 
         /*far=*/ 100);
         this.camera.position.set(0, 1.7, 0);
         this.camera.lookAt(0, 1.7, -2);
@@ -308,11 +308,6 @@ class Game {
         this.particles = new particleSystem_1.ParticleSystem();
         this.scene.add(this.particles);
         this.setUpRenderer();
-        // const sphere = new THREE.Mesh(
-        //   new THREE.SphereBufferGeometry(0.1),
-        //   new THREE.MeshBasicMaterial({ color: 'white' }));
-        // sphere.position.set(0, 1.7, -5);
-        // this.scene.add(sphere);
         this.whiteBoard = new paintCylinder_1.PaintCylinder();
         this.whiteBoard.position.set(0, 1.7, 0);
         this.scene.add(this.whiteBoard);
@@ -342,7 +337,7 @@ class Game {
         });
     }
     getRay(ev) {
-        const x = (ev.clientX / 512) * 2 - 1;
+        const x = (ev.clientX / 1024) * 2 - 1;
         const y = 1 - (ev.clientY / 512) * 2;
         const ray = this.rayFromCamera(x, y);
         return ray;
@@ -429,7 +424,7 @@ class Game {
         })(this));
     }
     setUpRenderer() {
-        this.renderer.setSize(512, 512);
+        this.renderer.setSize(1024, 512);
         document.body.appendChild(this.renderer.domElement);
         document.body.appendChild(VRButton_js_1.VRButton.createButton(this.renderer));
         this.renderer.xr.enabled = true;
@@ -574,6 +569,81 @@ class Hand {
 }
 exports.Hand = Hand;
 //# sourceMappingURL=hand.js.map
+
+/***/ }),
+
+/***/ 512:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.HighlighterTool = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class HighlighterTool {
+    ctx;
+    color;
+    strokeStyle = null;
+    constructor(ctx, color) {
+        this.ctx = ctx;
+        this.color = color;
+    }
+    lastX = null;
+    lastY = null;
+    start(xy) {
+        this.lastX = xy.x;
+        this.lastY = xy.y;
+    }
+    move(xy) {
+        if (this.lastX === null) {
+            return;
+        }
+        this.ctx.save();
+        this.ctx.globalCompositeOperation = "darken";
+        this.ctx.strokeStyle = this.color;
+        this.ctx.lineWidth = 65;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.lastX, this.lastY);
+        this.ctx.lineTo(xy.x, xy.y);
+        this.ctx.stroke();
+        this.lastX = xy.x;
+        this.lastY = xy.y;
+        this.ctx.restore();
+    }
+    end() {
+        this.lastX = null;
+        this.lastY = null;
+    }
+    icon = null;
+    getIconObject() {
+        if (this.icon != null) {
+            return this.icon;
+        }
+        this.icon = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.02, 0.02, 0.12, 16), new THREE.MeshStandardMaterial({ color: this.color }));
+        this.icon.rotateZ(Math.PI / 2);
+        return this.icon;
+    }
+}
+exports.HighlighterTool = HighlighterTool;
+//# sourceMappingURL=highlighterTool.js.map
 
 /***/ }),
 
@@ -967,16 +1037,12 @@ class PenTool {
     lastX = null;
     lastY = null;
     kInitialWidth = 35;
-    kTargetWidth = 15;
+    kTargetWidth = 25;
     kBlend = 0.1;
     start(xy) {
-        this.ctx.strokeStyle = this.color;
         this.ctx.lineWidth = this.kInitialWidth;
         this.lastX = xy.x;
         this.lastY = xy.y;
-        this.ctx.beginPath();
-        this.ctx.arc(xy.x, xy.y, 5, -Math.PI, Math.PI);
-        this.ctx.fill();
     }
     move(xy) {
         if (this.lastX === null) {
@@ -1096,9 +1162,25 @@ exports.S = void 0;
 class S {
     static cache = new Map();
     static default = new Map();
+    static description = new Map();
+    static setDefault(key, value, description) {
+        S.default.set(key, value);
+        S.description.set(key, description);
+    }
+    static appendHelpText(container) {
+        const helpText = document.createElement('div');
+        for (const k of S.default.keys()) {
+            const d = document.createElement('div');
+            const desc = S.description.get(k);
+            const val = S.default.get(k);
+            d.innerText = (`${k} = ${val}: ${desc}`);
+            helpText.appendChild(d);
+        }
+        container.appendChild(helpText);
+    }
     static {
-        S.default.set('mi', 6); // Mandelbrot iterations.
-        S.default.set('s', 0.1); // Smoothness, lower = more smooth.
+        S.setDefault('mi', 6, 'Mandelbrot iterations.');
+        S.setDefault('s', 0.05, 'Smoothness, lower = more smooth.');
     }
     static float(name) {
         if (S.cache.has(name)) {
@@ -1176,6 +1258,10 @@ class SphereTool {
         this.worldObject.position.add(ray.origin);
     }
     move(xy, ray) {
+        if (!this.worldObject) {
+            this.worldObject = this.objectFactory();
+            this.scene.add(this.worldObject);
+        }
         this.worldObject.position.copy(ray.direction);
         this.worldObject.position.multiplyScalar(2);
         this.worldObject.position.add(ray.origin);
@@ -1353,6 +1439,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ToolBelt = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const eraseTool_1 = __webpack_require__(847);
+const highlighterTool_1 = __webpack_require__(512);
 const penTool_1 = __webpack_require__(547);
 const sphereTool_1 = __webpack_require__(11);
 class ToolBelt extends THREE.Group {
@@ -1365,6 +1452,7 @@ class ToolBelt extends THREE.Group {
         this.tools.push(new penTool_1.PenTool(ctx, 'black'));
         this.tools.push(new penTool_1.PenTool(ctx, 'turquoise'));
         this.tools.push(new penTool_1.PenTool(ctx, 'purple'));
+        this.tools.push(new highlighterTool_1.HighlighterTool(ctx, 'mediumpurple'));
         this.tools.push(new sphereTool_1.StandardSphereTool(scene, false));
         this.tools.push(new sphereTool_1.StandardSphereTool(scene, true));
         this.tools.push(new sphereTool_1.ShaderSphereTool1(scene));
@@ -57131,14 +57219,18 @@ var __webpack_unused_export__;
 
 __webpack_unused_export__ = ({ value: true });
 const game_1 = __webpack_require__(417);
+const settings_1 = __webpack_require__(451);
 async function getAudioContext() {
+    const c = document.createElement('div');
     const div = document.createElement('div');
     div.innerHTML = '<div>Essentially It.</div>';
     div.classList.add('begin');
-    document.body.appendChild(div);
+    c.appendChild(div);
+    document.body.appendChild(c);
+    settings_1.S.appendHelpText(c);
     return new Promise((resolve) => {
         div.addEventListener('click', (ev) => {
-            div.remove();
+            c.remove();
             resolve(new window.AudioContext());
         });
     });
