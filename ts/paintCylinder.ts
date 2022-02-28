@@ -5,9 +5,13 @@ import { Zoom } from "./zoom";
 export class PaintCylinder extends THREE.Group {
   private mesh: THREE.Mesh;
   private canvasTexture: THREE.CanvasTexture;
-  private canvas: HTMLCanvasElement;
+  private renderCanvas: HTMLCanvasElement;
+
   private undoCanvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
+  private tmpCanvas: HTMLCanvasElement;
+  private gridCanvas: HTMLCanvasElement;
+
+  private tmpCtx: CanvasRenderingContext2D;
   private radius: number;
   private material: THREE.ShaderMaterial;
 
@@ -45,10 +49,19 @@ export class PaintCylinder extends THREE.Group {
   }
 
   public getContext(): CanvasRenderingContext2D {
-    return this.ctx;
+    return this.tmpCtx;
+  }
+
+  private composite() {
+    const renderCtx = this.renderCanvas.getContext('2d');
+    renderCtx.clearRect(
+      0, 0, this.renderCanvas.width, this.renderCanvas.height);
+    renderCtx.drawImage(this.gridCanvas, 0, 0);
+    renderCtx.drawImage(this.tmpCanvas, 0, 0);
   }
 
   public setNeedsUpdate() {
+    this.composite();
     this.canvasTexture.needsUpdate = true;
   }
 
@@ -111,42 +124,51 @@ export class PaintCylinder extends THREE.Group {
 
   public commit() {
     const undoCtx = this.undoCanvas.getContext('2d');
-    undoCtx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    undoCtx.drawImage(this.canvas, 0, 0);
+    undoCtx.clearRect(0, 0, this.renderCanvas.width, this.renderCanvas.height);
+    undoCtx.drawImage(this.renderCanvas, 0, 0);
     console.log('Commit.');
   }
 
   public cancel() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.drawImage(this.undoCanvas, 0, 0);
+    this.tmpCtx.clearRect(0, 0, this.renderCanvas.width, this.renderCanvas.height);
+    this.tmpCtx.drawImage(this.undoCanvas, 0, 0);
     console.log('Cancel.');
+  }
+
+  private drawGrid() {
+    const gridCtx = this.gridCanvas.getContext('2d');
+
+    gridCtx.fillStyle = '#9af4';
+    for (let x = 0; x < this.renderCanvas.width; x += 64) {
+      for (let y = 0; y < this.renderCanvas.height; y += 64) {
+        gridCtx.fillRect(x - 1, y - 3, 3, 7);
+        gridCtx.fillRect(x - 3, y - 1, 7, 3);
+      }
+    }
+    gridCtx.strokeStyle = '#9af';
+    gridCtx.lineWidth = 2;
+    gridCtx.beginPath();
+    gridCtx.moveTo(0.5, 0.5);
+    gridCtx.lineTo(this.renderCanvas.width - 0.5, 0.5);
+    gridCtx.lineTo(this.renderCanvas.width - 0.5, this.renderCanvas.height - 0.5);
+    gridCtx.lineTo(0.5, this.renderCanvas.height - 0.5);
+    gridCtx.lineTo(0.5, 0.5);
+    gridCtx.stroke();
   }
 
   private getMaterial(): THREE.ShaderMaterial {
     this.undoCanvas = this.makeCanvas();
-    this.canvas = this.makeCanvas();
-    this.ctx = this.canvas.getContext('2d');
+    this.tmpCanvas = this.makeCanvas();
+    this.renderCanvas = this.makeCanvas();
+    this.gridCanvas = this.makeCanvas();
+    this.tmpCtx = this.tmpCanvas.getContext('2d');
 
-    this.ctx.fillStyle = '#9af4';
-    for (let x = 0; x < this.canvas.width; x += 64) {
-      for (let y = 0; y < this.canvas.height; y += 64) {
-        this.ctx.fillRect(x - 1, y - 3, 3, 7);
-        this.ctx.fillRect(x - 3, y - 1, 7, 3);
-      }
-    }
-    this.ctx.strokeStyle = '#9af';
-    this.ctx.lineWidth = 2;
-    this.ctx.beginPath();
-    this.ctx.moveTo(0.5, 0.5);
-    this.ctx.lineTo(this.canvas.width - 0.5, 0.5);
-    this.ctx.lineTo(this.canvas.width - 0.5, this.canvas.height - 0.5);
-    this.ctx.lineTo(0.5, this.canvas.height - 0.5);
-    this.ctx.lineTo(0.5, 0.5);
-    this.ctx.stroke();
+    this.drawGrid();
 
     this.commit();
+    this.composite();
 
-    this.canvasTexture = new THREE.CanvasTexture(this.canvas);
+    this.canvasTexture = new THREE.CanvasTexture(this.renderCanvas);
 
     const material = new THREE.ShaderMaterial({
       side: THREE.BackSide,
@@ -175,7 +197,6 @@ void main() {
   vec3 uv = uvMatrix * vec3(u, v, 1.0);
 
   v_uv = (uv.xy / uv.z);
-  // v_uv.y = 1.0 - v_uv.y;
   v_uv.y = (v_uv.y - 0.375) * 4.0;
 
   gl_Position = projectionMatrix * modelViewMatrix * 
@@ -185,7 +206,6 @@ void main() {
 varying vec2 v_uv;
 uniform sampler2D panelTexture;
 void main() {
-  // gl_FragColor = vec4(v_uv.x, v_uv.y, 0.5, 0.4);
   gl_FragColor = texture2D(panelTexture, v_uv);
 }`
     });
@@ -200,8 +220,8 @@ void main() {
     tx.copy(uv);
     tx.applyMatrix3(this.finalizedInverseMatrix);
     return new THREE.Vector2(
-      this.canvas.width * tx.x,
-      this.canvas.height * (2.5 - (tx.y * 4.0)));
+      this.renderCanvas.width * tx.x,
+      this.renderCanvas.height * (2.5 - (tx.y * 4.0)));
   }
 
   private timeout: NodeJS.Timeout = null;
@@ -210,7 +230,7 @@ void main() {
     this.timeout = setTimeout(() => {
       console.log('Saving...');
       const link = document.getElementById('download') as HTMLAnchorElement;
-      link.href = this.canvas.toDataURL("image/png");
+      link.href = this.renderCanvas.toDataURL("image/png");
     }, 500);
   }
 }
