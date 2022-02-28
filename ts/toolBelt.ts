@@ -25,6 +25,7 @@ export class ToolBelt extends THREE.Group {
     this.tools.push(new ShaderSphereTool1(scene));
     this.tools.push(new ShaderSphereTool2(scene));
     this.tools.push(new ImageTool(imgCanvas, 'ep/1/Basic Shading.png'))
+    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Normal Shading.png'))
 
     let theta = 0;
     for (const t of this.tools) {
