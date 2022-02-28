@@ -22,7 +22,7 @@ export class TactileInterface {
     this.handTool.set(1, this.toolBelt.getTool(1));
   }
 
-
+  private drawing: boolean = false;
   public start(ray: THREE.Ray, handIndex: number) {
     const uv = this.projection.getUV(ray);
     if (!uv) {
@@ -36,13 +36,15 @@ export class TactileInterface {
 
     this.activeHands.set(handIndex, uv);
     if (this.activeHands.size > 1) {
-      // TODO: Cancel / undo last action
+      this.paint.cancel();
       this.paint.paintUp(uv);
       this.paint.zoomStart(this.activeHands.get(0), this.activeHands.get(1));
+      this.drawing = false;
     } else {
       const xy = this.paint.getXY(uv);
       this.handTool.get(handIndex).start(xy, ray);
       this.paint.setNeedsUpdate();
+      this.drawing = true;
     }
   }
 
@@ -55,6 +57,7 @@ export class TactileInterface {
     lastUV.lerp(uv, S.float('s'));
     if (this.activeHands.size > 1) {
       this.paint.zoomUpdate(this.activeHands.get(0), this.activeHands.get(1));
+      this.drawing = false;
     } else {
       const xy = this.paint.getXY(lastUV);
       this.handTool.get(handIndex).move(xy, ray);
@@ -66,7 +69,14 @@ export class TactileInterface {
   public end(handIndex: number) {
     if (this.activeHands.size > 1) {
       this.paint.zoomEnd(this.activeHands.get(0), this.activeHands.get(1));
+      this.drawing = false;
+      this.paint.cancel();
     } else {
+      if (this.drawing) {
+        this.paint.commit();
+      } else {
+        this.paint.cancel();
+      }
       this.handTool.get(handIndex).end();
     }
     this.activeHands.delete(handIndex);

@@ -24,6 +24,8 @@ export class EraseTool implements Tool {
       return;
     }
     this.ctx.save();
+    this.ctx.lineCap = 'square';
+    this.ctx.lineJoin = 'round';
     this.ctx.globalCompositeOperation = "destination-out";
     this.ctx.lineWidth = 75;
     this.ctx.beginPath();

@@ -22,7 +22,7 @@ export class S {
 
   static {
     S.setDefault('mi', 6, 'Mandelbrot iterations.');
-    S.setDefault('s', 0.2, 'Smoothness, lower = more smooth.');
+    S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
   }
 
   public static float(name: string): number {

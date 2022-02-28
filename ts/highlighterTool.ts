@@ -19,6 +19,8 @@ export class HighlighterTool implements Tool {
       return;
     }
     this.ctx.save();
+    this.ctx.lineCap = 'square';
+    this.ctx.lineJoin = 'round';
     this.ctx.globalCompositeOperation = "darken";
     this.ctx.strokeStyle = this.color;
     this.ctx.lineWidth = 65;

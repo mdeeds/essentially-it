@@ -22,6 +22,8 @@ export class PenTool implements Tool {
       return;
     }
     this.ctx.strokeStyle = this.color;
+    this.ctx.lineCap = 'round';
+    this.ctx.lineJoin = 'round';
     this.ctx.lineWidth =
       this.ctx.lineWidth * (1 - this.kBlend) + this.kBlend * this.kTargetWidth;
     this.ctx.beginPath();

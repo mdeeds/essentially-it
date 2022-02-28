@@ -6,6 +6,7 @@ export class PaintCylinder extends THREE.Group {
   private mesh: THREE.Mesh;
   private canvasTexture: THREE.CanvasTexture;
   private canvas: HTMLCanvasElement;
+  private undoCanvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private radius: number;
   private material: THREE.ShaderMaterial;
@@ -101,10 +102,29 @@ export class PaintCylinder extends THREE.Group {
 
   }
 
+  private makeCanvas(): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024 * 8;
+    canvas.height = 1024 * 2;
+    return canvas;
+  }
+
+  public commit() {
+    const undoCtx = this.undoCanvas.getContext('2d');
+    undoCtx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    undoCtx.drawImage(this.canvas, 0, 0);
+    console.log('Commit.');
+  }
+
+  public cancel() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.drawImage(this.undoCanvas, 0, 0);
+    console.log('Cancel.');
+  }
+
   private getMaterial(): THREE.ShaderMaterial {
-    this.canvas = document.createElement('canvas');
-    this.canvas.width = 1024 * 8;
-    this.canvas.height = 1024 * 2;
+    this.undoCanvas = this.makeCanvas();
+    this.canvas = this.makeCanvas();
     this.ctx = this.canvas.getContext('2d');
 
     this.ctx.fillStyle = '#9af4';
@@ -124,9 +144,7 @@ export class PaintCylinder extends THREE.Group {
     this.ctx.lineTo(0.5, 0.5);
     this.ctx.stroke();
 
-    this.ctx.fillStyle = '#000';
-    this.ctx.strokeStyle = '#000';
-    this.ctx.lineCap = 'round';
+    this.commit();
 
     this.canvasTexture = new THREE.CanvasTexture(this.canvas);
 
