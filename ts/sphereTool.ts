@@ -79,7 +79,6 @@ export class ShaderSphereTool1 extends SphereTool {
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }`,
       fragmentShader: `
-      varying vec3 vNormal;
       void main() {
         gl_FragColor = vec4(
           0.9,  // red

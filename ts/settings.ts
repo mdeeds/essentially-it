@@ -23,6 +23,8 @@ export class S {
   static {
     S.setDefault('mi', 6, 'Mandelbrot iterations.');
     S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
+    S.setDefault('pi', 30, 'Pen initial thickness.');
+    S.setDefault('pf', 15, 'Pen final thickness');
   }
 
   public static float(name: string): number {

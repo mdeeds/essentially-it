@@ -15,7 +15,8 @@ export class TactileInterface {
     private projection: ProjectionCylinder,
     scene: THREE.Object3D) {
 
-    this.toolBelt = new ToolBelt(paint.getContext(), scene);
+    this.toolBelt = new ToolBelt(paint.getTmpCanvas(),
+      paint.getImgCanvas(), scene);
     this.paint.add(this.toolBelt);
 
     this.handTool.set(0, this.toolBelt.getTool(0));

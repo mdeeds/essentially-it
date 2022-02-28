@@ -52,5 +52,4 @@ export class EraseTool implements Tool {
       new THREE.MeshStandardMaterial({ color: '#333' }));
     return this.icon;
   }
-
 }

@@ -7,8 +7,8 @@ export class PenTool implements Tool {
     readonly color: string) { }
 
   private lastXY: THREE.Vector2 = null;
-  private kInitialWidth = 35;
-  private kTargetWidth = 25;
+  private kInitialWidth = S.float('pi');
+  private kTargetWidth = S.float('pf');
   private kBlend = 0.1;
 
   start(xy: THREE.Vector2) {

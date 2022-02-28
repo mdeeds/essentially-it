@@ -9,6 +9,7 @@ export class PaintCylinder extends THREE.Group {
 
   private undoCanvas: HTMLCanvasElement;
   private tmpCanvas: HTMLCanvasElement;
+  private imgCanvas: HTMLCanvasElement;
   private gridCanvas: HTMLCanvasElement;
 
   private tmpCtx: CanvasRenderingContext2D;
@@ -48,8 +49,11 @@ export class PaintCylinder extends THREE.Group {
     document.body.appendChild(b);
   }
 
-  public getContext(): CanvasRenderingContext2D {
-    return this.tmpCtx;
+  public getTmpCanvas(): HTMLCanvasElement {
+    return this.tmpCanvas;
+  }
+  public getImgCanvas(): HTMLCanvasElement {
+    return this.imgCanvas;
   }
 
   private composite() {
@@ -58,6 +62,7 @@ export class PaintCylinder extends THREE.Group {
       0, 0, this.renderCanvas.width, this.renderCanvas.height);
     renderCtx.drawImage(this.gridCanvas, 0, 0);
     renderCtx.drawImage(this.tmpCanvas, 0, 0);
+    renderCtx.drawImage(this.imgCanvas, 0, 0);
   }
 
   public setNeedsUpdate() {
@@ -124,14 +129,22 @@ export class PaintCylinder extends THREE.Group {
 
   public commit() {
     const undoCtx = this.undoCanvas.getContext('2d');
-    undoCtx.clearRect(0, 0, this.renderCanvas.width, this.renderCanvas.height);
-    undoCtx.drawImage(this.renderCanvas, 0, 0);
+    undoCtx.clearRect(0, 0, this.undoCanvas.width, this.undoCanvas.height);
+    undoCtx.drawImage(this.tmpCanvas, 0, 0);
+    undoCtx.drawImage(this.imgCanvas, 0, 0);
+    this.tmpCtx.drawImage(this.imgCanvas, 0, 0);
+    this.imgCanvas.getContext('2d')
+      .clearRect(0, 0, this.imgCanvas.width, this.imgCanvas.height);
+    this.composite();
+    this.canvasTexture.needsUpdate = true;
     console.log('Commit.');
   }
 
   public cancel() {
-    this.tmpCtx.clearRect(0, 0, this.renderCanvas.width, this.renderCanvas.height);
+    this.tmpCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
     this.tmpCtx.drawImage(this.undoCanvas, 0, 0);
+    this.composite();
+    this.canvasTexture.needsUpdate = true;
     console.log('Cancel.');
   }
 
@@ -161,11 +174,11 @@ export class PaintCylinder extends THREE.Group {
     this.tmpCanvas = this.makeCanvas();
     this.renderCanvas = this.makeCanvas();
     this.gridCanvas = this.makeCanvas();
+    this.imgCanvas = this.makeCanvas();
+
     this.tmpCtx = this.tmpCanvas.getContext('2d');
 
     this.drawGrid();
-
-    this.commit();
     this.composite();
 
     this.canvasTexture = new THREE.CanvasTexture(this.renderCanvas);

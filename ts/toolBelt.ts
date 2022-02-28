@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 import { EraseTool } from "./eraseTool";
 import { HighlighterTool } from "./highlighterTool";
+import { ImageTool } from "./imageTool";
 import { PenTool } from "./penTool";
 import { ShaderSphereTool1, ShaderSphereTool2, SphereTool, StandardSphereTool } from "./sphereTool";
 import { Tool } from "./tool";
@@ -9,8 +10,11 @@ import { Tool } from "./tool";
 export class ToolBelt extends THREE.Group {
   private tools: Tool[] = [];
 
-  constructor(private ctx: CanvasRenderingContext2D, scene: THREE.Object3D) {
+  constructor(tmpCanvas: HTMLCanvasElement,
+    imgCanvas: HTMLCanvasElement,
+    scene: THREE.Object3D) {
     super();
+    const ctx = tmpCanvas.getContext('2d');
     this.tools.push(new EraseTool(ctx));
     this.tools.push(new PenTool(ctx, 'black'));
     this.tools.push(new PenTool(ctx, 'turquoise'));
@@ -20,6 +24,7 @@ export class ToolBelt extends THREE.Group {
     this.tools.push(new StandardSphereTool(scene, true));
     this.tools.push(new ShaderSphereTool1(scene));
     this.tools.push(new ShaderSphereTool2(scene));
+    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Basic Shading.png'))
 
     let theta = 0;
     for (const t of this.tools) {
