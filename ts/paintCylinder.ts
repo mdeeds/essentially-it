@@ -4,13 +4,14 @@ import { Zoom } from "./zoom";
 
 export class PaintCylinder extends THREE.Group {
   private mesh: THREE.Mesh;
-  private canvasTexture: THREE.CanvasTexture;
-  private renderCanvas: HTMLCanvasElement;
+  private gridTexture: THREE.CanvasTexture;
+  private tmpTexture: THREE.CanvasTexture;
+  private imgTexture: THREE.CanvasTexture;
 
   private undoCanvas: HTMLCanvasElement;
+  private gridCanvas: HTMLCanvasElement;
   private tmpCanvas: HTMLCanvasElement;
   private imgCanvas: HTMLCanvasElement;
-  private gridCanvas: HTMLCanvasElement;
 
   private tmpCtx: CanvasRenderingContext2D;
   private radius: number;
@@ -56,18 +57,8 @@ export class PaintCylinder extends THREE.Group {
     return this.imgCanvas;
   }
 
-  private composite() {
-    const renderCtx = this.renderCanvas.getContext('2d');
-    renderCtx.clearRect(
-      0, 0, this.renderCanvas.width, this.renderCanvas.height);
-    renderCtx.drawImage(this.gridCanvas, 0, 0);
-    renderCtx.drawImage(this.tmpCanvas, 0, 0);
-    renderCtx.drawImage(this.imgCanvas, 0, 0);
-  }
-
   public setNeedsUpdate() {
-    this.composite();
-    this.canvasTexture.needsUpdate = true;
+    this.tmpTexture.needsUpdate = true;
   }
 
   paintUp(uv: THREE.Vector2) {
@@ -132,19 +123,14 @@ export class PaintCylinder extends THREE.Group {
     undoCtx.clearRect(0, 0, this.undoCanvas.width, this.undoCanvas.height);
     undoCtx.drawImage(this.tmpCanvas, 0, 0);
     undoCtx.drawImage(this.imgCanvas, 0, 0);
-    this.tmpCtx.drawImage(this.imgCanvas, 0, 0);
-    this.imgCanvas.getContext('2d')
-      .clearRect(0, 0, this.imgCanvas.width, this.imgCanvas.height);
-    this.composite();
-    this.canvasTexture.needsUpdate = true;
+    this.tmpTexture.needsUpdate = true;
     console.log('Commit.');
   }
 
   public cancel() {
     this.tmpCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
     this.tmpCtx.drawImage(this.undoCanvas, 0, 0);
-    this.composite();
-    this.canvasTexture.needsUpdate = true;
+    this.tmpTexture.needsUpdate = true;
     console.log('Cancel.');
   }
 
@@ -152,8 +138,8 @@ export class PaintCylinder extends THREE.Group {
     const gridCtx = this.gridCanvas.getContext('2d');
 
     gridCtx.fillStyle = '#9af4';
-    for (let x = 0; x < this.renderCanvas.width; x += 64) {
-      for (let y = 0; y < this.renderCanvas.height; y += 64) {
+    for (let x = 0; x < this.gridCanvas.width; x += 64) {
+      for (let y = 0; y < this.gridCanvas.height; y += 64) {
         gridCtx.fillRect(x - 1, y - 3, 3, 7);
         gridCtx.fillRect(x - 3, y - 1, 7, 3);
       }
@@ -162,9 +148,9 @@ export class PaintCylinder extends THREE.Group {
     gridCtx.lineWidth = 2;
     gridCtx.beginPath();
     gridCtx.moveTo(0.5, 0.5);
-    gridCtx.lineTo(this.renderCanvas.width - 0.5, 0.5);
-    gridCtx.lineTo(this.renderCanvas.width - 0.5, this.renderCanvas.height - 0.5);
-    gridCtx.lineTo(0.5, this.renderCanvas.height - 0.5);
+    gridCtx.lineTo(this.gridCanvas.width - 0.5, 0.5);
+    gridCtx.lineTo(this.gridCanvas.width - 0.5, this.gridCanvas.height - 0.5);
+    gridCtx.lineTo(0.5, this.gridCanvas.height - 0.5);
     gridCtx.lineTo(0.5, 0.5);
     gridCtx.stroke();
   }
@@ -172,23 +158,29 @@ export class PaintCylinder extends THREE.Group {
   private getMaterial(): THREE.ShaderMaterial {
     this.undoCanvas = this.makeCanvas();
     this.tmpCanvas = this.makeCanvas();
-    this.renderCanvas = this.makeCanvas();
     this.gridCanvas = this.makeCanvas();
     this.imgCanvas = this.makeCanvas();
 
     this.tmpCtx = this.tmpCanvas.getContext('2d');
 
     this.drawGrid();
-    this.composite();
 
-    this.canvasTexture = new THREE.CanvasTexture(this.renderCanvas);
+    this.tmpTexture = new THREE.CanvasTexture(this.tmpCanvas);
+    this.gridTexture = new THREE.CanvasTexture(this.gridCanvas);
+    this.imgTexture = new THREE.CanvasTexture(this.imgCanvas);
 
     const material = new THREE.ShaderMaterial({
       side: THREE.BackSide,
       transparent: true,
       uniforms: {
         panelTexture: {
-          value: this.canvasTexture,
+          value: this.tmpTexture,
+        },
+        gridTexture: {
+          value: this.gridTexture,
+        },
+        imtTexture: {
+          value: this.imgTexture,
         },
         zoomCenter: {
           value: new THREE.Vector2(0, 0),
@@ -217,13 +209,20 @@ void main() {
 }`,
       fragmentShader: `
 varying vec2 v_uv;
+uniform sampler2D gridTexture;
 uniform sampler2D panelTexture;
+uniform sampler2D imageTexture;
 void main() {
-  gl_FragColor = texture2D(panelTexture, v_uv);
+  vec4 gridColor = texture2D(gridTexture, v_uv);
+  vec4 panelColor = texture2D(panelTexture, v_uv);
+  vec4 imageColor = texture2D(imageTexture, v_uv);
+
+  gl_FragColor = mix(mix(gridColor, panelColor, panelColor.w), 
+      imageColor, imageColor.w);
 }`
     });
 
-    this.canvasTexture.needsUpdate = true;
+    this.tmpTexture.needsUpdate = true;
 
     return material;
   }
@@ -233,8 +232,8 @@ void main() {
     tx.copy(uv);
     tx.applyMatrix3(this.finalizedInverseMatrix);
     return new THREE.Vector2(
-      this.renderCanvas.width * tx.x,
-      this.renderCanvas.height * (2.5 - (tx.y * 4.0)));
+      this.tmpCanvas.width * tx.x,
+      this.tmpCanvas.height * (2.5 - (tx.y * 4.0)));
   }
 
   private timeout: NodeJS.Timeout = null;
@@ -243,7 +242,7 @@ void main() {
     this.timeout = setTimeout(() => {
       console.log('Saving...');
       const link = document.getElementById('download') as HTMLAnchorElement;
-      link.href = this.renderCanvas.toDataURL("image/png");
+      link.href = this.undoCanvas.toDataURL("image/png");
     }, 500);
   }
 }
