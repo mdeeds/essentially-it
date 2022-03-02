@@ -4,6 +4,7 @@ import { EraseTool } from "./eraseTool";
 import { HighlighterTool } from "./highlighterTool";
 import { ImageTool } from "./imageTool";
 import { PenTool } from "./penTool";
+import { SpeechTool } from "./speechTool";
 import { ShaderSphereTool1, ShaderSphereTool2, SphereTool, StandardSphereTool } from "./sphereTool";
 import { Tool } from "./tool";
 
@@ -24,8 +25,9 @@ export class ToolBelt extends THREE.Group {
     this.tools.push(new StandardSphereTool(scene, true));
     this.tools.push(new ShaderSphereTool1(scene));
     this.tools.push(new ShaderSphereTool2(scene));
-    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Basic Shading.png'))
-    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Normal Shading.png'))
+    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Basic Shading.png'));
+    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Normal Shading.png'));
+    this.tools.push(new SpeechTool(imgCanvas));
 
     let theta = 0;
     for (const t of this.tools) {

@@ -139,6 +139,7 @@ export class PaintCylinder extends THREE.Group {
     undoCtx.clearRect(0, 0, this.undoCanvas.width, this.undoCanvas.height);
     undoCtx.drawImage(this.tmpCanvas, 0, 0);
     undoCtx.drawImage(this.imgCanvas, 0, 0);
+    this.tmpCtx.drawImage(this.imgCanvas, 0, 0);
     this.tmpTexture.needsUpdate = true;
     console.log('Commit.');
   }
@@ -146,6 +147,8 @@ export class PaintCylinder extends THREE.Group {
   public cancel() {
     this.tmpCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
     this.tmpCtx.drawImage(this.undoCanvas, 0, 0);
+    this.imgCanvas.getContext('2d')
+      .clearRect(0, 0, this.imgCanvas.width, this.imgCanvas.height);
     this.tmpTexture.needsUpdate = true;
     console.log('Cancel.');
   }
@@ -185,7 +188,7 @@ export class PaintCylinder extends THREE.Group {
         gridTexture: {
           value: this.gridTexture,
         },
-        imtTexture: {
+        imgTexture: {
           value: this.imgTexture,
         },
         zoomCenter: {
@@ -217,12 +220,12 @@ void main() {
 varying vec2 v_uv;
 uniform sampler2D gridTexture;
 uniform sampler2D panelTexture;
-uniform sampler2D imageTexture;
+uniform sampler2D imgTexture;
 void main() {
   vec4 gridColor = texture2D(gridTexture, v_uv);
   vec4 panelColor = texture2D(panelTexture, v_uv);
-  vec4 imageColor = texture2D(imageTexture, v_uv);
-
+  vec4 imageColor = texture2D(imgTexture, v_uv);
+ 
   gl_FragColor = mix(mix(gridColor, panelColor, panelColor.w), 
       imageColor, imageColor.w);
 }`

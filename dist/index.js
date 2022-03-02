@@ -792,6 +792,7 @@ class PaintCylinder extends THREE.Group {
         return this.imgCanvas;
     }
     setNeedsUpdate() {
+        this.imgTexture.needsUpdate = true;
         this.tmpTexture.needsUpdate = true;
     }
     paintUp(uv) {
@@ -834,10 +835,20 @@ class PaintCylinder extends THREE.Group {
     zoomEnd(leftUV, rightUV) {
         this.zoomInternal(leftUV, rightUV, true);
     }
+    setClip(canvas, ctx) {
+        const region = new Path2D();
+        // We need a pretty big margin because of the way the sampler
+        // works.  When zooming out, it will use a downsampled and smoothed
+        // value.
+        region.rect(8, 8, canvas.width - 16, canvas.height - 16);
+        ctx.clip(region);
+    }
     makeCanvas() {
         const canvas = document.createElement('canvas');
         canvas.width = 1024 * 8;
         canvas.height = 1024 * 2;
+        // Prohibit drawing on the last pixel.
+        this.setClip(canvas, canvas.getContext('2d'));
         return canvas;
     }
     commit() {
@@ -845,12 +856,15 @@ class PaintCylinder extends THREE.Group {
         undoCtx.clearRect(0, 0, this.undoCanvas.width, this.undoCanvas.height);
         undoCtx.drawImage(this.tmpCanvas, 0, 0);
         undoCtx.drawImage(this.imgCanvas, 0, 0);
+        this.tmpCtx.drawImage(this.imgCanvas, 0, 0);
         this.tmpTexture.needsUpdate = true;
         console.log('Commit.');
     }
     cancel() {
         this.tmpCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
         this.tmpCtx.drawImage(this.undoCanvas, 0, 0);
+        this.imgCanvas.getContext('2d')
+            .clearRect(0, 0, this.imgCanvas.width, this.imgCanvas.height);
         this.tmpTexture.needsUpdate = true;
         console.log('Cancel.');
     }
@@ -863,15 +877,6 @@ class PaintCylinder extends THREE.Group {
                 gridCtx.fillRect(x - 3, y - 1, 7, 3);
             }
         }
-        gridCtx.strokeStyle = '#9af';
-        gridCtx.lineWidth = 2;
-        gridCtx.beginPath();
-        gridCtx.moveTo(0.5, 0.5);
-        gridCtx.lineTo(this.gridCanvas.width - 0.5, 0.5);
-        gridCtx.lineTo(this.gridCanvas.width - 0.5, this.gridCanvas.height - 0.5);
-        gridCtx.lineTo(0.5, this.gridCanvas.height - 0.5);
-        gridCtx.lineTo(0.5, 0.5);
-        gridCtx.stroke();
     }
     getMaterial() {
         this.undoCanvas = this.makeCanvas();
@@ -893,7 +898,7 @@ class PaintCylinder extends THREE.Group {
                 gridTexture: {
                     value: this.gridTexture,
                 },
-                imtTexture: {
+                imgTexture: {
                     value: this.imgTexture,
                 },
                 zoomCenter: {
@@ -925,12 +930,12 @@ void main() {
 varying vec2 v_uv;
 uniform sampler2D gridTexture;
 uniform sampler2D panelTexture;
-uniform sampler2D imageTexture;
+uniform sampler2D imgTexture;
 void main() {
   vec4 gridColor = texture2D(gridTexture, v_uv);
   vec4 panelColor = texture2D(panelTexture, v_uv);
-  vec4 imageColor = texture2D(imageTexture, v_uv);
-
+  vec4 imageColor = texture2D(imgTexture, v_uv);
+ 
   gl_FragColor = mix(mix(gridColor, panelColor, panelColor.w), 
       imageColor, imageColor.w);
 }`
@@ -1321,6 +1326,105 @@ exports.S = S;
 
 /***/ }),
 
+/***/ 297:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SpeechTool = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class SpeechTool {
+    canvas;
+    recognition;
+    text = "";
+    isFinal = false;
+    ctx;
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.ctx.font = 'bold 64px monospace';
+        this.recognition = new window.webkitSpeechRecognition();
+        this.recognition.lang = "en-US";
+        this.recognition.continuous = false;
+        this.recognition.interimResults = true;
+        console.log('Building recognition');
+        console.log(this.recognition);
+        this.recognition.onresult =
+            (event) => {
+                for (var i = event.resultIndex; i < event.results.length; i++) {
+                    const result = event.results[i];
+                    this.text = result[0].transcript.toLowerCase();
+                    this.isFinal = result.isFinal;
+                    console.log((result.isFinal ? '*' : ' ') +
+                        event.results[i][0].transcript);
+                }
+            };
+        for (const type of ['start', 'error', 'end', 'audiostart', 'audioend', 'nomatch']) {
+            this.recognition[`on${type}`] =
+                (event) => {
+                    this.logType(event);
+                };
+        }
+        this.recognition.start();
+    }
+    logType(event) {
+        console.log(`Event: ${event.type}`);
+    }
+    start(xy, ray) {
+        console.log('Start method');
+        try {
+            this.recognition.stop();
+            this.recognition.start();
+        }
+        catch (e) { }
+    }
+    move(xy, ray) {
+        console.log('Move method');
+        if (this.text) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillStyle = this.isFinal ? 'black' : 'turquoise';
+            this.ctx.fillText(this.text, xy.x, xy.y);
+        }
+    }
+    end() {
+        try {
+            this.recognition.stop();
+        }
+        catch (e) { }
+    }
+    icon = null;
+    getIconObject() {
+        if (this.icon != null) {
+            return this.icon;
+        }
+        this.icon = new THREE.Mesh(new THREE.TetrahedronBufferGeometry(0.1), new THREE.MeshStandardMaterial({ color: 'pink' }));
+        return this.icon;
+    }
+}
+exports.SpeechTool = SpeechTool;
+//# sourceMappingURL=speechTool.js.map
+
+/***/ }),
+
 /***/ 11:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -1575,6 +1679,7 @@ const eraseTool_1 = __webpack_require__(847);
 const highlighterTool_1 = __webpack_require__(512);
 const imageTool_1 = __webpack_require__(379);
 const penTool_1 = __webpack_require__(547);
+const speechTool_1 = __webpack_require__(297);
 const sphereTool_1 = __webpack_require__(11);
 class ToolBelt extends THREE.Group {
     tools = [];
@@ -1592,6 +1697,7 @@ class ToolBelt extends THREE.Group {
         this.tools.push(new sphereTool_1.ShaderSphereTool2(scene));
         this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Basic Shading.png'));
         this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Normal Shading.png'));
+        this.tools.push(new speechTool_1.SpeechTool(imgCanvas));
         let theta = 0;
         for (const t of this.tools) {
             const o = t.getIconObject();
