@@ -58,6 +58,7 @@ export class PaintCylinder extends THREE.Group {
   }
 
   public setNeedsUpdate() {
+    this.imgTexture.needsUpdate = true;
     this.tmpTexture.needsUpdate = true;
   }
 
@@ -111,10 +112,25 @@ export class PaintCylinder extends THREE.Group {
 
   }
 
+  private setClip(
+    canvas: HTMLCanvasElement,
+    ctx: CanvasRenderingContext2D) {
+    const region = new Path2D();
+    // We need a pretty big margin because of the way the sampler
+    // works.  When zooming out, it will use a downsampled and smoothed
+    // value.
+    region.rect(8, 8, canvas.width - 16, canvas.height - 16);
+    ctx.clip(region);
+
+  }
+
   private makeCanvas(): HTMLCanvasElement {
     const canvas = document.createElement('canvas');
     canvas.width = 1024 * 8;
     canvas.height = 1024 * 2;
+    // Prohibit drawing on the last pixel.
+    this.setClip(canvas, canvas.getContext('2d'));
+
     return canvas;
   }
 
@@ -136,7 +152,6 @@ export class PaintCylinder extends THREE.Group {
 
   private drawGrid() {
     const gridCtx = this.gridCanvas.getContext('2d');
-
     gridCtx.fillStyle = '#9af4';
     for (let x = 0; x < this.gridCanvas.width; x += 64) {
       for (let y = 0; y < this.gridCanvas.height; y += 64) {
@@ -144,15 +159,6 @@ export class PaintCylinder extends THREE.Group {
         gridCtx.fillRect(x - 3, y - 1, 7, 3);
       }
     }
-    gridCtx.strokeStyle = '#9af';
-    gridCtx.lineWidth = 2;
-    gridCtx.beginPath();
-    gridCtx.moveTo(0.5, 0.5);
-    gridCtx.lineTo(this.gridCanvas.width - 0.5, 0.5);
-    gridCtx.lineTo(this.gridCanvas.width - 0.5, this.gridCanvas.height - 0.5);
-    gridCtx.lineTo(0.5, this.gridCanvas.height - 0.5);
-    gridCtx.lineTo(0.5, 0.5);
-    gridCtx.stroke();
   }
 
   private getMaterial(): THREE.ShaderMaterial {
