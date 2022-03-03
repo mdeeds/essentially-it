@@ -32,7 +32,7 @@ export class ToolBelt extends THREE.Group {
     }
 
     const thetaStep = 0.12;
-    let theta = thetaStep * -0.5 * this.tools.length;
+    let theta = thetaStep * -0.5 * (this.tools.length - 1);
     for (const t of this.tools) {
       const o = t.getIconObject();
       o.position.set(Math.sin(theta) * 1.45,

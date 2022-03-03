@@ -1697,13 +1697,16 @@ class ToolBelt extends THREE.Group {
         this.tools.push(new sphereTool_1.ShaderSphereTool2(scene));
         this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Basic Shading.png'));
         this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Normal Shading.png'));
-        this.tools.push(new speechTool_1.SpeechTool(imgCanvas));
-        let theta = 0;
+        if (window['webkitSpeechRecognition']) {
+            this.tools.push(new speechTool_1.SpeechTool(imgCanvas));
+        }
+        const thetaStep = 0.12;
+        let theta = thetaStep * -0.5 * (this.tools.length - 1);
         for (const t of this.tools) {
             const o = t.getIconObject();
             o.position.set(Math.sin(theta) * 1.45, -1.15, -Math.cos(theta) * 1.45);
             o.rotateY(-theta);
-            theta += 0.12;
+            theta += thetaStep;
             this.add(o);
         }
     }
