@@ -131,8 +131,32 @@ export class Graphiti {
   constructor() {
     this.patterns.push(new Graphito(Stroke.fromClock("15"), "a"));
     this.patterns.push(new Graphito(Stroke.fromClock("604848"), "b"));
-    this.patterns.push(new Graphito(Stroke.fromClock("a8642"), "c"));
-    this.patterns.push(new Graphito(Stroke.fromClock("36"), "t"));
+    this.patterns.push(new Graphito(Stroke.fromClock("ba98765432"), "c"));
+    // this.patterns.push(new Graphito(Stroke.fromClock("6024689"), "d"));  // Palm
+    this.patterns.push(new Graphito(Stroke.fromClock("03456789"), "d"));  // Matt
+    this.patterns.push(new Graphito(Stroke.fromClock("963963"), "e"));
+    this.patterns.push(new Graphito(Stroke.fromClock("96"), "f"));
+    this.patterns.push(new Graphito(Stroke.fromClock("963093"), "g"));
+    this.patterns.push(new Graphito(Stroke.fromClock("6660123456"), "h"));
+    this.patterns.push(new Graphito(Stroke.fromClock("6"), "i"));
+    this.patterns.push(new Graphito(Stroke.fromClock("69"), "j"));
+    this.patterns.push(new Graphito(Stroke.fromClock("804"), "k"));
+    this.patterns.push(new Graphito(Stroke.fromClock("63"), "l"));
+    this.patterns.push(new Graphito(Stroke.fromClock("1515"), "m"));
+    this.patterns.push(new Graphito(Stroke.fromClock("050"), "n"));
+    this.patterns.push(new Graphito(Stroke.fromClock("9876543210ba"), "o"));
+    this.patterns.push(new Graphito(Stroke.fromClock("60369"), "p"));
+    this.patterns.push(new Graphito(Stroke.fromClock("9876543210ba3"), "q"));
+    this.patterns.push(new Graphito(Stroke.fromClock("603685"), "r"));
+    this.patterns.push(new Graphito(Stroke.fromClock("96469"), "s"));
+    this.patterns.push(new Graphito(Stroke.fromClock("3366"), "t"));
+    this.patterns.push(new Graphito(Stroke.fromClock("6543210"), "u"));
+    this.patterns.push(new Graphito(Stroke.fromClock("513"), "v"));  // Palm
+    this.patterns.push(new Graphito(Stroke.fromClock("7b"), "v"));  // Matt
+    this.patterns.push(new Graphito(Stroke.fromClock("5151"), "w"));
+    this.patterns.push(new Graphito(Stroke.fromClock("408"), "x"));
+    this.patterns.push(new Graphito(Stroke.fromClock("630602"), "y"));
+    this.patterns.push(new Graphito(Stroke.fromClock("373"), "z"));
   }
 
   recognize(stroke: Stroke): string {
