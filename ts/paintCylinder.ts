@@ -141,7 +141,6 @@ export class PaintCylinder extends THREE.Group {
     undoCtx.drawImage(this.imgCanvas, 0, 0);
     this.tmpCtx.drawImage(this.imgCanvas, 0, 0);
     this.tmpTexture.needsUpdate = true;
-    console.log('Commit.');
   }
 
   public cancel() {
@@ -150,7 +149,6 @@ export class PaintCylinder extends THREE.Group {
     this.imgCanvas.getContext('2d')
       .clearRect(0, 0, this.imgCanvas.width, this.imgCanvas.height);
     this.tmpTexture.needsUpdate = true;
-    console.log('Cancel.');
   }
 
   private drawGrid() {

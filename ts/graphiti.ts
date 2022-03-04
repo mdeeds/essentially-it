@@ -27,6 +27,37 @@ export class Stroke {
     }
     return result;
   }
+
+  static fromHours(hours: number[]): Stroke {
+    const result = new Stroke();
+    for (const h of hours) {
+      const theta = h * Math.PI * 2 / 12;
+      result.add(new THREE.Vector2(Math.sin(theta), Math.cos(theta)));
+    }
+    return result;
+  }
+
+  clear() {
+    this.d.splice(0);
+  }
+
+  getHoursAtPosition(index: number): string {
+    const p = this.d[index];
+    const theta = Math.atan2(p.x, p.y);
+    let hour = theta / (Math.PI * 2) * 12;
+    hour = (hour + 12) % 12;
+    return hour.toFixed(1);
+  }
+
+  logAsHours() {
+    const hoursStrings: string[] = [];
+    for (let index = 0; index < this.d.length; ++index) {
+      hoursStrings.push(this.getHoursAtPosition(index));
+    }
+
+    console.log(
+      `testStroke(Stroke.fromHours([${hoursStrings.join(',')}]), "?");`);
+  }
 }
 
 class Graphito {
@@ -41,11 +72,13 @@ class Graphito {
   // indicate higher error. The vectors in the stroke should be normalized.
   private score(referenceIndex: number, queryIndex: number,
     stroke: Stroke) {
-    return 1 - this.stroke.d[referenceIndex].dot(stroke.d[queryIndex]);
+    const score = 1 - this.stroke.d[referenceIndex].dot(stroke.d[queryIndex]);
+    // console.log(`Score @[${referenceIndex}, ${queryIndex}] = ${score}`);
+    return score;
   }
 
   private getIndex(referenceIndex: number, queryIndex: number): number {
-    return referenceIndex * this.stroke.d.length + queryIndex;
+    return queryIndex * this.stroke.d.length + referenceIndex;
   }
 
   private getMemoScore(referenceIndex: number, queryIndex: number, memo: number[]) {
@@ -74,9 +107,21 @@ class Graphito {
           this.getMemoScore(referenceIndex - 1, queryIndex - 1, idealScores));
         const index = this.getIndex(referenceIndex, queryIndex);
         lastScore = newScore + previousScore;
+        // console.log(`Ideal @[${referenceIndex}, ${queryIndex}] = ${lastScore}`);
         idealScores[index] = lastScore;
       }
     }
+
+    // console.log(`Match matrix [${this.glyph}]`);
+    // for (let queryIndex = 0; queryIndex < stroke.d.length; ++queryIndex) {
+    //   let line = ` [${queryIndex}] ${stroke.getHoursAtPosition(queryIndex)} : `;
+    //   for (let referenceIndex = 0; referenceIndex < this.stroke.d.length; ++referenceIndex) {
+    //     line = line + ` ${idealScores[this.getIndex(referenceIndex, queryIndex)].toFixed(2)}`;
+    //   }
+    //   console.log(line);
+    // }
+    // console.log(`Final: ${lastScore}`);
+
     return lastScore;
   }
 }

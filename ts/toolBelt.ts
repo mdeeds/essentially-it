@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { EraseTool } from "./eraseTool";
+import { GraphitiTool } from "./graphitiTool";
 import { HighlighterTool } from "./highlighterTool";
 import { ImageTool } from "./imageTool";
 import { PenTool } from "./penTool";
@@ -30,6 +31,7 @@ export class ToolBelt extends THREE.Group {
     if (window['webkitSpeechRecognition']) {
       this.tools.push(new SpeechTool(imgCanvas));
     }
+    this.tools.push(new GraphitiTool(imgCanvas));
 
     const thetaStep = 0.12;
     let theta = thetaStep * -0.5 * (this.tools.length - 1);
