@@ -39,8 +39,9 @@ export class GraphitiTool implements Tool {
 
   end() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.stroke = this.stroke.reduce();
     console.log(this.graphiti.recognize(this.stroke));
-    // this.stroke.logAsHours();
+    this.stroke.logAsClock();
     this.stroke.clear();
   }
 
