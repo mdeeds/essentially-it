@@ -524,12 +524,14 @@ class Stroke {
             this.clockHours.set(Stroke.hours[h], new THREE.Vector2(Math.sin(theta), Math.cos(theta)));
         }
     }
+    pixelLength = 0;
     constructor() { }
     add(xy) {
         const p = new THREE.Vector2();
         p.copy(xy);
         // p.normalize();
         this.d.push(p);
+        this.pixelLength += xy.length();
     }
     static fromClock(clockStroke) {
         const result = new Stroke();
@@ -559,16 +561,12 @@ class Stroke {
         hour = (hour + 12) % 12;
         return hour;
     }
-    pixelLength() {
-        let len = 0;
-        for (const s of this.d) {
-            len += s.length();
-        }
-        return len;
+    getPixelLength() {
+        return this.pixelLength;
     }
     reduce() {
         const result = new Stroke();
-        const stride = this.pixelLength() / Stroke.kIdealSize;
+        const stride = this.pixelLength / Stroke.kIdealSize;
         let offset = stride / 2;
         let position = 0;
         let sum = new THREE.Vector2();
@@ -716,6 +714,7 @@ class Graphiti {
         this.patterns.push(new Graphito(Stroke.fromClock("3333377777733333"), "z"));
         this.patterns.push(new Graphito(Stroke.fromClock("3333333333333333"), " "));
         this.patterns.push(new Graphito(Stroke.fromClock("9999999999999999"), "backspace"));
+        this.patterns.push(new Graphito(Stroke.fromClock("7777777777777777"), "done"));
     }
     recognize(stroke) {
         let bestScore = 0;
@@ -765,23 +764,16 @@ const graphiti_1 = __webpack_require__(245);
 class GraphitiTool {
     canvas;
     ctx;
-    image = null;
     stroke = new graphiti_1.Stroke();
     graphiti = new graphiti_1.Graphiti();
     location = null;
     message = "";
+    height = 64;
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         {
-            const fontLoader = new FontFace('Technical', 'url(technicn.ttf)');
-            fontLoader.load().then(function (font) {
-                document.fonts.add(font);
-                console.log(`Font loaded: ${font.style} ${font.family}`);
-            });
-        }
-        {
-            const fontLoader = new FontFace('Engplot', 'url(Engplot.ttf)');
+            const fontLoader = new FontFace('SedgwickAve', 'url(SedgwickAve-Regular.ttf)');
             fontLoader.load().then(function (font) {
                 document.fonts.add(font);
                 console.log(`Font loaded: ${font.style} ${font.family}`);
@@ -789,6 +781,14 @@ class GraphitiTool {
         }
     }
     lastXY = new THREE.Vector2();
+    minX = Infinity;
+    minY = Infinity;
+    maxY = Infinity;
+    updateMinMax(xy) {
+        this.minX = Math.min(xy.x, this.minX);
+        this.minY = Math.min(xy.y, this.minY);
+        this.maxY = Math.max(xy.y, this.maxY);
+    }
     start(xy) {
         this.lastXY.copy(xy);
         if (this.location === null) {
@@ -815,25 +815,34 @@ class GraphitiTool {
     }
     end() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        if (this.stroke.d.length < 8) {
+        if (this.stroke.getPixelLength() < 32) {
             this.location = null;
             this.stroke.clear();
+            this.message = "";
             return;
         }
-        this.stroke = this.stroke.reduce();
+        // TODO: pixel length > 256 = Move
         const glyph = this.graphiti.recognize(this.stroke);
         if (!!glyph) {
-            if (glyph === "backspace") {
-                this.message = this.message.slice(0, -1);
-            }
-            else {
-                this.message = this.message + glyph;
+            switch (glyph) {
+                case "backspace":
+                    this.message = this.message.slice(0, -1);
+                    break;
+                case "done":
+                    // stamp it onto tmp surface.
+                    //TODO
+                    this.message = "";
+                    this.location.y += this.height;
+                    break;
+                default:
+                    this.message = this.message + glyph;
+                    break;
             }
         }
-        this.ctx.font = "64px Technical";
+        this.ctx.font = `${this.height}px SedgwickAve`;
         this.ctx.fillStyle = "black";
         this.ctx.fillText(this.message, this.location.x, this.location.y);
-        // this.stroke.logAsClock();
+        // this.stroke.reduce().logAsClock();
         this.stroke.clear();
     }
     icon = null;

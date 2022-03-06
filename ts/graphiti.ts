@@ -14,6 +14,7 @@ export class Stroke {
         new THREE.Vector2(Math.sin(theta), Math.cos(theta)));
     }
   }
+  private pixelLength = 0;
   constructor() { }
 
   add(xy: THREE.Vector2) {
@@ -21,6 +22,7 @@ export class Stroke {
     p.copy(xy);
     // p.normalize();
     this.d.push(p);
+    this.pixelLength += xy.length();
   }
 
   static fromClock(clockStroke: string): Stroke {
@@ -56,17 +58,13 @@ export class Stroke {
     return hour;
   }
 
-  private pixelLength() {
-    let len = 0;
-    for (const s of this.d) {
-      len += s.length();
-    }
-    return len;
+  getPixelLength() {
+    return this.pixelLength;
   }
 
   reduce(): Stroke {
     const result = new Stroke();
-    const stride = this.pixelLength() / Stroke.kIdealSize;
+    const stride = this.pixelLength / Stroke.kIdealSize;
     let offset = stride / 2;
     let position = 0;
     let sum = new THREE.Vector2();
@@ -229,6 +227,8 @@ export class Graphiti {
     this.patterns.push(new Graphito(Stroke.fromClock("3333333333333333"), " "));
     this.patterns.push(new Graphito(Stroke.fromClock("9999999999999999"),
       "backspace"));
+    this.patterns.push(new Graphito(Stroke.fromClock("7777777777777777"),
+      "done"));
   }
 
   recognize(stroke: Stroke): string {
