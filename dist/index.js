@@ -485,6 +485,371 @@ exports.Game = Game;
 
 /***/ }),
 
+/***/ 245:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Graphiti = exports.Stroke = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class Stroke {
+    static kIdealSize = 16;
+    d = [];
+    static clockHours = new Map();
+    static hours = [
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b'
+    ];
+    static {
+        for (let h = 0; h < Stroke.hours.length; ++h) {
+            const theta = h * Math.PI * 2 / 12;
+            this.clockHours.set(Stroke.hours[h], new THREE.Vector2(Math.sin(theta), Math.cos(theta)));
+        }
+    }
+    constructor() { }
+    add(xy) {
+        const p = new THREE.Vector2();
+        p.copy(xy);
+        // p.normalize();
+        this.d.push(p);
+    }
+    static fromClock(clockStroke) {
+        const result = new Stroke();
+        for (const c of clockStroke) {
+            result.add(Stroke.clockHours.get(c));
+        }
+        return result;
+    }
+    static fromHour(h) {
+        const theta = h * Math.PI * 2 / 12;
+        return new THREE.Vector2(Math.sin(theta), Math.cos(theta));
+    }
+    static fromHours(hours) {
+        const result = new Stroke();
+        for (const h of hours) {
+            result.add(Stroke.fromHour(h));
+        }
+        return result;
+    }
+    clear() {
+        this.d.splice(0);
+    }
+    getHoursAtPosition(index) {
+        const p = this.d[index];
+        const theta = Math.atan2(p.x, p.y);
+        let hour = theta / (Math.PI * 2) * 12;
+        hour = (hour + 12) % 12;
+        return hour;
+    }
+    pixelLength() {
+        let len = 0;
+        for (const s of this.d) {
+            len += s.length();
+        }
+        return len;
+    }
+    reduce() {
+        const result = new Stroke();
+        const stride = this.pixelLength() / Stroke.kIdealSize;
+        let offset = stride / 2;
+        let position = 0;
+        let sum = new THREE.Vector2();
+        for (let index = 0; index < this.d.length; ++index) {
+            position += this.d[index].length();
+            sum.add(this.d[index]);
+            if (position >= offset) {
+                result.add(sum);
+                offset += stride;
+                sum = new THREE.Vector2();
+            }
+        }
+        return result;
+    }
+    logAsHours() {
+        const hoursStrings = [];
+        for (let index = 0; index < this.d.length; ++index) {
+            hoursStrings.push(this.getHoursAtPosition(index).toFixed(1));
+        }
+        console.log(`testStroke(Stroke.fromHours([${hoursStrings.join(',')}]), "?");`);
+    }
+    logAsClock() {
+        let result = "";
+        for (let index = 0; index < this.d.length; ++index) {
+            const h = Math.round(this.getHoursAtPosition(index)) % 12;
+            result = result + Stroke.hours[h];
+        }
+        console.log(result);
+    }
+}
+exports.Stroke = Stroke;
+class Graphito {
+    stroke;
+    glyph;
+    // The vectors should be normalized.
+    constructor(stroke, glyph) {
+        this.stroke = stroke;
+        this.glyph = glyph;
+    }
+    v = new THREE.Vector2();
+    // Returns the quality of match of reference vs. query.  Larger numbers
+    // indicate better match.
+    score(referenceIndex, queryIndex, stroke) {
+        const score = this.stroke.d[referenceIndex].dot(stroke.d[queryIndex]);
+        // console.log(`Score @[${referenceIndex}, ${queryIndex}] = ${score}`);
+        return score;
+    }
+    getIndex(referenceIndex, queryIndex) {
+        return queryIndex * this.stroke.d.length + referenceIndex;
+    }
+    getMemoScore(referenceIndex, queryIndex, memo) {
+        if (referenceIndex < 0 && queryIndex < 0) {
+            return 0;
+        }
+        else if (referenceIndex < 0 || queryIndex < 0) {
+            return -Infinity;
+        }
+        else {
+            return memo[this.getIndex(referenceIndex, queryIndex)];
+        }
+    }
+    // TODO: For DTW to work well, we need to normalize based on reference
+    // stroke length or use an "error" function for the score.
+    // Returns the "distance" between the stroke provided and
+    // the stroke which represents this glyph.
+    dtwMatch(stroke) {
+        // Dynamic programming to compute DTW matching.
+        const idealScores = [];
+        let lastScore = null;
+        const perp = new THREE.Vector2(stroke.d.length, -this.stroke.d.length);
+        perp.normalize();
+        const position = new THREE.Vector2();
+        const slop = Math.min(stroke.d.length, this.stroke.d.length);
+        for (let referenceIndex = 0; referenceIndex < this.stroke.d.length; ++referenceIndex) {
+            for (let queryIndex = 0; queryIndex < stroke.d.length; ++queryIndex) {
+                position.set(referenceIndex, queryIndex);
+                const distanceFromCenter = Math.abs(position.dot(perp));
+                const multiplier = 1 - (distanceFromCenter / slop);
+                const newScore = this.score(referenceIndex, queryIndex, stroke)
+                    * multiplier;
+                const previousScore = Math.max(this.getMemoScore(referenceIndex - 1, queryIndex, idealScores), this.getMemoScore(referenceIndex, queryIndex - 1, idealScores), this.getMemoScore(referenceIndex - 1, queryIndex - 1, idealScores));
+                const index = this.getIndex(referenceIndex, queryIndex);
+                lastScore = newScore + previousScore;
+                // console.log(`Ideal @[${referenceIndex}, ${queryIndex}] = ${lastScore}`);
+                idealScores[index] = lastScore;
+            }
+        }
+        // console.log(`Match matrix [${this.glyph}]`);
+        // for (let queryIndex = 0; queryIndex < stroke.d.length; ++queryIndex) {
+        //   let line = ` [${queryIndex}] ${stroke.getHoursAtPosition(queryIndex).toFixed(1)} : `;
+        //   for (let referenceIndex = 0; referenceIndex < this.stroke.d.length; ++referenceIndex) {
+        //     line = line + ` ${idealScores[this.getIndex(referenceIndex, queryIndex)].toFixed(2)}`;
+        //   }
+        //   console.log(line);
+        // }
+        lastScore = lastScore / Math.max(stroke.d.length, this.stroke.d.length);
+        // console.log(`Final: ${lastScore}`);
+        return lastScore;
+    }
+    // Returns the "distance" between the stroke provided and
+    // the stroke which represents this glyph.
+    lineMatch(stroke) {
+        if (stroke.d.length <= 1) {
+            return 0;
+        }
+        let totalScore = 0;
+        for (let queryIndex = 0; queryIndex < stroke.d.length; ++queryIndex) {
+            const referenceIndex = Math.round(queryIndex *
+                (this.stroke.d.length - 1) / (stroke.d.length - 1));
+            totalScore += this.score(referenceIndex, queryIndex, stroke);
+        }
+        return totalScore / Math.max(this.stroke.d.length, stroke.d.length);
+    }
+}
+class Graphiti {
+    patterns = [];
+    constructor() {
+        this.patterns.push(new Graphito(Stroke.fromClock("1111111155555555"), "a"));
+        this.patterns.push(new Graphito(Stroke.fromClock("6666000124578479"), "b"));
+        this.patterns.push(new Graphito(Stroke.fromClock("9999888776544333"), "c"));
+        // this.patterns.push(new Graphito(Stroke.fromClock("6024689"), "d"));  // Palm
+        this.patterns.push(new Graphito(Stroke.fromClock("0000012345567788"), "d")); // Matt
+        this.patterns.push(new Graphito(Stroke.fromClock("a998875398764333"), "e"));
+        this.patterns.push(new Graphito(Stroke.fromClock("9999996666666666"), "f"));
+        this.patterns.push(new Graphito(Stroke.fromClock("9988776543320b33"), "g"));
+        this.patterns.push(new Graphito(Stroke.fromClock("6666666621234566"), "h"));
+        this.patterns.push(new Graphito(Stroke.fromClock("6666666666666666"), "i"));
+        this.patterns.push(new Graphito(Stroke.fromClock("66666666667899ab"), "j"));
+        this.patterns.push(new Graphito(Stroke.fromClock("7778899ab1345555"), "k"));
+        this.patterns.push(new Graphito(Stroke.fromClock("6666666666633333"), "l"));
+        this.patterns.push(new Graphito(Stroke.fromClock("0000025551116666"), "m"));
+        this.patterns.push(new Graphito(Stroke.fromClock("0000055555500000"), "n"));
+        this.patterns.push(new Graphito(Stroke.fromClock("98766654321000ba"), "o"));
+        this.patterns.push(new Graphito(Stroke.fromClock("0000001122335888"), "p"));
+        this.patterns.push(new Graphito(Stroke.fromClock("988776432110ba33"), "q"));
+        this.patterns.push(new Graphito(Stroke.fromClock("6666700123578554"), "r"));
+        this.patterns.push(new Graphito(Stroke.fromClock("a999876545678899"), "s"));
+        this.patterns.push(new Graphito(Stroke.fromClock("3333336666666666"), "t"));
+        this.patterns.push(new Graphito(Stroke.fromClock("6666655443211100"), "u"));
+        // this.patterns.push(new Graphito(Stroke.fromClock("55113"), "v"));  // Palm
+        this.patterns.push(new Graphito(Stroke.fromClock("77777777bbbbbbbb"), "v")); // Matt
+        this.patterns.push(new Graphito(Stroke.fromClock("5555511155511100"), "w"));
+        this.patterns.push(new Graphito(Stroke.fromClock("55544321a8888888"), "x"));
+        this.patterns.push(new Graphito(Stroke.fromClock("65321566779a2333"), "y"));
+        this.patterns.push(new Graphito(Stroke.fromClock("3333377777733333"), "z"));
+        this.patterns.push(new Graphito(Stroke.fromClock("3333333333333333"), " "));
+        this.patterns.push(new Graphito(Stroke.fromClock("9999999999999999"), "backspace"));
+    }
+    recognize(stroke) {
+        let bestScore = 0;
+        let bestMatch = "";
+        for (const p of this.patterns) {
+            const matchScore = p.dtwMatch(stroke);
+            if (matchScore > bestScore) {
+                bestScore = matchScore;
+                bestMatch = p.glyph;
+            }
+        }
+        return bestMatch;
+    }
+}
+exports.Graphiti = Graphiti;
+//# sourceMappingURL=graphiti.js.map
+
+/***/ }),
+
+/***/ 257:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GraphitiTool = void 0;
+const THREE = __importStar(__webpack_require__(578));
+const graphiti_1 = __webpack_require__(245);
+class GraphitiTool {
+    canvas;
+    ctx;
+    image = null;
+    stroke = new graphiti_1.Stroke();
+    graphiti = new graphiti_1.Graphiti();
+    location = null;
+    message = "";
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        {
+            const fontLoader = new FontFace('Technical', 'url(technicn.ttf)');
+            fontLoader.load().then(function (font) {
+                document.fonts.add(font);
+                console.log(`Font loaded: ${font.style} ${font.family}`);
+            });
+        }
+        {
+            const fontLoader = new FontFace('Engplot', 'url(Engplot.ttf)');
+            fontLoader.load().then(function (font) {
+                document.fonts.add(font);
+                console.log(`Font loaded: ${font.style} ${font.family}`);
+            });
+        }
+    }
+    lastXY = new THREE.Vector2();
+    start(xy) {
+        this.lastXY.copy(xy);
+        if (this.location === null) {
+            this.location = new THREE.Vector2(xy.x, xy.y);
+        }
+    }
+    d = new THREE.Vector2();
+    move(xy) {
+        this.d.x = xy.x - this.lastXY.x;
+        this.d.y = this.lastXY.y - xy.y;
+        this.stroke.add(this.d);
+        if (this.lastXY === null) {
+            return;
+        }
+        this.ctx.strokeStyle = 'black';
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        this.ctx.lineWidth = 10;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.lastXY.x, this.lastXY.y);
+        this.ctx.lineTo(xy.x, xy.y);
+        this.ctx.stroke();
+        this.lastXY.copy(xy);
+    }
+    end() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        if (this.stroke.d.length < 8) {
+            this.location = null;
+            this.stroke.clear();
+            return;
+        }
+        this.stroke = this.stroke.reduce();
+        const glyph = this.graphiti.recognize(this.stroke);
+        if (!!glyph) {
+            if (glyph === "backspace") {
+                this.message = this.message.slice(0, -1);
+            }
+            else {
+                this.message = this.message + glyph;
+            }
+        }
+        this.ctx.font = "64px Technical";
+        this.ctx.fillStyle = "black";
+        this.ctx.fillText(this.message, this.location.x, this.location.y);
+        // this.stroke.logAsClock();
+        this.stroke.clear();
+    }
+    icon = null;
+    getIconObject() {
+        if (this.icon != null) {
+            return this.icon;
+        }
+        this.icon = new THREE.Mesh(new THREE.OctahedronBufferGeometry(0.1), new THREE.MeshStandardMaterial({ color: '#20f' }));
+        return this.icon;
+    }
+}
+exports.GraphitiTool = GraphitiTool;
+//# sourceMappingURL=graphitiTool.js.map
+
+/***/ }),
+
 /***/ 673:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -858,7 +1223,6 @@ class PaintCylinder extends THREE.Group {
         undoCtx.drawImage(this.imgCanvas, 0, 0);
         this.tmpCtx.drawImage(this.imgCanvas, 0, 0);
         this.tmpTexture.needsUpdate = true;
-        console.log('Commit.');
     }
     cancel() {
         this.tmpCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
@@ -866,7 +1230,6 @@ class PaintCylinder extends THREE.Group {
         this.imgCanvas.getContext('2d')
             .clearRect(0, 0, this.imgCanvas.width, this.imgCanvas.height);
         this.tmpTexture.needsUpdate = true;
-        console.log('Cancel.');
     }
     drawGrid() {
         const gridCtx = this.gridCanvas.getContext('2d');
@@ -1633,13 +1996,13 @@ class TactileInterface {
             this.paint.cancel();
         }
         else {
+            this.handTool.get(handIndex).end();
             if (this.drawing) {
                 this.paint.commit();
             }
             else {
                 this.paint.cancel();
             }
-            this.handTool.get(handIndex).end();
         }
         this.activeHands.delete(handIndex);
     }
@@ -1676,6 +2039,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ToolBelt = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const eraseTool_1 = __webpack_require__(847);
+const graphitiTool_1 = __webpack_require__(257);
 const highlighterTool_1 = __webpack_require__(512);
 const imageTool_1 = __webpack_require__(379);
 const penTool_1 = __webpack_require__(547);
@@ -1700,6 +2064,7 @@ class ToolBelt extends THREE.Group {
         if (window['webkitSpeechRecognition']) {
             this.tools.push(new speechTool_1.SpeechTool(imgCanvas));
         }
+        this.tools.push(new graphitiTool_1.GraphitiTool(imgCanvas));
         const thetaStep = 0.12;
         let theta = thetaStep * -0.5 * (this.tools.length - 1);
         for (const t of this.tools) {

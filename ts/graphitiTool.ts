@@ -8,13 +8,35 @@ export class GraphitiTool implements Tool {
   private image: HTMLImageElement = null;
   private stroke = new Stroke();
   private graphiti = new Graphiti();
+  private location: THREE.Vector2 = null;
+  private message = "";
+
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d');
+
+    {
+      const fontLoader = new FontFace('Technical', 'url(technicn.ttf)');
+      fontLoader.load().then(function (font) {
+        document.fonts.add(font);
+        console.log(`Font loaded: ${font.style} ${font.family}`);
+      });
+    }
   }
 
   private lastXY = new THREE.Vector2();
+  private minX = Infinity;
+  private minY = Infinity;
+  private maxY = Infinity;
+
+  private updateMinMax(xy: THREE.Vector2) {
+    this.minX = Math.min(xy.x, minX);
+  }
+
   start(xy: THREE.Vector2) {
     this.lastXY.copy(xy);
+    if (this.location === null) {
+      this.location = new THREE.Vector2(xy.x, xy.y);
+    }
   }
 
   private d = new THREE.Vector2();
@@ -39,9 +61,25 @@ export class GraphitiTool implements Tool {
 
   end() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    if (this.stroke.d.length < 8) {
+      this.location = null;
+      this.stroke.clear();
+      this.message = "";
+      return;
+    }
     this.stroke = this.stroke.reduce();
-    console.log(this.graphiti.recognize(this.stroke));
-    this.stroke.logAsClock();
+    const glyph = this.graphiti.recognize(this.stroke);
+    if (!!glyph) {
+      if (glyph === "backspace") {
+        this.message = this.message.slice(0, -1);
+      } else {
+        this.message = this.message + glyph;
+      }
+    }
+    this.ctx.font = "64px Technical";
+    this.ctx.fillStyle = "black";
+    this.ctx.fillText(this.message, this.location.x, this.location.y);
+    // this.stroke.logAsClock();
     this.stroke.clear();
   }
 

@@ -226,6 +226,9 @@ export class Graphiti {
     this.patterns.push(new Graphito(Stroke.fromClock("55544321a8888888"), "x"));
     this.patterns.push(new Graphito(Stroke.fromClock("65321566779a2333"), "y"));
     this.patterns.push(new Graphito(Stroke.fromClock("3333377777733333"), "z"));
+    this.patterns.push(new Graphito(Stroke.fromClock("3333333333333333"), " "));
+    this.patterns.push(new Graphito(Stroke.fromClock("9999999999999999"),
+      "backspace"));
   }
 
   recognize(stroke: Stroke): string {

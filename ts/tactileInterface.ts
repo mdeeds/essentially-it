@@ -73,12 +73,12 @@ export class TactileInterface {
       this.drawing = false;
       this.paint.cancel();
     } else {
+      this.handTool.get(handIndex).end();
       if (this.drawing) {
         this.paint.commit();
       } else {
         this.paint.cancel();
       }
-      this.handTool.get(handIndex).end();
     }
     this.activeHands.delete(handIndex);
   }
