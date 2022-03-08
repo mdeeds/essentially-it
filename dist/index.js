@@ -66,6 +66,7 @@ class EraseTool {
     end() {
         this.lastX = null;
         this.lastY = null;
+        return true;
     }
     icon = null;
     getIconObject() {
@@ -553,6 +554,7 @@ class Stroke {
     }
     clear() {
         this.d.splice(0);
+        this.pixelLength = 0;
     }
     getHoursAtPosition(index) {
         const p = this.d[index];
@@ -806,6 +808,7 @@ class GraphitiTool {
         this.maxY = Math.max(xy.y, this.maxY);
     }
     start(xy) {
+        this.stroke.clear();
         this.lastXY.copy(xy);
         if (this.location === null) {
             this.location = new THREE.Vector2(xy.x, xy.y);
@@ -835,6 +838,7 @@ class GraphitiTool {
         this.lastXY.copy(xy);
     }
     end() {
+        console.log('Clear (graphiti)');
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         if (this.stroke.getPixelLength() < 32) {
             this.location = null;
@@ -842,6 +846,7 @@ class GraphitiTool {
             this.message = "";
             return;
         }
+        console.log(`${this.stroke.d.length} = ${this.stroke.getPixelLength()}`);
         // TODO: pixel length > 256 = Move
         const glyph = this.graphiti.recognize(this.stroke);
         if (!!glyph) {
@@ -850,10 +855,7 @@ class GraphitiTool {
                     this.message = this.message.slice(0, -1);
                     break;
                 case "done":
-                    // stamp it onto tmp surface.
-                    //TODO
-                    this.message = "";
-                    this.location.y += this.height;
+                    break;
                     break;
                 default:
                     this.message = this.message + glyph;
@@ -867,13 +869,19 @@ class GraphitiTool {
             this.firstCharacter = false;
         }
         const fontStyle = `${this.height.toFixed(0)}px "Long Cang"`;
-        console.log(fontStyle);
         this.ctx.font = fontStyle;
-        console.log(this.ctx.font);
         this.ctx.fillStyle = "black";
         this.ctx.fillText(this.message, this.location.x, this.location.y);
         // this.stroke.reduce().logAsClock();
         this.stroke.clear();
+        if (glyph === "done") {
+            this.message = "";
+            this.location.y += this.height;
+            return true;
+        }
+        else {
+            return false;
+        }
     }
     icon = null;
     getIconObject() {
@@ -1039,6 +1047,7 @@ class HighlighterTool {
     end() {
         this.lastX = null;
         this.lastY = null;
+        return true;
     }
     icon = null;
     getIconObject() {
@@ -1102,7 +1111,9 @@ class ImageTool {
     move(xy) {
         this.moveOrStart(xy);
     }
-    end() { }
+    end() {
+        return true;
+    }
     icon = null;
     getIconObject() {
         if (this.icon != null) {
@@ -1259,11 +1270,13 @@ class PaintCylinder extends THREE.Group {
         const undoCtx = this.undoCanvas.getContext('2d');
         undoCtx.clearRect(0, 0, this.undoCanvas.width, this.undoCanvas.height);
         undoCtx.drawImage(this.tmpCanvas, 0, 0);
+        console.log('Committing.');
         undoCtx.drawImage(this.imgCanvas, 0, 0);
         this.tmpCtx.drawImage(this.imgCanvas, 0, 0);
         this.tmpTexture.needsUpdate = true;
     }
     cancel() {
+        console.log('Clearing tmp canvas (Cancel).');
         this.tmpCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
         this.tmpCtx.drawImage(this.undoCanvas, 0, 0);
         this.imgCanvas.getContext('2d')
@@ -1584,6 +1597,7 @@ class PenTool {
     }
     end() {
         this.lastXY = null;
+        return true;
     }
     icon = null;
     getIconObject() {
@@ -1812,6 +1826,7 @@ class SpeechTool {
             this.recognition.stop();
         }
         catch (e) { }
+        return true;
     }
     icon = null;
     getIconObject() {
@@ -1895,6 +1910,7 @@ class SphereTool {
         this.worldObject.updateMatrix();
     }
     end() {
+        return false;
     }
     icon = null;
     getIconObject() {
@@ -2035,9 +2051,12 @@ class TactileInterface {
             this.paint.cancel();
         }
         else {
-            this.handTool.get(handIndex).end();
+            const shouldCommit = this.handTool.get(handIndex).end();
             if (this.drawing) {
-                this.paint.commit();
+                this.paint.setNeedsUpdate();
+                if (shouldCommit) {
+                    this.paint.commit();
+                }
             }
             else {
                 this.paint.cancel();

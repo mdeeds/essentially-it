@@ -138,12 +138,14 @@ export class PaintCylinder extends THREE.Group {
     const undoCtx = this.undoCanvas.getContext('2d');
     undoCtx.clearRect(0, 0, this.undoCanvas.width, this.undoCanvas.height);
     undoCtx.drawImage(this.tmpCanvas, 0, 0);
+    console.log('Committing.');
     undoCtx.drawImage(this.imgCanvas, 0, 0);
     this.tmpCtx.drawImage(this.imgCanvas, 0, 0);
     this.tmpTexture.needsUpdate = true;
   }
 
   public cancel() {
+    console.log('Clearing tmp canvas (Cancel).');
     this.tmpCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
     this.tmpCtx.drawImage(this.undoCanvas, 0, 0);
     this.imgCanvas.getContext('2d')

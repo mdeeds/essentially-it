@@ -35,6 +35,7 @@ export class PenTool implements Tool {
 
   end() {
     this.lastXY = null;
+    return true;
   }
 
   private icon: THREE.Object3D = null;

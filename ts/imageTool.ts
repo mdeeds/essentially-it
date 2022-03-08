@@ -25,7 +25,9 @@ export class ImageTool implements Tool {
     this.moveOrStart(xy);
   }
 
-  end() { }
+  end() {
+    return true;
+  }
 
   private icon: THREE.Object3D = null;
   getIconObject(): THREE.Object3D {

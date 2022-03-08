@@ -59,10 +59,11 @@ export class SpeechTool implements Tool {
     }
   }
 
-  end(): void {
+  end(): boolean {
     try {
       this.recognition.stop();
     } catch (e) { }
+    return true;
   }
 
   private icon: THREE.Object3D = null;

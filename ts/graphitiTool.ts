@@ -53,6 +53,7 @@ export class GraphitiTool implements Tool {
   }
 
   start(xy: THREE.Vector2) {
+    this.stroke.clear();
     this.lastXY.copy(xy);
     if (this.location === null) {
       this.location = new THREE.Vector2(xy.x, xy.y);
@@ -85,6 +86,7 @@ export class GraphitiTool implements Tool {
   }
 
   end() {
+    console.log('Clear (graphiti)');
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     if (this.stroke.getPixelLength() < 32) {
       this.location = null;
@@ -92,16 +94,13 @@ export class GraphitiTool implements Tool {
       this.message = "";
       return;
     }
+    console.log(`${this.stroke.d.length} = ${this.stroke.getPixelLength()}`);
     // TODO: pixel length > 256 = Move
     const glyph = this.graphiti.recognize(this.stroke);
     if (!!glyph) {
       switch (glyph) {
         case "backspace": this.message = this.message.slice(0, -1); break;
-        case "done":
-          // stamp it onto tmp surface.
-          //TODO
-          this.message = "";
-          this.location.y += this.height;
+        case "done": break;
           break;
         default: this.message = this.message + glyph; break;
       }
@@ -113,13 +112,18 @@ export class GraphitiTool implements Tool {
       this.firstCharacter = false;
     }
     const fontStyle = `${this.height.toFixed(0)}px "Long Cang"`;
-    console.log(fontStyle);
     this.ctx.font = fontStyle;
-    console.log(this.ctx.font);
     this.ctx.fillStyle = "black";
     this.ctx.fillText(this.message, this.location.x, this.location.y);
     // this.stroke.reduce().logAsClock();
     this.stroke.clear();
+    if (glyph === "done") {
+      this.message = "";
+      this.location.y += this.height;
+      return true;
+    } else {
+      return false;
+    }
   }
 
   private icon: THREE.Object3D = null;

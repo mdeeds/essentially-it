@@ -48,6 +48,7 @@ export class Stroke {
 
   clear() {
     this.d.splice(0);
+    this.pixelLength = 0;
   }
 
   getHoursAtPosition(index: number): number {

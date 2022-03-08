@@ -36,6 +36,7 @@ export class HighlighterTool implements Tool {
   end() {
     this.lastX = null;
     this.lastY = null;
+    return true;
   }
 
   private icon: THREE.Object3D = null;

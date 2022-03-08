@@ -48,7 +48,8 @@ export class SphereTool implements Tool {
     this.worldObject.updateMatrix();
   }
 
-  end(): void {
+  end(): boolean {
+    return false;
   }
 
   private icon: THREE.Object3D = null;
