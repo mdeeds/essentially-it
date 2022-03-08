@@ -396,9 +396,9 @@ class Game {
     addRandomDot(deltaS) {
         const r = 1.5 * Math.sqrt(Math.random());
         const t = Math.PI * 2 * Math.random();
-        const y = Math.random() * 0.3;
+        const y = Math.random() * 0.1;
         const p = new THREE.Vector3(r * Math.cos(t), y, r * Math.sin(t));
-        const v = new THREE.Vector3(0.1 * (Math.random() - 0.5), 0.05 * (Math.random() + 0.05), 0.1 * (Math.random() - 0.5));
+        const v = new THREE.Vector3(0.1 * (Math.random() - 0.5), 0.05 * (Math.random() + 0.01), 0.1 * (Math.random() - 0.5));
         let color = this.fastColor;
         if (deltaS > 1 / 50) {
             color = this.slowColor;
@@ -1031,7 +1031,7 @@ class HighlighterTool {
             return;
         }
         this.ctx.save();
-        this.ctx.lineCap = 'square';
+        this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
         this.ctx.globalCompositeOperation = "darken";
         this.ctx.strokeStyle = this.color;
