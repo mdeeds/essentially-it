@@ -865,10 +865,10 @@ class GraphitiTool {
         if (this.firstCharacter) {
             this.height = this.maxY - this.minY;
             this.location.x = this.minX;
-            this.location.y = this.minY;
+            this.location.y = this.maxY;
             this.firstCharacter = false;
         }
-        const fontStyle = `${this.height.toFixed(0)}px "Long Cang"`;
+        const fontStyle = `${this.height.toFixed(0)}px "SedgwickAve"`;
         this.ctx.font = fontStyle;
         this.ctx.fillStyle = "black";
         this.ctx.fillText(this.message, this.location.x, this.location.y);
@@ -1092,17 +1092,27 @@ exports.ImageTool = void 0;
 const THREE = __importStar(__webpack_require__(578));
 class ImageTool {
     canvas;
+    scale;
     ctx;
     image = null;
-    constructor(canvas, url) {
+    height;
+    width;
+    constructor(canvas, url, scale) {
         this.canvas = canvas;
+        this.scale = scale;
+        canvas.style.setProperty('image-rendering', 'optimizeSpeed');
+        canvas.style.setProperty('image-rendering', 'crisp-edges');
+        canvas.style.setProperty('image-rendering', '-moz-crisp-edges');
+        canvas.style.setProperty('image-rendering', '-o-crisp-edges');
+        canvas.style.setProperty('image-rendering', '-webkit-optimize-contrast');
+        canvas.style.setProperty('-ms-interpolation-mode', 'nearest-neighbor');
         this.ctx = canvas.getContext('2d');
         this.loadImage(url);
     }
     moveOrStart(xy) {
         if (this.image) {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.ctx.drawImage(this.image, xy.x - this.image.width / 2, xy.y - this.image.height / 2);
+            this.ctx.drawImage(this.image, Math.round(xy.x - this.width / 2), Math.round(xy.y - this.height / 2), this.width, this.height);
         }
     }
     start(xy) {
@@ -1126,6 +1136,8 @@ class ImageTool {
         const img = new Image();
         img.addEventListener('load', () => {
             this.image = img;
+            this.height = this.image.height * this.scale;
+            this.width = this.image.width * this.scale;
         }, false);
         img.src = url;
     }
@@ -1270,13 +1282,13 @@ class PaintCylinder extends THREE.Group {
         const undoCtx = this.undoCanvas.getContext('2d');
         undoCtx.clearRect(0, 0, this.undoCanvas.width, this.undoCanvas.height);
         undoCtx.drawImage(this.tmpCanvas, 0, 0);
-        console.log('Committing.');
+        // console.log('Committing.');
         undoCtx.drawImage(this.imgCanvas, 0, 0);
         this.tmpCtx.drawImage(this.imgCanvas, 0, 0);
         this.tmpTexture.needsUpdate = true;
     }
     cancel() {
-        console.log('Clearing tmp canvas (Cancel).');
+        // console.log('Clearing tmp canvas (Cancel).');
         this.tmpCtx.clearRect(0, 0, this.tmpCanvas.width, this.tmpCanvas.height);
         this.tmpCtx.drawImage(this.undoCanvas, 0, 0);
         this.imgCanvas.getContext('2d')
@@ -2117,8 +2129,8 @@ class ToolBelt extends THREE.Group {
         this.tools.push(new sphereTool_1.StandardSphereTool(scene, true));
         this.tools.push(new sphereTool_1.ShaderSphereTool1(scene));
         this.tools.push(new sphereTool_1.ShaderSphereTool2(scene));
-        this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Basic Shading.png'));
-        this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Normal Shading.png'));
+        this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Basic Shading.png', 2.0));
+        this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Normal Shading.png', 2.0));
         if (window['webkitSpeechRecognition']) {
             this.tools.push(new speechTool_1.SpeechTool(imgCanvas));
         }

@@ -4,7 +4,16 @@ import { Tool } from "./tool";
 export class ImageTool implements Tool {
   private ctx: CanvasRenderingContext2D;
   private image: HTMLImageElement = null;
-  constructor(private canvas: HTMLCanvasElement, url: string) {
+  private height: number;
+  private width: number;
+  constructor(private canvas: HTMLCanvasElement, url: string,
+    private scale: number) {
+    canvas.style.setProperty('image-rendering', 'optimizeSpeed');
+    canvas.style.setProperty('image-rendering', 'crisp-edges');
+    canvas.style.setProperty('image-rendering', '-moz-crisp-edges');
+    canvas.style.setProperty('image-rendering', '-o-crisp-edges');
+    canvas.style.setProperty('image-rendering', '-webkit-optimize-contrast');
+    canvas.style.setProperty('-ms-interpolation-mode', 'nearest-neighbor');
     this.ctx = canvas.getContext('2d');
     this.loadImage(url);
   }
@@ -13,7 +22,9 @@ export class ImageTool implements Tool {
     if (this.image) {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.ctx.drawImage(this.image,
-        xy.x - this.image.width / 2, xy.y - this.image.height / 2);
+        Math.round(xy.x - this.width / 2),
+        Math.round(xy.y - this.height / 2),
+        this.width, this.height);
     }
   }
 
@@ -44,6 +55,8 @@ export class ImageTool implements Tool {
     const img = new Image();
     img.addEventListener('load', () => {
       this.image = img;
+      this.height = this.image.height * this.scale;
+      this.width = this.image.width * this.scale;
     }, false);
     img.src = url;
   }

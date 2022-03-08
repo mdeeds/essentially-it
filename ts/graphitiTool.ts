@@ -108,10 +108,10 @@ export class GraphitiTool implements Tool {
     if (this.firstCharacter) {
       this.height = this.maxY - this.minY;
       this.location.x = this.minX;
-      this.location.y = this.minY;
+      this.location.y = this.maxY;
       this.firstCharacter = false;
     }
-    const fontStyle = `${this.height.toFixed(0)}px "Long Cang"`;
+    const fontStyle = `${this.height.toFixed(0)}px "SedgwickAve"`;
     this.ctx.font = fontStyle;
     this.ctx.fillStyle = "black";
     this.ctx.fillText(this.message, this.location.x, this.location.y);

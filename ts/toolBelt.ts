@@ -26,8 +26,8 @@ export class ToolBelt extends THREE.Group {
     this.tools.push(new StandardSphereTool(scene, true));
     this.tools.push(new ShaderSphereTool1(scene));
     this.tools.push(new ShaderSphereTool2(scene));
-    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Basic Shading.png'));
-    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Normal Shading.png'));
+    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Basic Shading.png', 2.0));
+    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Normal Shading.png', 2.0));
     if (window['webkitSpeechRecognition']) {
       this.tools.push(new SpeechTool(imgCanvas));
     }
