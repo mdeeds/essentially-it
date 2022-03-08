@@ -13,7 +13,6 @@ export class GraphitiTool implements Tool {
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d');
-
     {
       const fontLoader = new FontFace(
         'SedgwickAve', 'url(SedgwickAve-Regular.ttf)');
@@ -22,12 +21,30 @@ export class GraphitiTool implements Tool {
         console.log(`Font loaded: ${font.style} ${font.family}`);
       });
     }
+    {
+      const fontLoader = new FontFace(
+        'Long Cang', 'url("LongCang-Regular.ttf")');
+      fontLoader.load().then(function (font) {
+        document.fonts.add(font);
+        console.log(`Font loaded: ${font.style} ${font.family}`);
+        for (const f of document.fonts) {
+          console.log(`Ready: ${f.family}`);
+        }
+      });
+    }
   }
 
+  private firstCharacter = true;
   private lastXY = new THREE.Vector2();
   private minX = Infinity;
   private minY = Infinity;
-  private maxY = Infinity;
+  private maxY = -Infinity;
+
+  private resetMinMax() {
+    this.minX = Infinity;
+    this.minY = Infinity;
+    this.maxY = -Infinity;
+  }
 
   private updateMinMax(xy: THREE.Vector2) {
     this.minX = Math.min(xy.x, this.minX);
@@ -39,11 +56,16 @@ export class GraphitiTool implements Tool {
     this.lastXY.copy(xy);
     if (this.location === null) {
       this.location = new THREE.Vector2(xy.x, xy.y);
+      this.firstCharacter = true;
+      this.resetMinMax();
     }
   }
 
   private d = new THREE.Vector2();
   move(xy: THREE.Vector2) {
+    if (this.firstCharacter) {
+      this.updateMinMax(xy);
+    }
     this.d.x = xy.x - this.lastXY.x;
     this.d.y = this.lastXY.y - xy.y;
     this.stroke.add(this.d);
@@ -84,7 +106,16 @@ export class GraphitiTool implements Tool {
         default: this.message = this.message + glyph; break;
       }
     }
-    this.ctx.font = `${this.height}px SedgwickAve`;
+    if (this.firstCharacter) {
+      this.height = this.maxY - this.minY;
+      this.location.x = this.minX;
+      this.location.y = this.minY;
+      this.firstCharacter = false;
+    }
+    const fontStyle = `${this.height.toFixed(0)}px "Long Cang"`;
+    console.log(fontStyle);
+    this.ctx.font = fontStyle;
+    console.log(this.ctx.font);
     this.ctx.fillStyle = "black";
     this.ctx.fillText(this.message, this.location.x, this.location.y);
     // this.stroke.reduce().logAsClock();
