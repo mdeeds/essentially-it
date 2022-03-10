@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { CylinderBufferGeometry } from "three";
+import { S } from "./settings";
 import { Zoom } from "./zoom";
 
 export class PaintCylinder extends THREE.Group {
@@ -35,6 +36,14 @@ export class PaintCylinder extends THREE.Group {
     this.mesh.position.set(0, 0, 0);
 
     this.add(this.mesh);
+
+    const img = new Image();
+    img.addEventListener('load', () => {
+      this.tmpCtx.drawImage(img, 0, 0);
+      this.undoCanvas.getContext('2d').drawImage(img, 0, 0);
+      this.setNeedsUpdate();
+    }, false);
+    img.src = `ep/${S.float('ep')}/infographic.png`;
 
     const a = document.createElement('a');
     a.id = 'download';

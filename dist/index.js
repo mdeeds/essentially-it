@@ -1173,6 +1173,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PaintCylinder = void 0;
 const THREE = __importStar(__webpack_require__(578));
+const settings_1 = __webpack_require__(451);
 const zoom_1 = __webpack_require__(950);
 class PaintCylinder extends THREE.Group {
     mesh;
@@ -1200,6 +1201,13 @@ class PaintCylinder extends THREE.Group {
         /*open=*/ true), this.material);
         this.mesh.position.set(0, 0, 0);
         this.add(this.mesh);
+        const img = new Image();
+        img.addEventListener('load', () => {
+            this.tmpCtx.drawImage(img, 0, 0);
+            this.undoCanvas.getContext('2d').drawImage(img, 0, 0);
+            this.setNeedsUpdate();
+        }, false);
+        img.src = `ep/${settings_1.S.float('ep')}/infographic.png`;
         const a = document.createElement('a');
         a.id = 'download';
         a.download = 'infographic.png';
@@ -1732,6 +1740,7 @@ class S {
         S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
         S.setDefault('pi', 30, 'Pen initial thickness.');
         S.setDefault('pf', 15, 'Pen final thickness');
+        S.setDefault('ep', 1, 'Episode number');
     }
     static float(name) {
         if (S.cache.has(name)) {
@@ -1971,7 +1980,7 @@ class ShaderSphereTool2 extends SphereTool {
       varying vec3 vNormal;
       void main() {
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        vNormal = normal;
+        vNormal = normalMatrix * normal;
       }`,
             fragmentShader: `
       varying vec3 vNormal;

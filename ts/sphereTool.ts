@@ -102,7 +102,7 @@ export class ShaderSphereTool2 extends SphereTool {
       varying vec3 vNormal;
       void main() {
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        vNormal = normal;
+        vNormal = normalMatrix * normal;
       }`,
       fragmentShader: `
       varying vec3 vNormal;
