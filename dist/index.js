@@ -1789,12 +1789,11 @@ class SpeechTool {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.ctx.font = 'bold 64px monospace';
+        this.ctx.font = '64px "SedgwickAve"';
         this.recognition = new window.webkitSpeechRecognition();
         this.recognition.lang = "en-US";
         this.recognition.continuous = false;
         this.recognition.interimResults = true;
-        console.log('Building recognition');
         console.log(this.recognition);
         this.recognition.onresult =
             (event) => {
@@ -1977,7 +1976,7 @@ class ShaderSphereTool2 extends SphereTool {
             fragmentShader: `
       varying vec3 vNormal;
       void main() {
-        float intensity = vNormal.y;
+        float intensity = (0.2 + clamp(vNormal.y, 0.0, 1.0));
         gl_FragColor = vec4(intensity, intensity, intensity, 1.0);
       }`,
         });

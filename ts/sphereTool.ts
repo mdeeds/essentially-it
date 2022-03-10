@@ -107,7 +107,7 @@ export class ShaderSphereTool2 extends SphereTool {
       fragmentShader: `
       varying vec3 vNormal;
       void main() {
-        float intensity = vNormal.y;
+        float intensity = (0.2 + clamp(vNormal.y, 0.0, 1.0));
         gl_FragColor = vec4(intensity, intensity, intensity, 1.0);
       }`,
     })

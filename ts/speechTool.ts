@@ -10,12 +10,11 @@ export class SpeechTool implements Tool {
   private ctx: CanvasRenderingContext2D;
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d');
-    this.ctx.font = 'bold 64px monospace';
+    this.ctx.font = '64px "SedgwickAve"';
     this.recognition = new (window as any).webkitSpeechRecognition();
     this.recognition.lang = "en-US";
     this.recognition.continuous = false;
     this.recognition.interimResults = true;
-    console.log('Building recognition');
     console.log(this.recognition);
 
     this.recognition.onresult =
