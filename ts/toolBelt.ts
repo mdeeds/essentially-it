@@ -5,6 +5,7 @@ import { GraphitiTool } from "./graphitiTool";
 import { HighlighterTool } from "./highlighterTool";
 import { ImageTool } from "./imageTool";
 import { PenTool } from "./penTool";
+import { PlayTool } from "./playTool";
 import { SpeechTool } from "./speechTool";
 import { ShaderSphereTool1, ShaderSphereTool2, SphereTool, StandardSphereTool } from "./sphereTool";
 import { Tool } from "./tool";
@@ -17,6 +18,7 @@ export class ToolBelt extends THREE.Group {
     scene: THREE.Object3D) {
     super();
     const ctx = tmpCanvas.getContext('2d');
+    this.tools.push(new PlayTool("ep/1/Essentially_It.mp3"));
     this.tools.push(new EraseTool(ctx));
     this.tools.push(new PenTool(ctx, 'black'));
     this.tools.push(new PenTool(ctx, 'turquoise'));

@@ -1634,6 +1634,70 @@ exports.PenTool = PenTool;
 
 /***/ }),
 
+/***/ 344:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PlayTool = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class PlayTool {
+    audio = null;
+    isPlaying = false;
+    constructor(url) {
+        this.audio = document.createElement('audio');
+        this.audio.src = url;
+    }
+    start(xy, ray) {
+        if (this.isPlaying) {
+            this.audio.pause();
+            this.audio.currentTime = 0;
+            this.isPlaying = false;
+        }
+        else {
+            this.audio.play();
+            this.isPlaying = true;
+        }
+    }
+    move(xy, ray) {
+    }
+    end() {
+        return false;
+    }
+    icon = null;
+    getIconObject() {
+        if (this.icon != null) {
+            return this.icon;
+        }
+        this.icon = new THREE.Mesh(new THREE.ConeBufferGeometry(0.05, 0.1), new THREE.MeshStandardMaterial({ color: 'green', emissive: 0.4 }));
+        this.icon.rotateZ(-Math.PI / 2);
+        return this.icon;
+    }
+}
+exports.PlayTool = PlayTool;
+//# sourceMappingURL=playTool.js.map
+
+/***/ }),
+
 /***/ 233:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -2121,6 +2185,7 @@ const graphitiTool_1 = __webpack_require__(257);
 const highlighterTool_1 = __webpack_require__(512);
 const imageTool_1 = __webpack_require__(379);
 const penTool_1 = __webpack_require__(547);
+const playTool_1 = __webpack_require__(344);
 const speechTool_1 = __webpack_require__(297);
 const sphereTool_1 = __webpack_require__(11);
 class ToolBelt extends THREE.Group {
@@ -2128,6 +2193,7 @@ class ToolBelt extends THREE.Group {
     constructor(tmpCanvas, imgCanvas, scene) {
         super();
         const ctx = tmpCanvas.getContext('2d');
+        this.tools.push(new playTool_1.PlayTool("ep/1/Essentially_It.mp3"));
         this.tools.push(new eraseTool_1.EraseTool(ctx));
         this.tools.push(new penTool_1.PenTool(ctx, 'black'));
         this.tools.push(new penTool_1.PenTool(ctx, 'turquoise'));
