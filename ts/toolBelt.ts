@@ -7,6 +7,7 @@ import { ImageTool } from "./imageTool";
 import { PenTool } from "./penTool";
 import { PlayTool } from "./playTool";
 import { S } from "./settings";
+import { SpectrogramTool } from "./spectrogramTool";
 import { SpeechTool } from "./speechTool";
 import { ShaderSphereTool1, ShaderSphereTool2, SphereTool, StandardSphereTool } from "./sphereTool";
 import { Tool } from "./tool";
@@ -16,9 +17,10 @@ export class ToolBelt extends THREE.Group {
 
   constructor(tmpCanvas: HTMLCanvasElement,
     imgCanvas: HTMLCanvasElement,
-    scene: THREE.Object3D) {
+    scene: THREE.Object3D,
+    audioCtx: AudioContext) {
     super();
-    this.addTools(tmpCanvas, imgCanvas, scene);
+    this.addTools(tmpCanvas, imgCanvas, scene, audioCtx);
     if (window['webkitSpeechRecognition']) {
       this.tools.push(new SpeechTool(imgCanvas));
     }
@@ -39,7 +41,8 @@ export class ToolBelt extends THREE.Group {
 
   private addTools(tmpCanvas: HTMLCanvasElement,
     imgCanvas: HTMLCanvasElement,
-    scene: THREE.Object3D) {
+    scene: THREE.Object3D,
+    audioCtx: AudioContext) {
     const ctx = tmpCanvas.getContext('2d');
     this.tools.push(new EraseTool(ctx));
     this.tools.push(new PenTool(ctx, 'black'));
@@ -59,6 +62,7 @@ export class ToolBelt extends THREE.Group {
           imgCanvas, 'ep/1/Normal Shading.png', 2.0));
         break;
       case 2:
+        this.tools.push(new SpectrogramTool(scene, audioCtx));
         break;
     }
   }

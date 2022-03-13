@@ -13,10 +13,10 @@ export class TactileInterface {
 
   constructor(private paint: PaintCylinder,
     private projection: ProjectionCylinder,
-    scene: THREE.Object3D) {
+    scene: THREE.Object3D, audioCtx: AudioContext) {
 
     this.toolBelt = new ToolBelt(paint.getTmpCanvas(),
-      paint.getImgCanvas(), scene);
+      paint.getImgCanvas(), scene, audioCtx);
     this.paint.add(this.toolBelt);
 
     this.handTool.set(0, this.toolBelt.getTool(0));

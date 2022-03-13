@@ -3,7 +3,7 @@ type SampleCallback = (samples: Float32Array, endTimeS: number) => void;
 
 export class SampleSource {
   private mediaSource: MediaStreamAudioSourceNode;
-  private listener: SampleCallback;
+  private listener: SampleCallback = null;
   readonly audioCtx: AudioContext;
 
   private constructor(audioCtx: AudioContext) {
@@ -45,7 +45,9 @@ export class SampleSource {
         workerElapsedFrames += event.data.newSamples.length;
         const chunkEndTime = workerStartTime +
           workerElapsedFrames / this.audioCtx.sampleRate;
-        this.listener(event.data.newSamples, chunkEndTime);
+        if (this.listener) {
+          this.listener(event.data.newSamples, chunkEndTime);
+        }
 
       }, 0);
     }

@@ -71,7 +71,7 @@ export class Game {
 
     const projection = new ProjectionCylinder(this.whiteBoard, 1.5);
     this.tactile = new TactileInterface(
-      this.whiteBoard, projection, this.scene);
+      this.whiteBoard, projection, this.scene, audioCtx);
 
     this.setUpAnimation();
     this.hands.push(
