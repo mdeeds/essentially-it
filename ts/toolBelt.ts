@@ -6,6 +6,7 @@ import { HighlighterTool } from "./highlighterTool";
 import { ImageTool } from "./imageTool";
 import { PenTool } from "./penTool";
 import { PlayTool } from "./playTool";
+import { S } from "./settings";
 import { SpeechTool } from "./speechTool";
 import { ShaderSphereTool1, ShaderSphereTool2, SphereTool, StandardSphereTool } from "./sphereTool";
 import { Tool } from "./tool";
@@ -17,19 +18,7 @@ export class ToolBelt extends THREE.Group {
     imgCanvas: HTMLCanvasElement,
     scene: THREE.Object3D) {
     super();
-    const ctx = tmpCanvas.getContext('2d');
-    this.tools.push(new PlayTool("ep/1/Essentially_It.mp3"));
-    this.tools.push(new EraseTool(ctx));
-    this.tools.push(new PenTool(ctx, 'black'));
-    this.tools.push(new PenTool(ctx, 'turquoise'));
-    this.tools.push(new PenTool(ctx, 'purple'));
-    this.tools.push(new HighlighterTool(ctx, 'mediumpurple'));
-    this.tools.push(new StandardSphereTool(scene, false));
-    this.tools.push(new StandardSphereTool(scene, true));
-    this.tools.push(new ShaderSphereTool1(scene));
-    this.tools.push(new ShaderSphereTool2(scene));
-    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Basic Shading.png', 2.0));
-    this.tools.push(new ImageTool(imgCanvas, 'ep/1/Normal Shading.png', 2.0));
+    this.addTools(tmpCanvas, imgCanvas, scene);
     if (window['webkitSpeechRecognition']) {
       this.tools.push(new SpeechTool(imgCanvas));
     }
@@ -45,6 +34,32 @@ export class ToolBelt extends THREE.Group {
       o.rotateY(-theta);
       theta += thetaStep;
       this.add(o);
+    }
+  }
+
+  private addTools(tmpCanvas: HTMLCanvasElement,
+    imgCanvas: HTMLCanvasElement,
+    scene: THREE.Object3D) {
+    const ctx = tmpCanvas.getContext('2d');
+    this.tools.push(new EraseTool(ctx));
+    this.tools.push(new PenTool(ctx, 'black'));
+    this.tools.push(new PenTool(ctx, 'turquoise'));
+    this.tools.push(new PenTool(ctx, 'purple'));
+    this.tools.push(new HighlighterTool(ctx, 'mediumpurple'));
+    switch (S.float('ep')) {
+      case 1:
+        this.tools.push(new PlayTool("ep/1/Essentially_It.mp3"));
+        this.tools.push(new StandardSphereTool(scene, false));
+        this.tools.push(new StandardSphereTool(scene, true));
+        this.tools.push(new ShaderSphereTool1(scene));
+        this.tools.push(new ShaderSphereTool2(scene));
+        this.tools.push(new ImageTool(
+          imgCanvas, 'ep/1/Basic Shading.png', 2.0));
+        this.tools.push(new ImageTool(
+          imgCanvas, 'ep/1/Normal Shading.png', 2.0));
+        break;
+      case 2:
+        break;
     }
   }
 
