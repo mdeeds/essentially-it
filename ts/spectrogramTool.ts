@@ -6,25 +6,65 @@ import { Tool } from "./tool";
 
 export class SpectrogramTool implements Tool {
   private sampleSource: SampleSource = null;
-  private material: THREE.ShaderMaterial;
+  private material: THREE.Material;
+  private static kNoteCount = 88;
+  private static kSampleCount = 100;
+  private static minFrequencyHz = 27.5;  // A0
+
+  private canvas: HTMLCanvasElement;
+  private texture: THREE.CanvasTexture;
+  private ctx: CanvasRenderingContext2D;
+
   constructor(private scene: THREE.Object3D,
     private audioCtx: AudioContext) {
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = SpectrogramTool.kNoteCount;
+    this.canvas.height = SpectrogramTool.kSampleCount;
+    this.ctx = this.canvas.getContext('2d');
+    this.ctx.fillStyle = 'green';
+    this.ctx.fillRect(20, 20, 20, 20);
+
     SampleSource.make(audioCtx).then((source) => {
       this.sampleSource = source;
       this.sampleSource.setListener((samples: Float32Array) => {
-        if (this.material) {
-          const sampleUniform: Float32Array =
-            this.material.uniforms['samples'].value;
-          for (let i = 0; i < 128; ++i) {
-            sampleUniform[i] = samples[i];
-          }
-          this.material.uniformsNeedUpdate = true;
-        }
+        // TODO: Use GPU to compute frequency components.
+        this.addSamples(samples);
       });
     });
   }
 
   private worldObject: THREE.Object3D;
+
+  private needsUpdate = true;
+
+  private addSamples(noteWeights: Float32Array) {
+    if (!this.needsUpdate) {
+      return;
+    }
+    this.needsUpdate = false;
+    if (this.material) {
+      const imageData = this.ctx.getImageData(
+        0, 0, this.canvas.width, this.canvas.height);
+      const newImageData = this.ctx.createImageData(imageData);
+      const stride = SpectrogramTool.kNoteCount * 4;
+      for (let i = 0; i < newImageData.data.length - stride; ++i) {
+        newImageData.data[i] = imageData.data[i + stride];
+      }
+      let j = 0;
+      for (let i = imageData.data.length - stride;
+        i < imageData.data.length; i += 4) {
+        const f = Math.pow(noteWeights[j], 0.3);
+        newImageData.data[i + 0] = f * 255;
+        newImageData.data[i + 1] = f * 255;
+        newImageData.data[i + 2] = f * 255;
+        newImageData.data[i + 3] = 255;
+        ++j;
+      }
+      this.ctx.putImageData(newImageData, 0, 0);
+      this.texture.needsUpdate = true;
+      this.material.needsUpdate = true;
+    }
+  }
 
   public makeObject(): THREE.Object3D {
     let planeGeometry: BufferGeometry =
@@ -36,6 +76,7 @@ export class SpectrogramTool implements Tool {
     if (!this.worldObject) {
       this.worldObject = this.makeObject();
       this.scene.add(this.worldObject);
+      this.worldObject.onBeforeRender = () => { this.needsUpdate = true; }
     }
     this.worldObject.position.copy(ray.direction);
     this.worldObject.position.multiplyScalar(1);
@@ -46,6 +87,7 @@ export class SpectrogramTool implements Tool {
     if (!this.worldObject) {
       this.worldObject = this.makeObject();
       this.scene.add(this.worldObject);
+      this.worldObject.onBeforeRender = () => { this.needsUpdate = true; }
     }
     this.worldObject.position.copy(ray.direction);
     this.worldObject.position.multiplyScalar(1);
@@ -70,43 +112,15 @@ export class SpectrogramTool implements Tool {
     return this.icon;
   }
 
-  private getMaterial(): THREE.ShaderMaterial {
+  private getMaterial(): THREE.Material {
     if (this.material) {
       return this.material;
     }
 
-    const material = new THREE.ShaderMaterial({
-      uniforms: {
-        samples: {
-          value: new Float32Array(128),
-        }
-      },
-      vertexShader: `
-      varying vec2 vUV;
-      void main() {
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        vUV = uv;
-      }`,
-      fragmentShader: `
-      varying vec2 vUV;
-      uniform float samples[128];
-      void main() {
-        int i = clamp(int(128.0 * ((vUV.x / 2.0) + 0.5)), 0, 127);
-        float s = samples[i];
-        gl_FragColor = vec4(
-          vUV.x,  // red
-          vUV.y,  // green
-          s / 2.0 + 0.5,  // blue
-          1.0);  // alpha
-      }`,
+    this.texture = new THREE.CanvasTexture(this.canvas);
+    this.material = new THREE.MeshBasicMaterial({
+      map: this.texture,
     });
-    const sampleUniform: Float32Array =
-      material.uniforms['samples'].value;
-    for (let i = 0; i < 128; ++i) {
-      sampleUniform[i] = Math.random() * 2 - 1;
-    }
-    material.uniformsNeedUpdate = true;
-    this.material = material;
-    return material;
+    return this.material;
   }
 }
