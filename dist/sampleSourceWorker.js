@@ -1,7 +1,62 @@
+class Oscillator {
+  constructor(w) {
+
+    // Mass function
+    //  f   |  m
+    // ------------
+    // 27.5 | 0.100
+    // 4186 | 0.099
+    //
+    // m = a * ln(f) + b
+
+    const a = 0.099 / (Math.log(27.5 / 4186));
+    const b = 0.1 - a * Math.log(27.5);
+
+    this.w = w;
+    this.m = a * Math.log(w) + b;
+    this.k = this.m * w * w;
+    this.x = 0;
+    this.v = 0;
+    this.e = 0;
+    this.meanRate = Math.pow(0.5, 1 / (3 * (44100 / w)));
+  }
+
+  addSamples(samples, dt) {
+    for (const s of samples) {
+      const f = -this.k * this.x + s;
+      const a = f / this.m;
+      this.v += a * dt;
+      this.x += this.v * dt;
+      this.e = (this.meanRate * this.e) + (1 - this.meanRate) * Math.abs(this.x);
+      this.x *= 0.999;  // damping
+    }
+  }
+}
+
+
 class SampleSourceWorker extends AudioWorkletProcessor {
   _callCount = 0;
+  _oscillators = [];
   constructor() {
     super();
+    for (let w = 27.5; this._oscillators.length < 88; w *= Math.pow(2, 1 / 12)) {
+      this._oscillators.push(new Oscillator(w));
+    }
+  }
+
+  getRaw(raw) {
+    return raw;
+  }
+
+  getFreq(raw) {
+    const dt = 1 / 44100;
+    const result = new Float32Array(this._oscillators.length);
+    for (let i = 0; i < this._oscillators.length; ++i) {
+      const o = this._oscillators[i];
+      o.addSamples(raw, dt);
+      result[i] = o.e * 50000;
+    }
+    return result;
   }
 
   process(inputs, outputs, parameters) {
@@ -11,7 +66,7 @@ class SampleSourceWorker extends AudioWorkletProcessor {
     if (inputs[0].length > 0) {
       ++this._callCount;
       this.port.postMessage({
-        newSamples: inputs[0][0]
+        newSamples: this.getFreq(inputs[0][0])
       });
     }
     return true;

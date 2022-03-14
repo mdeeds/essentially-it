@@ -53,9 +53,10 @@ export class SpectrogramTool implements Tool {
       let j = 0;
       for (let i = imageData.data.length - stride;
         i < imageData.data.length; i += 4) {
-        const f = Math.pow(noteWeights[j], 0.3);
-        newImageData.data[i + 0] = f * 255;
-        newImageData.data[i + 1] = f * 255;
+        // const f = Math.pow(noteWeights[j], 0.8);
+        const f = noteWeights[j];
+        newImageData.data[i + 0] = f * 255 * 4;
+        newImageData.data[i + 1] = f * 255 * 2;
         newImageData.data[i + 2] = f * 255;
         newImageData.data[i + 3] = 255;
         ++j;

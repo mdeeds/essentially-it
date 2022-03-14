@@ -326,7 +326,7 @@ class Game {
         }
         this.loadPlatform();
         const projection = new projectionCylinder_1.ProjectionCylinder(this.whiteBoard, 1.5);
-        this.tactile = new tactileInterface_1.TactileInterface(this.whiteBoard, projection, this.scene);
+        this.tactile = new tactileInterface_1.TactileInterface(this.whiteBoard, projection, this.scene, audioCtx);
         this.setUpAnimation();
         this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.tactile, this.particles));
         this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.tactile, this.particles));
@@ -1774,6 +1774,62 @@ exports.ProjectionCylinder = ProjectionCylinder;
 
 /***/ }),
 
+/***/ 930:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SampleSource = void 0;
+class SampleSource {
+    mediaSource;
+    listener = null;
+    audioCtx;
+    constructor(audioCtx) {
+        this.audioCtx = audioCtx;
+    }
+    static make(audioCtx) {
+        const self = new SampleSource(audioCtx);
+        console.assert(!!navigator.mediaDevices.getUserMedia);
+        var constraints = {
+            audio: true,
+            video: false,
+            echoCancellation: false,
+            autoGainControl: false,
+            noiseSuppersion: false,
+        };
+        return new Promise(async (resolve, reject) => {
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            self.handleStream(stream, resolve);
+        });
+    }
+    setListener(callback) {
+        this.listener = callback;
+    }
+    async handleStream(stream, resolve) {
+        this.mediaSource = this.audioCtx.createMediaStreamSource(stream);
+        await this.audioCtx.audioWorklet.addModule(`sampleSourceWorker.js?buster=${Math.random().toFixed(6)}`);
+        const worklet = new AudioWorkletNode(this.audioCtx, 'sample-source');
+        let workerStartTime = this.audioCtx.currentTime;
+        let workerElapsedFrames = 0;
+        worklet.port.onmessage = (event) => {
+            setTimeout(() => {
+                workerElapsedFrames += event.data.newSamples.length;
+                const chunkEndTime = workerStartTime +
+                    workerElapsedFrames / this.audioCtx.sampleRate;
+                if (this.listener) {
+                    this.listener(event.data.newSamples, chunkEndTime);
+                }
+            }, 0);
+        };
+        this.mediaSource.connect(worklet);
+        resolve(this);
+    }
+}
+exports.SampleSource = SampleSource;
+//# sourceMappingURL=sampleSource.js.map
+
+/***/ }),
+
 /***/ 451:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -1824,6 +1880,145 @@ class S {
 }
 exports.S = S;
 //# sourceMappingURL=settings.js.map
+
+/***/ }),
+
+/***/ 268:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SpectrogramTool = void 0;
+const THREE = __importStar(__webpack_require__(578));
+const sampleSource_1 = __webpack_require__(930);
+class SpectrogramTool {
+    scene;
+    audioCtx;
+    sampleSource = null;
+    material;
+    static kNoteCount = 88;
+    static kSampleCount = 100;
+    static minFrequencyHz = 27.5; // A0
+    canvas;
+    texture;
+    ctx;
+    constructor(scene, audioCtx) {
+        this.scene = scene;
+        this.audioCtx = audioCtx;
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = SpectrogramTool.kNoteCount;
+        this.canvas.height = SpectrogramTool.kSampleCount;
+        this.ctx = this.canvas.getContext('2d');
+        this.ctx.fillStyle = 'green';
+        this.ctx.fillRect(20, 20, 20, 20);
+        sampleSource_1.SampleSource.make(audioCtx).then((source) => {
+            this.sampleSource = source;
+            this.sampleSource.setListener((samples) => {
+                // TODO: Use GPU to compute frequency components.
+                this.addSamples(samples);
+            });
+        });
+    }
+    worldObject;
+    needsUpdate = true;
+    addSamples(noteWeights) {
+        if (!this.needsUpdate) {
+            return;
+        }
+        this.needsUpdate = false;
+        if (this.material) {
+            const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+            const newImageData = this.ctx.createImageData(imageData);
+            const stride = SpectrogramTool.kNoteCount * 4;
+            for (let i = 0; i < newImageData.data.length - stride; ++i) {
+                newImageData.data[i] = imageData.data[i + stride];
+            }
+            let j = 0;
+            for (let i = imageData.data.length - stride; i < imageData.data.length; i += 4) {
+                // const f = Math.pow(noteWeights[j], 0.8);
+                const f = noteWeights[j];
+                newImageData.data[i + 0] = f * 255 * 4;
+                newImageData.data[i + 1] = f * 255 * 2;
+                newImageData.data[i + 2] = f * 255;
+                newImageData.data[i + 3] = 255;
+                ++j;
+            }
+            this.ctx.putImageData(newImageData, 0, 0);
+            this.texture.needsUpdate = true;
+            this.material.needsUpdate = true;
+        }
+    }
+    makeObject() {
+        let planeGeometry = new THREE.PlaneBufferGeometry(1, 1);
+        return new THREE.Mesh(planeGeometry, this.getMaterial());
+    }
+    start(xy, ray) {
+        if (!this.worldObject) {
+            this.worldObject = this.makeObject();
+            this.scene.add(this.worldObject);
+            this.worldObject.onBeforeRender = () => { this.needsUpdate = true; };
+        }
+        this.worldObject.position.copy(ray.direction);
+        this.worldObject.position.multiplyScalar(1);
+        this.worldObject.position.add(ray.origin);
+    }
+    move(xy, ray) {
+        if (!this.worldObject) {
+            this.worldObject = this.makeObject();
+            this.scene.add(this.worldObject);
+            this.worldObject.onBeforeRender = () => { this.needsUpdate = true; };
+        }
+        this.worldObject.position.copy(ray.direction);
+        this.worldObject.position.multiplyScalar(1);
+        this.worldObject.position.add(ray.origin);
+        const theta = Math.atan2(ray.direction.x, ray.direction.z);
+        this.worldObject.rotation.y = theta + Math.PI;
+        this.worldObject.updateMatrix();
+    }
+    end() {
+        return false;
+    }
+    icon = null;
+    getIconObject() {
+        if (this.icon != null) {
+            return this.icon;
+        }
+        this.icon = this.makeObject();
+        this.icon.scale.setLength(0.1);
+        return this.icon;
+    }
+    getMaterial() {
+        if (this.material) {
+            return this.material;
+        }
+        this.texture = new THREE.CanvasTexture(this.canvas);
+        this.material = new THREE.MeshBasicMaterial({
+            map: this.texture,
+        });
+        return this.material;
+    }
+}
+exports.SpectrogramTool = SpectrogramTool;
+//# sourceMappingURL=spectrogramTool.js.map
 
 /***/ }),
 
@@ -2077,10 +2272,10 @@ class TactileInterface {
     activeHands = new Map();
     handTool = new Map();
     toolBelt = null;
-    constructor(paint, projection, scene) {
+    constructor(paint, projection, scene, audioCtx) {
         this.paint = paint;
         this.projection = projection;
-        this.toolBelt = new toolBelt_1.ToolBelt(paint.getTmpCanvas(), paint.getImgCanvas(), scene);
+        this.toolBelt = new toolBelt_1.ToolBelt(paint.getTmpCanvas(), paint.getImgCanvas(), scene, audioCtx);
         this.paint.add(this.toolBelt);
         this.handTool.set(0, this.toolBelt.getTool(0));
         this.handTool.set(1, this.toolBelt.getTool(1));
@@ -2186,25 +2381,15 @@ const highlighterTool_1 = __webpack_require__(512);
 const imageTool_1 = __webpack_require__(379);
 const penTool_1 = __webpack_require__(547);
 const playTool_1 = __webpack_require__(344);
+const settings_1 = __webpack_require__(451);
+const spectrogramTool_1 = __webpack_require__(268);
 const speechTool_1 = __webpack_require__(297);
 const sphereTool_1 = __webpack_require__(11);
 class ToolBelt extends THREE.Group {
     tools = [];
-    constructor(tmpCanvas, imgCanvas, scene) {
+    constructor(tmpCanvas, imgCanvas, scene, audioCtx) {
         super();
-        const ctx = tmpCanvas.getContext('2d');
-        this.tools.push(new playTool_1.PlayTool("ep/1/Essentially_It.mp3"));
-        this.tools.push(new eraseTool_1.EraseTool(ctx));
-        this.tools.push(new penTool_1.PenTool(ctx, 'black'));
-        this.tools.push(new penTool_1.PenTool(ctx, 'turquoise'));
-        this.tools.push(new penTool_1.PenTool(ctx, 'purple'));
-        this.tools.push(new highlighterTool_1.HighlighterTool(ctx, 'mediumpurple'));
-        this.tools.push(new sphereTool_1.StandardSphereTool(scene, false));
-        this.tools.push(new sphereTool_1.StandardSphereTool(scene, true));
-        this.tools.push(new sphereTool_1.ShaderSphereTool1(scene));
-        this.tools.push(new sphereTool_1.ShaderSphereTool2(scene));
-        this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Basic Shading.png', 2.0));
-        this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Normal Shading.png', 2.0));
+        this.addTools(tmpCanvas, imgCanvas, scene, audioCtx);
         if (window['webkitSpeechRecognition']) {
             this.tools.push(new speechTool_1.SpeechTool(imgCanvas));
         }
@@ -2217,6 +2402,28 @@ class ToolBelt extends THREE.Group {
             o.rotateY(-theta);
             theta += thetaStep;
             this.add(o);
+        }
+    }
+    addTools(tmpCanvas, imgCanvas, scene, audioCtx) {
+        const ctx = tmpCanvas.getContext('2d');
+        this.tools.push(new eraseTool_1.EraseTool(ctx));
+        this.tools.push(new penTool_1.PenTool(ctx, 'black'));
+        this.tools.push(new penTool_1.PenTool(ctx, 'turquoise'));
+        this.tools.push(new penTool_1.PenTool(ctx, 'purple'));
+        this.tools.push(new highlighterTool_1.HighlighterTool(ctx, 'mediumpurple'));
+        switch (settings_1.S.float('ep')) {
+            case 1:
+                this.tools.push(new playTool_1.PlayTool("ep/1/Essentially_It.mp3"));
+                this.tools.push(new sphereTool_1.StandardSphereTool(scene, false));
+                this.tools.push(new sphereTool_1.StandardSphereTool(scene, true));
+                this.tools.push(new sphereTool_1.ShaderSphereTool1(scene));
+                this.tools.push(new sphereTool_1.ShaderSphereTool2(scene));
+                this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Basic Shading.png', 2.0));
+                this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Normal Shading.png', 2.0));
+                break;
+            case 2:
+                this.tools.push(new spectrogramTool_1.SpectrogramTool(scene, audioCtx));
+                break;
         }
     }
     getTool(index) {
