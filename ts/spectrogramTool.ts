@@ -17,17 +17,16 @@ export class SpectrogramTool implements Tool {
 
   constructor(private scene: THREE.Object3D,
     private audioCtx: AudioContext) {
+    console.log(`Sample rate: ${audioCtx.sampleRate} Hz`);
+
     this.canvas = document.createElement('canvas');
     this.canvas.width = SpectrogramTool.kNoteCount;
     this.canvas.height = SpectrogramTool.kSampleCount;
     this.ctx = this.canvas.getContext('2d');
-    this.ctx.fillStyle = 'green';
-    this.ctx.fillRect(20, 20, 20, 20);
 
     SampleSource.make(audioCtx).then((source) => {
       this.sampleSource = source;
       this.sampleSource.setListener((samples: Float32Array) => {
-        // TODO: Use GPU to compute frequency components.
         this.addSamples(samples);
       });
     });
@@ -55,9 +54,15 @@ export class SpectrogramTool implements Tool {
         i < imageData.data.length; i += 4) {
         // const f = Math.pow(noteWeights[j], 0.8);
         const f = noteWeights[j];
-        newImageData.data[i + 0] = f * 255 * 4;
-        newImageData.data[i + 1] = f * 255 * 2;
-        newImageData.data[i + 2] = f * 255;
+        //   f   | r  g  b
+        // ----------------
+        //  0    | 0  0  0
+        //  0.25 |    0  0
+        //  0.5  | 1     0
+        // 1.0   | 1  1  1
+        newImageData.data[i + 0] = f * 255 * 2;
+        newImageData.data[i + 1] = (f - 0.25) * 255 * 2;
+        newImageData.data[i + 2] = (f - 0.5) * 255 * 2;
         newImageData.data[i + 3] = 255;
         ++j;
       }

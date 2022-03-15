@@ -1,24 +1,28 @@
 class Oscillator {
   constructor(w) {
-
-    // Mass function
+    // Freq | Mass
     //  f   |  m
     // ------------
     // 27.5 | 0.100
     // 4186 | 0.099
-    //
     // m = a * ln(f) + b
+
+    // T = 2pi * root(m/k)
+    // f = root(k/m) / 2pi
+    // 2pi * f = root(k/m)
+    // (2pi*f)^2 = k/m
+    // m * (2pi*f)^2 = k
 
     const a = 0.099 / (Math.log(27.5 / 4186));
     const b = 0.1 - a * Math.log(27.5);
 
     this.w = w;
     this.m = a * Math.log(w) + b;
-    this.k = this.m * w * w;
+    this.k = this.m * w * w * Math.PI * 2 * Math.PI * 2;
     this.x = 0;
     this.v = 0;
     this.e = 0;
-    this.meanRate = Math.pow(0.5, 1 / (3 * (44100 / w)));
+    this.meanRate = Math.pow(0.5, 1 / (3 * (48000 / w)));
   }
 
   addSamples(samples, dt) {
@@ -39,7 +43,9 @@ class SampleSourceWorker extends AudioWorkletProcessor {
   _oscillators = [];
   constructor() {
     super();
-    for (let w = 27.5; this._oscillators.length < 88; w *= Math.pow(2, 1 / 12)) {
+    for (let w = 27.5;
+      this._oscillators.length < 88;
+      w *= Math.pow(2, 1 / 12)) {
       this._oscillators.push(new Oscillator(w));
     }
   }
@@ -49,7 +55,7 @@ class SampleSourceWorker extends AudioWorkletProcessor {
   }
 
   getFreq(raw) {
-    const dt = 1 / 44100;
+    const dt = 1 / 48000;
     const result = new Float32Array(this._oscillators.length);
     for (let i = 0; i < this._oscillators.length; ++i) {
       const o = this._oscillators[i];

@@ -25,7 +25,7 @@ export class S {
     S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
     S.setDefault('pi', 30, 'Pen initial thickness.');
     S.setDefault('pf', 15, 'Pen final thickness');
-    S.setDefault('ep', 1, 'Episode number');
+    S.setDefault('ep', 2, 'Episode number');
   }
 
   public static float(name: string): number {
