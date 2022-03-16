@@ -57,16 +57,24 @@ export class SpectrogramTool implements Tool {
     ctx.fillStyle = 'white';
     ctx.fillRect(x, 512 - SpectrogramTool.kKeyHeight,
       512, SpectrogramTool.kKeyHeight);
+    x = -keyWidth / 2;
+    const whiteWidth = this.pianoCanvas.width / 88 * 12 / 7;
+    for (let n = 0; n < 88; ++n) {
+      const style = this.getStyle(n);
+      if (style == 'white') {
+        ctx.strokeStyle = '#aaa';
+        ctx.strokeRect(x, 512 - SpectrogramTool.kKeyHeight,
+          whiteWidth, SpectrogramTool.kKeyHeight);
+        x += whiteWidth;
+      }
+    }
+    x = 0;
     for (let n = 0; n < 88; ++n, x += keyWidth) {
       const style = this.getStyle(n);
       if (style == 'black') {
         ctx.fillStyle = style;
         ctx.fillRect(x, 512 - SpectrogramTool.kKeyHeight,
           keyWidth, SpectrogramTool.kKeyHeight / 2);
-      } else {
-        ctx.strokeStyle = '#aaa';
-        ctx.strokeRect(x, 512 - SpectrogramTool.kKeyHeight,
-          keyWidth, SpectrogramTool.kKeyHeight);
       }
     }
   }
