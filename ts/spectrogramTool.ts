@@ -9,20 +9,25 @@ export class SpectrogramTool implements Tool {
   private material: THREE.Material;
   private static kNoteCount = 88;
   private static kSampleCount = 100;
+  private static kKeyHeight = 36;
   private static minFrequencyHz = 27.5;  // A0
 
-  private canvas: HTMLCanvasElement;
+  private pianoCanvas: HTMLCanvasElement;
+  private spectrogramCanvas: HTMLCanvasElement;
   private texture: THREE.CanvasTexture;
-  private ctx: CanvasRenderingContext2D;
 
   constructor(private scene: THREE.Object3D,
-    private audioCtx: AudioContext) {
+    audioCtx: AudioContext) {
     console.log(`Sample rate: ${audioCtx.sampleRate} Hz`);
 
-    this.canvas = document.createElement('canvas');
-    this.canvas.width = SpectrogramTool.kNoteCount;
-    this.canvas.height = SpectrogramTool.kSampleCount;
-    this.ctx = this.canvas.getContext('2d');
+    this.spectrogramCanvas = document.createElement('canvas');
+    this.spectrogramCanvas.width = SpectrogramTool.kNoteCount;
+    this.spectrogramCanvas.height = SpectrogramTool.kSampleCount;
+
+    this.pianoCanvas = document.createElement('canvas');
+    this.pianoCanvas.width = 512;
+    this.pianoCanvas.height = 512;
+    this.drawKeyboard();
 
     SampleSource.make(audioCtx).then((source) => {
       this.sampleSource = source;
@@ -32,19 +37,54 @@ export class SpectrogramTool implements Tool {
     });
   }
 
+  private getStyle(n: number) {
+    switch (n % 12) {
+      case 1:
+      case 4:
+      case 6:
+      case 9:
+      case 11:
+        return 'black';
+      default:
+        return 'white';
+    }
+  }
+
+  private drawKeyboard() {
+    const ctx = this.pianoCanvas.getContext('2d');
+    const keyWidth = this.pianoCanvas.width / 88;
+    let x = 0;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(x, 512 - SpectrogramTool.kKeyHeight,
+      512, SpectrogramTool.kKeyHeight);
+    for (let n = 0; n < 88; ++n, x += keyWidth) {
+      const style = this.getStyle(n);
+      if (style == 'black') {
+        ctx.fillStyle = style;
+        ctx.fillRect(x, 512 - SpectrogramTool.kKeyHeight,
+          keyWidth, SpectrogramTool.kKeyHeight / 2);
+      } else {
+        ctx.strokeStyle = '#aaa';
+        ctx.strokeRect(x, 512 - SpectrogramTool.kKeyHeight,
+          keyWidth, SpectrogramTool.kKeyHeight);
+      }
+    }
+  }
+
   private worldObject: THREE.Object3D;
 
   private needsUpdate = true;
 
-  private addSamples(noteWeights: Float32Array) {
+  private addSamplesToSpectrogramCanvas(noteWeights: Float32Array) {
     if (!this.needsUpdate) {
       return;
     }
     this.needsUpdate = false;
+    const ctx = this.spectrogramCanvas.getContext('2d');
     if (this.material) {
-      const imageData = this.ctx.getImageData(
-        0, 0, this.canvas.width, this.canvas.height);
-      const newImageData = this.ctx.createImageData(imageData);
+      const imageData = ctx.getImageData(
+        0, 0, this.spectrogramCanvas.width, this.spectrogramCanvas.height);
+      const newImageData = ctx.createImageData(imageData);
       const stride = SpectrogramTool.kNoteCount * 4;
       for (let i = 0; i < newImageData.data.length - stride; ++i) {
         newImageData.data[i] = imageData.data[i + stride];
@@ -66,10 +106,17 @@ export class SpectrogramTool implements Tool {
         newImageData.data[i + 3] = 255;
         ++j;
       }
-      this.ctx.putImageData(newImageData, 0, 0);
-      this.texture.needsUpdate = true;
-      this.material.needsUpdate = true;
+      ctx.putImageData(newImageData, 0, 0);
     }
+  }
+
+  private addSamples(noteWeights: Float32Array) {
+    this.addSamplesToSpectrogramCanvas(noteWeights);
+    const ctx = this.pianoCanvas.getContext('2d');
+    ctx.drawImage(this.spectrogramCanvas, 0, 0,
+      512, 512 - SpectrogramTool.kKeyHeight);
+    this.texture.needsUpdate = true;
+    this.material.needsUpdate = true;
   }
 
   public makeObject(): THREE.Object3D {
@@ -123,7 +170,7 @@ export class SpectrogramTool implements Tool {
       return this.material;
     }
 
-    this.texture = new THREE.CanvasTexture(this.canvas);
+    this.texture = new THREE.CanvasTexture(this.pianoCanvas);
     this.material = new THREE.MeshBasicMaterial({
       map: this.texture,
     });
