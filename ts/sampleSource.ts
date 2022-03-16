@@ -36,6 +36,8 @@ export class SampleSource {
     await this.audioCtx.audioWorklet.addModule(
       `sampleSourceWorker.js?buster=${Math.random().toFixed(6)}`);
     const worklet = new AudioWorkletNode(this.audioCtx, 'sample-source');
+    worklet.parameters.get('SampleRate').setValueAtTime(
+      this.audioCtx.sampleRate, this.audioCtx.currentTime);
 
     let workerStartTime = this.audioCtx.currentTime;
     let workerElapsedFrames = 0;

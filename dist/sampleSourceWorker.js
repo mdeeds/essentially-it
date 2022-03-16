@@ -37,7 +37,6 @@ class Oscillator {
   }
 }
 
-
 class SampleSourceWorker extends AudioWorkletProcessor {
   _callCount = 0;
   _oscillators = [];
@@ -50,12 +49,22 @@ class SampleSourceWorker extends AudioWorkletProcessor {
     }
   }
 
+  static get parameterDescriptors() {
+    return [{
+      name: 'SampleRate',
+      defaultValue: 48000,
+      minValue: 1,
+      maxValue: 96000,
+      automationRate: 'k-rate',
+    }]
+  }
+
   getRaw(raw) {
     return raw;
   }
 
-  getFreq(raw) {
-    const dt = 1 / 48000;
+  getFreq(raw, sampleRate) {
+    const dt = 1 / sampleRate;
     const result = new Float32Array(this._oscillators.length);
     for (let i = 0; i < this._oscillators.length; ++i) {
       const o = this._oscillators[i];
@@ -72,7 +81,7 @@ class SampleSourceWorker extends AudioWorkletProcessor {
     if (inputs[0].length > 0) {
       ++this._callCount;
       this.port.postMessage({
-        newSamples: this.getFreq(inputs[0][0])
+        newSamples: this.getFreq(inputs[0][0], parameters['SampleRate'][0])
       });
     }
     return true;
