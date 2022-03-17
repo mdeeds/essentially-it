@@ -11,6 +11,7 @@ export class SpectrogramTool implements Tool {
   private static kSampleCount = 100;
   private static kKeyHeight = 36;
   private static minFrequencyHz = 27.5;  // A0
+  private peak: number;
 
   private pianoCanvas: HTMLCanvasElement;
   private spectrogramCanvas: HTMLCanvasElement;
@@ -31,8 +32,10 @@ export class SpectrogramTool implements Tool {
 
     SampleSource.make(audioCtx).then((source) => {
       this.sampleSource = source;
-      this.sampleSource.setListener((samples: Float32Array) => {
+      this.sampleSource.setListener((samples: Float32Array,
+        peak: number) => {
         this.addSamples(samples);
+        this.peak = Math.max(peak, this.peak);
       });
     });
   }
@@ -114,6 +117,15 @@ export class SpectrogramTool implements Tool {
         newImageData.data[i + 3] = 255;
         ++j;
       }
+
+      const peakOffset =
+        4 * Math.min(88, Math.max(0, Math.round(this.peak * 10 + 44)));
+      const i = newImageData.data.length - stride + peakOffset;
+      newImageData.data[i + 0] = 128;
+      newImageData.data[i + 1] = 255;
+      newImageData.data[i + 2] = 128;
+      this.peak = 0;
+
       ctx.putImageData(newImageData, 0, 0);
     }
   }

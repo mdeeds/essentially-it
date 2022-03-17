@@ -1809,6 +1809,7 @@ class SampleSource {
         this.mediaSource = this.audioCtx.createMediaStreamSource(stream);
         await this.audioCtx.audioWorklet.addModule(`sampleSourceWorker.js?buster=${Math.random().toFixed(6)}`);
         const worklet = new AudioWorkletNode(this.audioCtx, 'sample-source');
+        worklet.parameters.get('SampleRate').setValueAtTime(this.audioCtx.sampleRate, this.audioCtx.currentTime);
         let workerStartTime = this.audioCtx.currentTime;
         let workerElapsedFrames = 0;
         worklet.port.onmessage = (event) => {
@@ -1817,7 +1818,7 @@ class SampleSource {
                 const chunkEndTime = workerStartTime +
                     workerElapsedFrames / this.audioCtx.sampleRate;
                 if (this.listener) {
-                    this.listener(event.data.newSamples, chunkEndTime);
+                    this.listener(event.data.newSamples, event.data.peak);
                 }
             }, 0);
         };
@@ -1861,6 +1862,8 @@ class S {
         S.setDefault('pi', 30, 'Pen initial thickness.');
         S.setDefault('pf', 15, 'Pen final thickness');
         S.setDefault('ep', 2, 'Episode number');
+        S.setDefault('lm', 3.0, 'Multiplier for lowest note.');
+        S.setDefault('hm', 1.0, 'Multiplier for highest note.');
     }
     static float(name) {
         if (S.cache.has(name)) {
@@ -1912,40 +1915,82 @@ const THREE = __importStar(__webpack_require__(578));
 const sampleSource_1 = __webpack_require__(930);
 class SpectrogramTool {
     scene;
-    audioCtx;
     sampleSource = null;
     material;
     static kNoteCount = 88;
     static kSampleCount = 100;
+    static kKeyHeight = 36;
     static minFrequencyHz = 27.5; // A0
-    canvas;
+    peak;
+    pianoCanvas;
+    spectrogramCanvas;
     texture;
-    ctx;
     constructor(scene, audioCtx) {
         this.scene = scene;
-        this.audioCtx = audioCtx;
         console.log(`Sample rate: ${audioCtx.sampleRate} Hz`);
-        this.canvas = document.createElement('canvas');
-        this.canvas.width = SpectrogramTool.kNoteCount;
-        this.canvas.height = SpectrogramTool.kSampleCount;
-        this.ctx = this.canvas.getContext('2d');
+        this.spectrogramCanvas = document.createElement('canvas');
+        this.spectrogramCanvas.width = SpectrogramTool.kNoteCount;
+        this.spectrogramCanvas.height = SpectrogramTool.kSampleCount;
+        this.pianoCanvas = document.createElement('canvas');
+        this.pianoCanvas.width = 512;
+        this.pianoCanvas.height = 512;
+        this.drawKeyboard();
         sampleSource_1.SampleSource.make(audioCtx).then((source) => {
             this.sampleSource = source;
-            this.sampleSource.setListener((samples) => {
+            this.sampleSource.setListener((samples, peak) => {
                 this.addSamples(samples);
+                this.peak = Math.max(peak, this.peak);
             });
         });
     }
+    getStyle(n) {
+        switch (n % 12) {
+            case 1:
+            case 4:
+            case 6:
+            case 9:
+            case 11:
+                return 'black';
+            default:
+                return 'white';
+        }
+    }
+    drawKeyboard() {
+        const ctx = this.pianoCanvas.getContext('2d');
+        const keyWidth = this.pianoCanvas.width / 88;
+        let x = 0;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(x, 512 - SpectrogramTool.kKeyHeight, 512, SpectrogramTool.kKeyHeight);
+        x = -keyWidth / 2;
+        const whiteWidth = this.pianoCanvas.width / 88 * 12 / 7;
+        for (let n = 0; n < 88; ++n) {
+            const style = this.getStyle(n);
+            if (style == 'white') {
+                ctx.strokeStyle = '#aaa';
+                ctx.strokeRect(x, 512 - SpectrogramTool.kKeyHeight, whiteWidth, SpectrogramTool.kKeyHeight);
+                x += whiteWidth;
+            }
+        }
+        x = 0;
+        for (let n = 0; n < 88; ++n, x += keyWidth) {
+            const style = this.getStyle(n);
+            if (style == 'black') {
+                ctx.fillStyle = style;
+                ctx.fillRect(x, 512 - SpectrogramTool.kKeyHeight, keyWidth, SpectrogramTool.kKeyHeight / 2);
+            }
+        }
+    }
     worldObject;
     needsUpdate = true;
-    addSamples(noteWeights) {
+    addSamplesToSpectrogramCanvas(noteWeights) {
         if (!this.needsUpdate) {
             return;
         }
         this.needsUpdate = false;
+        const ctx = this.spectrogramCanvas.getContext('2d');
         if (this.material) {
-            const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-            const newImageData = this.ctx.createImageData(imageData);
+            const imageData = ctx.getImageData(0, 0, this.spectrogramCanvas.width, this.spectrogramCanvas.height);
+            const newImageData = ctx.createImageData(imageData);
             const stride = SpectrogramTool.kNoteCount * 4;
             for (let i = 0; i < newImageData.data.length - stride; ++i) {
                 newImageData.data[i] = imageData.data[i + stride];
@@ -1966,10 +2011,21 @@ class SpectrogramTool {
                 newImageData.data[i + 3] = 255;
                 ++j;
             }
-            this.ctx.putImageData(newImageData, 0, 0);
-            this.texture.needsUpdate = true;
-            this.material.needsUpdate = true;
+            const peakOffset = 4 * Math.min(88, Math.max(0, Math.round(this.peak * 10 + 44)));
+            const i = newImageData.data.length - stride + peakOffset;
+            newImageData.data[i + 0] = 128;
+            newImageData.data[i + 1] = 255;
+            newImageData.data[i + 2] = 128;
+            this.peak = 0;
+            ctx.putImageData(newImageData, 0, 0);
         }
+    }
+    addSamples(noteWeights) {
+        this.addSamplesToSpectrogramCanvas(noteWeights);
+        const ctx = this.pianoCanvas.getContext('2d');
+        ctx.drawImage(this.spectrogramCanvas, 0, 0, 512, 512 - SpectrogramTool.kKeyHeight);
+        this.texture.needsUpdate = true;
+        this.material.needsUpdate = true;
     }
     makeObject() {
         let planeGeometry = new THREE.PlaneBufferGeometry(1, 1);
@@ -2014,7 +2070,7 @@ class SpectrogramTool {
         if (this.material) {
             return this.material;
         }
-        this.texture = new THREE.CanvasTexture(this.canvas);
+        this.texture = new THREE.CanvasTexture(this.pianoCanvas);
         this.material = new THREE.MeshBasicMaterial({
             map: this.texture,
         });

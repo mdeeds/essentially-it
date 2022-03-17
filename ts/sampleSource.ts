@@ -1,5 +1,5 @@
 type SampleSourceResolution = (self: SampleSource) => void;
-type SampleCallback = (samples: Float32Array, endTimeS: number) => void;
+type SampleCallback = (samples: Float32Array, peak: number) => void;
 
 export class SampleSource {
   private mediaSource: MediaStreamAudioSourceNode;
@@ -48,7 +48,7 @@ export class SampleSource {
         const chunkEndTime = workerStartTime +
           workerElapsedFrames / this.audioCtx.sampleRate;
         if (this.listener) {
-          this.listener(event.data.newSamples, chunkEndTime);
+          this.listener(event.data.newSamples, event.data.peak);
         }
 
       }, 0);

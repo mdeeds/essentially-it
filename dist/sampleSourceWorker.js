@@ -23,6 +23,7 @@ class Oscillator {
     this.v = 0;
     this.e = 0;
     this.meanRate = Math.pow(0.5, 1 / (3 * (48000 / w)));
+    this.dampRate = Math.pow(0.5, 1 / (3 * (48000 / w)));
   }
 
   addSamples(samples, dt) {
@@ -32,7 +33,7 @@ class Oscillator {
       this.v += a * dt;
       this.x += this.v * dt;
       this.e = (this.meanRate * this.e) + (1 - this.meanRate) * Math.abs(this.x);
-      this.x *= 0.999;  // damping
+      this.x *= this.dampRate;
     }
   }
 }
@@ -47,6 +48,10 @@ class SampleSourceWorker extends AudioWorkletProcessor {
       w *= Math.pow(2, 1 / 12)) {
       this._oscillators.push(new Oscillator(w));
     }
+
+    this.freq = 440;
+    this.t = 0;
+    this.a = Math.PI * 2 * this.freq;
   }
 
   static get parameterDescriptors() {
@@ -66,9 +71,19 @@ class SampleSourceWorker extends AudioWorkletProcessor {
   getFreq(raw, sampleRate) {
     const dt = 1 / sampleRate;
     const result = new Float32Array(this._oscillators.length);
+    const rand = new Float32Array(raw.length);
+    for (let i = 0; i < rand.length; ++i) {
+      rand[i] = 0.1 * Math.sin(this.t * this.a);
+      rand[i] += 0.05 * Math.sin(this.t * this.a / 2);
+      rand[i] += 0.025 * Math.sin(this.t * this.a / 4);
+      rand[i] += 0.0125 * Math.sin(this.t * this.a / 8);
+      rand[i] += 0.00625 * Math.sin(this.t * this.a / 16);
+      this.t += dt;
+    }
     for (let i = 0; i < this._oscillators.length; ++i) {
       const o = this._oscillators[i];
       o.addSamples(raw, dt);
+      // o.addSamples(rand, dt);
       result[i] = o.e * 50000;
     }
     return result;
@@ -80,8 +95,16 @@ class SampleSourceWorker extends AudioWorkletProcessor {
     }
     if (inputs[0].length > 0) {
       ++this._callCount;
+      let peak = 0;
+      for (const f of inputs[0][0]) {
+        if (peak < f) peak = f;
+      }
+      if (Math.random() < 0.01) {
+        console.log(`Peak: ${peak}`);
+      }
       this.port.postMessage({
-        newSamples: this.getFreq(inputs[0][0], parameters['SampleRate'][0])
+        newSamples: this.getFreq(inputs[0][0], parameters['SampleRate'][0]),
+        peak: peak
       });
     }
     return true;
