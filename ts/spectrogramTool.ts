@@ -104,12 +104,13 @@ export class SpectrogramTool implements Tool {
       for (let i = imageData.data.length - stride;
         i < imageData.data.length; i += 4) {
         // const f = Math.pow(noteWeights[j], 0.8);
-        const f = noteWeights[j];
+        const f = Math.pow(noteWeights[j], 0.3);
         //   f   | r  g  b
         // ----------------
         //  0    | 0  0  0
         //  0.25 |    0  0
         //  0.5  | 1     0
+        //  0.75 |    1
         // 1.0   | 1  1  1
         newImageData.data[i + 0] = f * 255 * 2;
         newImageData.data[i + 1] = (f - 0.25) * 255 * 2;
@@ -118,12 +119,12 @@ export class SpectrogramTool implements Tool {
         ++j;
       }
 
-      const peakOffset =
-        4 * Math.min(88, Math.max(0, Math.round(this.peak * 10 + 44)));
-      const i = newImageData.data.length - stride + peakOffset;
-      newImageData.data[i + 0] = 128;
-      newImageData.data[i + 1] = 255;
-      newImageData.data[i + 2] = 128;
+      // const peakOffset =
+      //   4 * Math.min(88, Math.max(0, Math.round(this.peak * 10 + 44)));
+      // const i = newImageData.data.length - stride + peakOffset;
+      // newImageData.data[i + 0] = 128;
+      // newImageData.data[i + 1] = 255;
+      // newImageData.data[i + 2] = 128;
       this.peak = 0;
 
       ctx.putImageData(newImageData, 0, 0);

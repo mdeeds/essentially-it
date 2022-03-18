@@ -4,7 +4,7 @@ class Oscillator {
     //  f   |  m
     // ------------
     // 27.5 | 0.100
-    // 4186 | 0.099
+    // 4186 | 0.001
     // m = a * ln(f) + b
 
     // T = 2pi * root(m/k)
@@ -17,12 +17,12 @@ class Oscillator {
     const b = 0.1 - a * Math.log(27.5);
 
     this.w = w;
-    this.m = a * Math.log(w) + b;
+    this.m = 0.01 * Math.pow(27.5 / w, 2);
     this.k = this.m * w * w * Math.PI * 2 * Math.PI * 2;
     this.x = 0;
     this.v = 0;
     this.e = 0;
-    this.meanRate = Math.pow(0.5, 1 / (3 * (48000 / w)));
+    this.meanRate = 0.999; // Math.pow(0.5, 1 / (3 * (48000 / w)));
     this.dampRate = Math.pow(0.5, 1 / (3 * (48000 / w)));
   }
 
@@ -71,20 +71,26 @@ class SampleSourceWorker extends AudioWorkletProcessor {
   getFreq(raw, sampleRate) {
     const dt = 1 / sampleRate;
     const result = new Float32Array(this._oscillators.length);
-    const rand = new Float32Array(raw.length);
-    for (let i = 0; i < rand.length; ++i) {
-      rand[i] = 0.1 * Math.sin(this.t * this.a);
-      rand[i] += 0.05 * Math.sin(this.t * this.a / 2);
-      rand[i] += 0.025 * Math.sin(this.t * this.a / 4);
-      rand[i] += 0.0125 * Math.sin(this.t * this.a / 8);
-      rand[i] += 0.00625 * Math.sin(this.t * this.a / 16);
-      this.t += dt;
-    }
+    // const rand = new Float32Array(raw.length);
+    // for (let i = 0; i < rand.length; ++i) {
+    //   if (this.t % 1 > 0.5) {
+    //     rand[i] = 0.1 * Math.sin(this.t * this.a);
+    //     rand[i] += 0.1 * Math.sin(this.t * this.a * 4);
+    //     rand[i] += 0.1 * Math.sin(this.t * this.a * 8);
+    //     rand[i] += 0.1 * Math.sin(this.t * this.a / 2);
+    //     rand[i] += 0.1 * Math.sin(this.t * this.a / 4);
+    //     rand[i] += 0.1 * Math.sin(this.t * this.a / 8);
+    //     rand[i] += 0.1 * Math.sin(this.t * this.a / 16);
+    //   } else {
+    //     rand[i] = 0;
+    //   }
+    //   this.t += dt;
+    // }
     for (let i = 0; i < this._oscillators.length; ++i) {
       const o = this._oscillators[i];
       o.addSamples(raw, dt);
       // o.addSamples(rand, dt);
-      result[i] = o.e * 50000;
+      result[i] = o.e * 100;
     }
     return result;
   }
