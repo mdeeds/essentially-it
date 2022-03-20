@@ -1,38 +1,17 @@
-type SampleSourceResolution = (self: SampleSource) => void;
 type SampleCallback = (samples: Float32Array, peak: number) => void;
 
 export class SampleSource {
-  private mediaSource: MediaStreamAudioSourceNode;
   private listener: SampleCallback = null;
-  readonly audioCtx: AudioContext;
-
-  private constructor(audioCtx: AudioContext) {
-    this.audioCtx = audioCtx;
-  }
-
-  public static make(audioCtx: AudioContext): Promise<SampleSource> {
-    const self = new SampleSource(audioCtx);
-    console.assert(!!navigator.mediaDevices.getUserMedia);
-    var constraints = {
-      audio: true,
-      video: false,
-      echoCancellation: false,
-      autoGainControl: false,
-      noiseSuppersion: false,
-    };
-    return new Promise(async (resolve, reject) => {
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      self.handleStream(stream, resolve);
-    });
+  constructor(private audioCtx: AudioContext,
+    private source: AudioNode) {
+    this.setUp();
   }
 
   public setListener(callback: SampleCallback) {
     this.listener = callback;
   }
 
-  private async handleStream(stream: MediaStream, resolve: SampleSourceResolution) {
-    this.mediaSource = this.audioCtx.createMediaStreamSource(stream);
-
+  private async setUp() {
     await this.audioCtx.audioWorklet.addModule(
       `sampleSourceWorker.js?buster=${Math.random().toFixed(6)}`);
     const worklet = new AudioWorkletNode(this.audioCtx, 'sample-source');
@@ -54,7 +33,6 @@ export class SampleSource {
       }, 0);
     }
 
-    this.mediaSource.connect(worklet);
-    resolve(this);
+    this.source.connect(worklet);
   }
 }

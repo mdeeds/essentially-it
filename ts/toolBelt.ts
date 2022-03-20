@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { AudioHelper } from "./audioHelper";
 
 import { EraseTool } from "./eraseTool";
 import { GraphitiTool } from "./graphitiTool";
@@ -10,6 +11,7 @@ import { S } from "./settings";
 import { SpectrogramTool } from "./spectrogramTool";
 import { SpeechTool } from "./speechTool";
 import { ShaderSphereTool1, ShaderSphereTool2, SphereTool, StandardSphereTool } from "./sphereTool";
+import { SquareToneTool, TriangleToneTool } from "./toneTool";
 import { Tool } from "./tool";
 
 export class ToolBelt extends THREE.Group {
@@ -21,25 +23,9 @@ export class ToolBelt extends THREE.Group {
     audioCtx: AudioContext) {
     super();
     this.addTools(tmpCanvas, imgCanvas, scene, audioCtx);
-    if (window['webkitSpeechRecognition']) {
-      this.tools.push(new SpeechTool(imgCanvas));
-    }
-    this.tools.push(new GraphitiTool(imgCanvas));
-
-    const thetaStep = 0.12;
-    let theta = thetaStep * -0.5 * (this.tools.length - 1);
-    for (const t of this.tools) {
-      const o = t.getIconObject();
-      o.position.set(Math.sin(theta) * 1.45,
-        -1.15,
-        -Math.cos(theta) * 1.45);
-      o.rotateY(-theta);
-      theta += thetaStep;
-      this.add(o);
-    }
   }
 
-  private addTools(tmpCanvas: HTMLCanvasElement,
+  private async addTools(tmpCanvas: HTMLCanvasElement,
     imgCanvas: HTMLCanvasElement,
     scene: THREE.Object3D,
     audioCtx: AudioContext) {
@@ -49,6 +35,13 @@ export class ToolBelt extends THREE.Group {
     this.tools.push(new PenTool(ctx, 'turquoise'));
     this.tools.push(new PenTool(ctx, 'purple'));
     this.tools.push(new HighlighterTool(ctx, 'mediumpurple'));
+
+    const mix = audioCtx.createGain();
+    mix.gain.setValueAtTime(1.0, audioCtx.currentTime);
+
+    const microphone = await AudioHelper.getMicrophoneSource(audioCtx);
+    microphone.connect(mix);
+
     switch (S.float('ep')) {
       case 1:
         this.tools.push(new PlayTool("ep/1/Essentially_It.mp3"));
@@ -62,9 +55,36 @@ export class ToolBelt extends THREE.Group {
           imgCanvas, 'ep/1/Normal Shading.png', 2.0));
         break;
       case 2:
-        this.tools.push(new SpectrogramTool(scene, audioCtx));
+        this.tools.push(new SpectrogramTool(scene, audioCtx, mix));
+        this.tools.push(new ImageTool(
+          imgCanvas, 'ep/2/code.png', 2.0));
+        break;
+      case 3:
+        this.tools.push(new SpectrogramTool(scene, audioCtx, mix));
+        this.tools.push(new SquareToneTool(scene, audioCtx, mix));
+        this.tools.push(new TriangleToneTool(scene, audioCtx, mix));
         break;
     }
+    if (window['webkitSpeechRecognition']) {
+      this.tools.push(new SpeechTool(imgCanvas));
+    }
+    this.tools.push(new GraphitiTool(imgCanvas));
+    this.addIcons();
+  }
+
+  private addIcons() {
+    const thetaStep = 0.12;
+    let theta = thetaStep * -0.5 * (this.tools.length - 1);
+    for (const t of this.tools) {
+      const o = t.getIconObject();
+      o.position.set(Math.sin(theta) * 1.45,
+        -1.15,
+        -Math.cos(theta) * 1.45);
+      o.rotateY(-theta);
+      theta += thetaStep;
+      this.add(o);
+    }
+
   }
 
   getTool(index: number): Tool {

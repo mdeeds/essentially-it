@@ -18,7 +18,7 @@ export class SpectrogramTool implements Tool {
   private texture: THREE.CanvasTexture;
 
   constructor(private scene: THREE.Object3D,
-    audioCtx: AudioContext) {
+    audioCtx: AudioContext, input: AudioNode) {
     console.log(`Sample rate: ${audioCtx.sampleRate} Hz`);
 
     this.spectrogramCanvas = document.createElement('canvas');
@@ -30,13 +30,11 @@ export class SpectrogramTool implements Tool {
     this.pianoCanvas.height = 512;
     this.drawKeyboard();
 
-    SampleSource.make(audioCtx).then((source) => {
-      this.sampleSource = source;
-      this.sampleSource.setListener((samples: Float32Array,
-        peak: number) => {
-        this.addSamples(samples);
-        this.peak = Math.max(peak, this.peak);
-      });
+    this.sampleSource = new SampleSource(audioCtx, input);
+    this.sampleSource.setListener((samples: Float32Array,
+      peak: number) => {
+      this.addSamples(samples);
+      this.peak = Math.max(peak, this.peak);
     });
   }
 

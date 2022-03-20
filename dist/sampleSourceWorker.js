@@ -1,18 +1,5 @@
 class Oscillator {
   constructor(w) {
-    // Freq | Mass
-    //  f   |  m
-    // ------------
-    // 27.5 | 0.100
-    // 4186 | 0.001
-    // m = a * ln(f) + b
-
-    // T = 2pi * root(m/k)
-    // f = root(k/m) / 2pi
-    // 2pi * f = root(k/m)
-    // (2pi*f)^2 = k/m
-    // m * (2pi*f)^2 = k
-
     const a = 0.099 / (Math.log(27.5 / 4186));
     const b = 0.1 - a * Math.log(27.5);
 
@@ -22,7 +9,7 @@ class Oscillator {
     this.x = 0;
     this.v = 0;
     this.e = 0;
-    this.meanRate = 0.999; // Math.pow(0.5, 1 / (3 * (48000 / w)));
+    this.meanRate = 0.999;
     this.dampRate = Math.pow(0.5, 1 / (3 * (48000 / w)));
   }
 
@@ -32,9 +19,13 @@ class Oscillator {
       const a = f / this.m;
       this.v += a * dt;
       this.x += this.v * dt;
-      this.e = (this.meanRate * this.e) + (1 - this.meanRate) * Math.abs(this.x);
+      this.e = this.mix(this.e, Math.abs(this.x), this.meanRate);
       this.x *= this.dampRate;
     }
+  }
+
+  mix(a, b, p) {
+    return p * a + (1 - p) * b;
   }
 }
 
@@ -71,21 +62,6 @@ class SampleSourceWorker extends AudioWorkletProcessor {
   getFreq(raw, sampleRate) {
     const dt = 1 / sampleRate;
     const result = new Float32Array(this._oscillators.length);
-    // const rand = new Float32Array(raw.length);
-    // for (let i = 0; i < rand.length; ++i) {
-    //   if (this.t % 1 > 0.5) {
-    //     rand[i] = 0.1 * Math.sin(this.t * this.a);
-    //     rand[i] += 0.1 * Math.sin(this.t * this.a * 4);
-    //     rand[i] += 0.1 * Math.sin(this.t * this.a * 8);
-    //     rand[i] += 0.1 * Math.sin(this.t * this.a / 2);
-    //     rand[i] += 0.1 * Math.sin(this.t * this.a / 4);
-    //     rand[i] += 0.1 * Math.sin(this.t * this.a / 8);
-    //     rand[i] += 0.1 * Math.sin(this.t * this.a / 16);
-    //   } else {
-    //     rand[i] = 0;
-    //   }
-    //   this.t += dt;
-    // }
     for (let i = 0; i < this._oscillators.length; ++i) {
       const o = this._oscillators[i];
       o.addSamples(raw, dt);
@@ -104,9 +80,6 @@ class SampleSourceWorker extends AudioWorkletProcessor {
       let peak = 0;
       for (const f of inputs[0][0]) {
         if (peak < f) peak = f;
-      }
-      if (Math.random() < 0.01) {
-        console.log(`Peak: ${peak}`);
       }
       this.port.postMessage({
         newSamples: this.getFreq(inputs[0][0], parameters['SampleRate'][0]),

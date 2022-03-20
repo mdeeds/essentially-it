@@ -2,6 +2,36 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 530:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AudioHelper = void 0;
+class AudioHelper {
+    static async getMicrophoneSource(audioCtx) {
+        return new Promise(async (resolve, reject) => {
+            if (!navigator.mediaDevices.getUserMedia) {
+                reject("No navigator.mediaDevices.getUserMedia");
+            }
+            ;
+            var constraints = {
+                audio: true,
+                video: false,
+                echoCancellation: false,
+                autoGainControl: false,
+                noiseSuppersion: false,
+            };
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            resolve(audioCtx.createMediaStreamSource(stream));
+        });
+    }
+}
+exports.AudioHelper = AudioHelper;
+//# sourceMappingURL=audioHelper.js.map
+
+/***/ }),
+
 /***/ 847:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -1909,32 +1939,18 @@ exports.ProjectionCylinder = ProjectionCylinder;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SampleSource = void 0;
 class SampleSource {
-    mediaSource;
-    listener = null;
     audioCtx;
-    constructor(audioCtx) {
+    source;
+    listener = null;
+    constructor(audioCtx, source) {
         this.audioCtx = audioCtx;
-    }
-    static make(audioCtx) {
-        const self = new SampleSource(audioCtx);
-        console.assert(!!navigator.mediaDevices.getUserMedia);
-        var constraints = {
-            audio: true,
-            video: false,
-            echoCancellation: false,
-            autoGainControl: false,
-            noiseSuppersion: false,
-        };
-        return new Promise(async (resolve, reject) => {
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            self.handleStream(stream, resolve);
-        });
+        this.source = source;
+        this.setUp();
     }
     setListener(callback) {
         this.listener = callback;
     }
-    async handleStream(stream, resolve) {
-        this.mediaSource = this.audioCtx.createMediaStreamSource(stream);
+    async setUp() {
         await this.audioCtx.audioWorklet.addModule(`sampleSourceWorker.js?buster=${Math.random().toFixed(6)}`);
         const worklet = new AudioWorkletNode(this.audioCtx, 'sample-source');
         worklet.parameters.get('SampleRate').setValueAtTime(this.audioCtx.sampleRate, this.audioCtx.currentTime);
@@ -1950,8 +1966,7 @@ class SampleSource {
                 }
             }, 0);
         };
-        this.mediaSource.connect(worklet);
-        resolve(this);
+        this.source.connect(worklet);
     }
 }
 exports.SampleSource = SampleSource;
@@ -2053,7 +2068,7 @@ class SpectrogramTool {
     pianoCanvas;
     spectrogramCanvas;
     texture;
-    constructor(scene, audioCtx) {
+    constructor(scene, audioCtx, input) {
         this.scene = scene;
         console.log(`Sample rate: ${audioCtx.sampleRate} Hz`);
         this.spectrogramCanvas = document.createElement('canvas');
@@ -2063,12 +2078,10 @@ class SpectrogramTool {
         this.pianoCanvas.width = 512;
         this.pianoCanvas.height = 512;
         this.drawKeyboard();
-        sampleSource_1.SampleSource.make(audioCtx).then((source) => {
-            this.sampleSource = source;
-            this.sampleSource.setListener((samples, peak) => {
-                this.addSamples(samples);
-                this.peak = Math.max(peak, this.peak);
-            });
+        this.sampleSource = new sampleSource_1.SampleSource(audioCtx, input);
+        this.sampleSource.setListener((samples, peak) => {
+            this.addSamples(samples);
+            this.peak = Math.max(peak, this.peak);
         });
     }
     getStyle(n) {
@@ -2539,6 +2552,195 @@ exports.TactileInterface = TactileInterface;
 
 /***/ }),
 
+/***/ 88:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.TriangleToneTool = exports.SquareToneTool = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class ShapeToneSource {
+    audioCtx;
+    oscillator;
+    gain;
+    constructor(audioCtx, type, destination) {
+        this.audioCtx = audioCtx;
+        this.gain = audioCtx.createGain();
+        this.gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        this.gain.connect(destination);
+        this.gain.connect(audioCtx.destination);
+        this.oscillator = audioCtx.createOscillator();
+        this.oscillator.type = type;
+        this.oscillator.frequency.setValueAtTime(196, audioCtx.currentTime);
+        this.oscillator.connect(this.gain);
+        this.oscillator.start();
+    }
+    getAudioSource() {
+        return this.oscillator;
+    }
+    renderToCanvas(canavs) {
+        throw "Not Implemented!";
+    }
+    start() {
+        this.gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
+    }
+    stop() {
+        this.gain.gain.setValueAtTime(0.0, this.audioCtx.currentTime);
+    }
+}
+class SquareToneSource extends ShapeToneSource {
+    constructor(audioCtx, destination) {
+        super(audioCtx, 'square', destination);
+    }
+    renderToCanvas(canvas) {
+        const ctx = canvas.getContext('2d');
+        const wavelength = canvas.width * 0.9;
+        const left = (canvas.width - wavelength) / 2;
+        const ymid = (canvas.height / 2);
+        const amplitude = canvas.height * 0.3;
+        ctx.lineWidth = canvas.width / 50;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#82f';
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.moveTo(left, ymid);
+        ctx.moveTo(left, ymid + amplitude);
+        ctx.moveTo(left + wavelength / 2, ymid + amplitude);
+        ctx.moveTo(left + wavelength / 2, ymid - amplitude);
+        ctx.moveTo(left + wavelength, ymid - amplitude);
+        ctx.moveTo(left + wavelength, ymid);
+        ctx.stroke();
+    }
+}
+class TriangleToneSource extends ShapeToneSource {
+    constructor(audioCtx, destination) {
+        super(audioCtx, 'triangle', destination);
+    }
+    renderToCanvas(canvas) {
+        const ctx = canvas.getContext('2d');
+        const wavelength = canvas.width * 0.9;
+        const left = (canvas.width - wavelength) / 2;
+        const ymid = (canvas.height / 2);
+        const amplitude = canvas.height * 0.3;
+        ctx.lineWidth = canvas.width / 50;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#82f';
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.moveTo(left, ymid);
+        ctx.moveTo(left + 0.25 * wavelength, ymid + amplitude);
+        ctx.moveTo(left + 0.75 * wavelength, ymid - amplitude);
+        ctx.moveTo(left + wavelength, ymid);
+        ctx.stroke();
+    }
+}
+class ToneTool {
+    scene;
+    toneSource;
+    material;
+    waveformCanvas;
+    texture;
+    constructor(scene, toneSource, audioCtx, destination) {
+        this.scene = scene;
+        this.toneSource = toneSource;
+        console.log(`Sample rate: ${audioCtx.sampleRate} Hz`);
+        this.waveformCanvas = document.createElement('canvas');
+        this.waveformCanvas.width = 512;
+        this.waveformCanvas.height = 512;
+    }
+    worldObject;
+    needsUpdate = true;
+    makeObject() {
+        let planeGeometry = new THREE.PlaneBufferGeometry(1, 1);
+        return new THREE.Mesh(planeGeometry, this.getMaterial());
+    }
+    start(xy, ray) {
+        if (!this.worldObject) {
+            this.worldObject = this.makeObject();
+            this.scene.add(this.worldObject);
+            this.worldObject.onBeforeRender = () => { this.needsUpdate = true; };
+        }
+        this.worldObject.position.copy(ray.direction);
+        this.worldObject.position.multiplyScalar(1);
+        this.worldObject.position.add(ray.origin);
+        this.toneSource.start();
+    }
+    move(xy, ray) {
+        if (!this.worldObject) {
+            this.worldObject = this.makeObject();
+            this.scene.add(this.worldObject);
+            this.worldObject.onBeforeRender = () => { this.needsUpdate = true; };
+        }
+        this.worldObject.position.copy(ray.direction);
+        this.worldObject.position.multiplyScalar(1);
+        this.worldObject.position.add(ray.origin);
+        const theta = Math.atan2(ray.direction.x, ray.direction.z);
+        this.worldObject.rotation.y = theta + Math.PI;
+        this.worldObject.updateMatrix();
+    }
+    end() {
+        this.toneSource.stop();
+        return false;
+    }
+    icon = null;
+    getIconObject() {
+        if (this.icon != null) {
+            return this.icon;
+        }
+        this.icon = this.makeObject();
+        this.icon.scale.setLength(0.1);
+        return this.icon;
+    }
+    getMaterial() {
+        if (this.material) {
+            return this.material;
+        }
+        this.texture = new THREE.CanvasTexture(this.waveformCanvas);
+        this.material = new THREE.MeshBasicMaterial({
+            map: this.texture,
+            transparent: true
+        });
+        this.toneSource.renderToCanvas(this.waveformCanvas);
+        return this.material;
+    }
+}
+class SquareToneTool extends ToneTool {
+    constructor(scene, audioCtx, destination) {
+        super(scene, new SquareToneSource(audioCtx, destination), audioCtx, destination);
+    }
+}
+exports.SquareToneTool = SquareToneTool;
+class TriangleToneTool extends ToneTool {
+    constructor(scene, audioCtx, destination) {
+        super(scene, new TriangleToneSource(audioCtx, destination), audioCtx, destination);
+    }
+}
+exports.TriangleToneTool = TriangleToneTool;
+//# sourceMappingURL=toneTool.js.map
+
+/***/ }),
+
 /***/ 22:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -2565,6 +2767,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ToolBelt = void 0;
 const THREE = __importStar(__webpack_require__(578));
+const audioHelper_1 = __webpack_require__(530);
 const eraseTool_1 = __webpack_require__(847);
 const graphitiTool_1 = __webpack_require__(257);
 const highlighterTool_1 = __webpack_require__(512);
@@ -2575,32 +2778,24 @@ const settings_1 = __webpack_require__(451);
 const spectrogramTool_1 = __webpack_require__(268);
 const speechTool_1 = __webpack_require__(297);
 const sphereTool_1 = __webpack_require__(11);
+const toneTool_1 = __webpack_require__(88);
 class ToolBelt extends THREE.Group {
     tools = [];
     constructor(tmpCanvas, imgCanvas, scene, audioCtx) {
         super();
         this.addTools(tmpCanvas, imgCanvas, scene, audioCtx);
-        if (window['webkitSpeechRecognition']) {
-            this.tools.push(new speechTool_1.SpeechTool(imgCanvas));
-        }
-        this.tools.push(new graphitiTool_1.GraphitiTool(imgCanvas));
-        const thetaStep = 0.12;
-        let theta = thetaStep * -0.5 * (this.tools.length - 1);
-        for (const t of this.tools) {
-            const o = t.getIconObject();
-            o.position.set(Math.sin(theta) * 1.45, -1.15, -Math.cos(theta) * 1.45);
-            o.rotateY(-theta);
-            theta += thetaStep;
-            this.add(o);
-        }
     }
-    addTools(tmpCanvas, imgCanvas, scene, audioCtx) {
+    async addTools(tmpCanvas, imgCanvas, scene, audioCtx) {
         const ctx = tmpCanvas.getContext('2d');
         this.tools.push(new eraseTool_1.EraseTool(ctx));
         this.tools.push(new penTool_1.PenTool(ctx, 'black'));
         this.tools.push(new penTool_1.PenTool(ctx, 'turquoise'));
         this.tools.push(new penTool_1.PenTool(ctx, 'purple'));
         this.tools.push(new highlighterTool_1.HighlighterTool(ctx, 'mediumpurple'));
+        const mix = audioCtx.createGain();
+        mix.gain.setValueAtTime(1.0, audioCtx.currentTime);
+        const microphone = await audioHelper_1.AudioHelper.getMicrophoneSource(audioCtx);
+        microphone.connect(mix);
         switch (settings_1.S.float('ep')) {
             case 1:
                 this.tools.push(new playTool_1.PlayTool("ep/1/Essentially_It.mp3"));
@@ -2612,8 +2807,30 @@ class ToolBelt extends THREE.Group {
                 this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/1/Normal Shading.png', 2.0));
                 break;
             case 2:
-                this.tools.push(new spectrogramTool_1.SpectrogramTool(scene, audioCtx));
+                this.tools.push(new spectrogramTool_1.SpectrogramTool(scene, audioCtx, mix));
+                this.tools.push(new imageTool_1.ImageTool(imgCanvas, 'ep/2/code.png', 2.0));
                 break;
+            case 3:
+                this.tools.push(new spectrogramTool_1.SpectrogramTool(scene, audioCtx, mix));
+                this.tools.push(new toneTool_1.SquareToneTool(scene, audioCtx, mix));
+                this.tools.push(new toneTool_1.TriangleToneTool(scene, audioCtx, mix));
+                break;
+        }
+        if (window['webkitSpeechRecognition']) {
+            this.tools.push(new speechTool_1.SpeechTool(imgCanvas));
+        }
+        this.tools.push(new graphitiTool_1.GraphitiTool(imgCanvas));
+        this.addIcons();
+    }
+    addIcons() {
+        const thetaStep = 0.12;
+        let theta = thetaStep * -0.5 * (this.tools.length - 1);
+        for (const t of this.tools) {
+            const o = t.getIconObject();
+            o.position.set(Math.sin(theta) * 1.45, -1.15, -Math.cos(theta) * 1.45);
+            o.rotateY(-theta);
+            theta += thetaStep;
+            this.add(o);
         }
     }
     getTool(index) {
