@@ -11,7 +11,7 @@ import { S } from "./settings";
 import { SpectrogramTool } from "./spectrogramTool";
 import { SpeechTool } from "./speechTool";
 import { ShaderSphereTool1, ShaderSphereTool2, SphereTool, StandardSphereTool } from "./sphereTool";
-import { SquareToneTool, TriangleToneTool } from "./toneTool";
+import { SawtoothToneTool, SineToneTool, SquareToneTool, TriangleToneTool } from "./toneTool";
 import { Tool } from "./tool";
 
 export class ToolBelt extends THREE.Group {
@@ -61,8 +61,10 @@ export class ToolBelt extends THREE.Group {
         break;
       case 3:
         this.tools.push(new SpectrogramTool(scene, audioCtx, mix));
+        this.tools.push(new SineToneTool(scene, audioCtx, mix));
         this.tools.push(new SquareToneTool(scene, audioCtx, mix));
         this.tools.push(new TriangleToneTool(scene, audioCtx, mix));
+        this.tools.push(new SawtoothToneTool(scene, audioCtx, mix));
         break;
     }
     if (window['webkitSpeechRecognition']) {

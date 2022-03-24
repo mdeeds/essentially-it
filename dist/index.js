@@ -2576,7 +2576,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.TriangleToneTool = exports.SquareToneTool = void 0;
+exports.SawtoothToneTool = exports.TriangleToneTool = exports.SquareToneTool = exports.SineToneTool = void 0;
 const THREE = __importStar(__webpack_require__(578));
 class ShapeToneSource {
     audioCtx;
@@ -2597,8 +2597,18 @@ class ShapeToneSource {
     getAudioSource() {
         return this.oscillator;
     }
-    renderToCanvas(canavs) {
-        throw "Not Implemented!";
+    renderToCanvas(canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#a9b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height / 2);
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.stroke();
     }
     start() {
         this.gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
@@ -2607,28 +2617,52 @@ class ShapeToneSource {
         this.gain.gain.setValueAtTime(0.0, this.audioCtx.currentTime);
     }
 }
-class SquareToneSource extends ShapeToneSource {
+class SineToneSource extends ShapeToneSource {
     constructor(audioCtx, destination) {
-        super(audioCtx, 'square', destination);
+        super(audioCtx, 'sine', destination);
     }
     renderToCanvas(canvas) {
+        super.renderToCanvas(canvas);
         const ctx = canvas.getContext('2d');
         const wavelength = canvas.width * 0.9;
         const left = (canvas.width - wavelength) / 2;
         const ymid = (canvas.height / 2);
         const amplitude = canvas.height * 0.3;
-        ctx.lineWidth = canvas.width / 50;
+        ctx.lineWidth = canvas.width / 30;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = '#82f';
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.beginPath();
         ctx.moveTo(left, ymid);
-        ctx.moveTo(left, ymid + amplitude);
-        ctx.moveTo(left + wavelength / 2, ymid + amplitude);
-        ctx.moveTo(left + wavelength / 2, ymid - amplitude);
-        ctx.moveTo(left + wavelength, ymid - amplitude);
-        ctx.moveTo(left + wavelength, ymid);
+        for (let i = 0; i < 1.0; i += 0.01) {
+            const theta = Math.PI * 2 * i;
+            ctx.lineTo(left + i * wavelength, ymid + amplitude * Math.sin(theta));
+        }
+        ctx.stroke();
+    }
+}
+class SquareToneSource extends ShapeToneSource {
+    constructor(audioCtx, destination) {
+        super(audioCtx, 'square', destination);
+    }
+    renderToCanvas(canvas) {
+        super.renderToCanvas(canvas);
+        const ctx = canvas.getContext('2d');
+        const wavelength = canvas.width * 0.9;
+        const left = (canvas.width - wavelength) / 2;
+        const ymid = (canvas.height / 2);
+        const amplitude = canvas.height * 0.3;
+        ctx.lineWidth = canvas.width / 30;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#82f';
+        ctx.beginPath();
+        ctx.moveTo(left, ymid);
+        ctx.lineTo(left, ymid + amplitude);
+        ctx.lineTo(left + wavelength / 2, ymid + amplitude);
+        ctx.lineTo(left + wavelength / 2, ymid - amplitude);
+        ctx.lineTo(left + wavelength, ymid - amplitude);
+        ctx.lineTo(left + wavelength, ymid);
         ctx.stroke();
     }
 }
@@ -2637,21 +2671,44 @@ class TriangleToneSource extends ShapeToneSource {
         super(audioCtx, 'triangle', destination);
     }
     renderToCanvas(canvas) {
+        super.renderToCanvas(canvas);
         const ctx = canvas.getContext('2d');
         const wavelength = canvas.width * 0.9;
         const left = (canvas.width - wavelength) / 2;
         const ymid = (canvas.height / 2);
         const amplitude = canvas.height * 0.3;
-        ctx.lineWidth = canvas.width / 50;
+        ctx.lineWidth = canvas.width / 30;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = '#82f';
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.beginPath();
         ctx.moveTo(left, ymid);
-        ctx.moveTo(left + 0.25 * wavelength, ymid + amplitude);
-        ctx.moveTo(left + 0.75 * wavelength, ymid - amplitude);
-        ctx.moveTo(left + wavelength, ymid);
+        ctx.lineTo(left + 0.25 * wavelength, ymid + amplitude);
+        ctx.lineTo(left + 0.75 * wavelength, ymid - amplitude);
+        ctx.lineTo(left + wavelength, ymid);
+        ctx.stroke();
+    }
+}
+class SawtoothToneSource extends ShapeToneSource {
+    constructor(audioCtx, destination) {
+        super(audioCtx, 'sawtooth', destination);
+    }
+    renderToCanvas(canvas) {
+        super.renderToCanvas(canvas);
+        const ctx = canvas.getContext('2d');
+        const wavelength = canvas.width * 0.9;
+        const left = (canvas.width - wavelength) / 2;
+        const ymid = (canvas.height / 2);
+        const amplitude = canvas.height * 0.3;
+        ctx.lineWidth = canvas.width / 30;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#82f';
+        ctx.beginPath();
+        ctx.moveTo(left, ymid);
+        ctx.lineTo(left, ymid + amplitude);
+        ctx.lineTo(left + wavelength, ymid - amplitude);
+        ctx.lineTo(left + wavelength, ymid);
         ctx.stroke();
     }
 }
@@ -2672,8 +2729,10 @@ class ToneTool {
     worldObject;
     needsUpdate = true;
     makeObject() {
-        let planeGeometry = new THREE.PlaneBufferGeometry(1, 1);
-        return new THREE.Mesh(planeGeometry, this.getMaterial());
+        let planeGeometry = new THREE.PlaneBufferGeometry(1.5, 1.5, 1.5);
+        const obj = new THREE.Mesh(planeGeometry, this.getMaterial());
+        obj.scale.set(0.25, 0.25, 0.25);
+        return obj;
     }
     start(xy, ray) {
         if (!this.worldObject) {
@@ -2719,12 +2778,20 @@ class ToneTool {
         this.texture = new THREE.CanvasTexture(this.waveformCanvas);
         this.material = new THREE.MeshBasicMaterial({
             map: this.texture,
-            transparent: true
         });
+        // this.material = new THREE.MeshBasicMaterial({ color: "pink" });
         this.toneSource.renderToCanvas(this.waveformCanvas);
+        this.material.needsUpdate = true;
+        this.texture.needsUpdate = true;
         return this.material;
     }
 }
+class SineToneTool extends ToneTool {
+    constructor(scene, audioCtx, destination) {
+        super(scene, new SineToneSource(audioCtx, destination), audioCtx, destination);
+    }
+}
+exports.SineToneTool = SineToneTool;
 class SquareToneTool extends ToneTool {
     constructor(scene, audioCtx, destination) {
         super(scene, new SquareToneSource(audioCtx, destination), audioCtx, destination);
@@ -2737,6 +2804,12 @@ class TriangleToneTool extends ToneTool {
     }
 }
 exports.TriangleToneTool = TriangleToneTool;
+class SawtoothToneTool extends ToneTool {
+    constructor(scene, audioCtx, destination) {
+        super(scene, new SawtoothToneSource(audioCtx, destination), audioCtx, destination);
+    }
+}
+exports.SawtoothToneTool = SawtoothToneTool;
 //# sourceMappingURL=toneTool.js.map
 
 /***/ }),
@@ -2812,8 +2885,10 @@ class ToolBelt extends THREE.Group {
                 break;
             case 3:
                 this.tools.push(new spectrogramTool_1.SpectrogramTool(scene, audioCtx, mix));
+                this.tools.push(new toneTool_1.SineToneTool(scene, audioCtx, mix));
                 this.tools.push(new toneTool_1.SquareToneTool(scene, audioCtx, mix));
                 this.tools.push(new toneTool_1.TriangleToneTool(scene, audioCtx, mix));
+                this.tools.push(new toneTool_1.SawtoothToneTool(scene, audioCtx, mix));
                 break;
         }
         if (window['webkitSpeechRecognition']) {
