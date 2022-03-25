@@ -3,6 +3,7 @@ import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 
 import { Hand } from "./hand";
 import { Laboratory } from "./laboratory";
+import { ParticleSystem } from "./particleSystem";
 import { TactileProvider } from "./tactileProvider";
 
 export class Game {
@@ -29,10 +30,16 @@ export class Game {
     this.setUpRenderer();
 
     this.setUpAnimation();
+
+    const particleSystem = new ParticleSystem();
+    this.scene.add(particleSystem);
+
     this.hands.push(
-      new Hand('left', this.scene, this.renderer, this.tactileProvider))
+      new Hand('left', this.scene, this.renderer,
+        this.tactileProvider, particleSystem))
     this.hands.push(
-      new Hand('right', this.scene, this.renderer, this.tactileProvider))
+      new Hand('right', this.scene, this.renderer,
+        this.tactileProvider, particleSystem))
     this.setUpKeyHandler();
     this.setUpTouchHandlers();
     this.run();

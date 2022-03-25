@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Object3D } from "three";
+import { ParticleSystem } from "./particleSystem";
 import { TactileProvider } from "./tactileProvider";
 
 export type Side = 'left' | 'right';
@@ -11,7 +12,8 @@ export class Hand {
   private penDown: boolean;
 
   constructor(readonly side: Side, private scene: THREE.Object3D,
-    renderer: THREE.WebGLRenderer, private tactile: TactileProvider) {
+    renderer: THREE.WebGLRenderer, private tactile: TactileProvider,
+    private particleSystem: ParticleSystem) {
     const index = (side == 'left') ? 0 : 1;
     this.grip = renderer.xr.getControllerGrip(index);
     // this.grip = new THREE.Group();
@@ -47,14 +49,22 @@ export class Hand {
   private ray = new THREE.Ray();
   private minusZ = new THREE.Vector3(0, -1, 0);
 
+  private blue = new THREE.Color('#aa4');
+  private red = new THREE.Color('#4aa');
+  private pink = new THREE.Color('#4a8');
+
   private handleSelectStart(ev: any) {
     this.tactile.start(this.ray, this.side == 'left' ? 0 : 1);
+    this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+      this.red);
     this.penDown = true;
   }
 
   private handleSelectEnd(ev: any) {
     this.tactile.end(this.side == 'left' ? 0 : 1);
     this.penDown = false;
+    this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+      this.blue);
   }
 
   private v = new THREE.Vector3();
@@ -66,6 +76,8 @@ export class Hand {
     this.v.sub(this.p);
     this.ray.set(this.p, this.v);
     if (this.penDown) {
+      this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+        this.pink);
       this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
     }
   }

@@ -146,7 +146,7 @@ void main() {
     // });
   }
 
-  step(deltaS: number) {
+  private step(deltaS: number) {
     this.UpdateParticles(deltaS);
     this.UpdateGeometry();
   }

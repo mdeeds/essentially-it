@@ -303,6 +303,7 @@ const THREE = __importStar(__webpack_require__(578));
 const VRButton_js_1 = __webpack_require__(652);
 const hand_1 = __webpack_require__(673);
 const laboratory_1 = __webpack_require__(855);
+const particleSystem_1 = __webpack_require__(564);
 const tactileProvider_1 = __webpack_require__(873);
 class Game {
     audioCtx;
@@ -325,8 +326,10 @@ class Game {
         this.scene.add(this.camera);
         this.setUpRenderer();
         this.setUpAnimation();
-        this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.tactileProvider));
-        this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.tactileProvider));
+        const particleSystem = new particleSystem_1.ParticleSystem();
+        this.scene.add(particleSystem);
+        this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.tactileProvider, particleSystem));
+        this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.tactileProvider, particleSystem));
         this.setUpKeyHandler();
         this.setUpTouchHandlers();
         this.run();
@@ -902,14 +905,16 @@ class Hand {
     side;
     scene;
     tactile;
+    particleSystem;
     gamepad;
     grip;
     line;
     penDown;
-    constructor(side, scene, renderer, tactile) {
+    constructor(side, scene, renderer, tactile, particleSystem) {
         this.side = side;
         this.scene = scene;
         this.tactile = tactile;
+        this.particleSystem = particleSystem;
         const index = (side == 'left') ? 0 : 1;
         this.grip = renderer.xr.getControllerGrip(index);
         // this.grip = new THREE.Group();
@@ -936,13 +941,18 @@ class Hand {
     }
     ray = new THREE.Ray();
     minusZ = new THREE.Vector3(0, -1, 0);
+    blue = new THREE.Color('#aa4');
+    red = new THREE.Color('#4aa');
+    pink = new THREE.Color('#4a8');
     handleSelectStart(ev) {
         this.tactile.start(this.ray, this.side == 'left' ? 0 : 1);
+        this.particleSystem.AddParticle(this.ray.origin, this.ray.direction, this.red);
         this.penDown = true;
     }
     handleSelectEnd(ev) {
         this.tactile.end(this.side == 'left' ? 0 : 1);
         this.penDown = false;
+        this.particleSystem.AddParticle(this.ray.origin, this.ray.direction, this.blue);
     }
     v = new THREE.Vector3();
     p = new THREE.Vector3();
@@ -953,6 +963,7 @@ class Hand {
         this.v.sub(this.p);
         this.ray.set(this.p, this.v);
         if (this.penDown) {
+            this.particleSystem.AddParticle(this.ray.origin, this.ray.direction, this.pink);
             this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
         }
     }
