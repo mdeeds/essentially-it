@@ -2,10 +2,11 @@ import * as THREE from "three";
 import { PaintCylinder } from "./paintCylinder";
 import { ProjectionCylinder } from "./projectionCylinder";
 import { S } from "./settings";
+import { TactileSink } from "./tactileProvider";
 import { Tool } from "./tool";
 import { ToolBelt } from "./toolBelt";
 
-export class TactileInterface {
+export class TactileInterface implements TactileSink {
   private activeHands = new Map<number, THREE.Vector2>();
   private handTool = new Map<number, Tool>();
 

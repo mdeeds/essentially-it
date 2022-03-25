@@ -301,36 +301,21 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Game = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const VRButton_js_1 = __webpack_require__(652);
-const GLTFLoader_js_1 = __webpack_require__(687);
 const hand_1 = __webpack_require__(673);
-const paintCylinder_1 = __webpack_require__(183);
-const particleSystem_1 = __webpack_require__(564);
-const tactileInterface_1 = __webpack_require__(791);
-const projectionCylinder_1 = __webpack_require__(233);
-const fogMaterial_1 = __webpack_require__(927);
-const floorMaterial_1 = __webpack_require__(41);
+const laboratory_1 = __webpack_require__(855);
+const tactileProvider_1 = __webpack_require__(873);
 class Game {
     audioCtx;
     scene;
     camera;
     renderer;
-    whiteBoard;
-    particles;
     keysDown = new Set();
-    tactile;
     hands = [];
-    floorMaterial;
+    laboratory;
+    tactileProvider = new tactileProvider_1.TactileProvider();
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
         this.scene = new THREE.Scene();
-        const fogSphere = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 3), new fogMaterial_1.FogMaterial());
-        fogSphere.position.set(0, -0.4, 0);
-        this.scene.add(fogSphere);
-        this.floorMaterial = new floorMaterial_1.FloorMaterial();
-        const groundPlane = new THREE.Mesh(new THREE.PlaneBufferGeometry(40, 40), this.floorMaterial);
-        groundPlane.rotateX(Math.PI / 2);
-        groundPlane.position.set(0, -0.4, 0);
-        this.scene.add(groundPlane);
         this.renderer = new THREE.WebGLRenderer();
         this.camera = new THREE.PerspectiveCamera(
         /*fov=*/ 75, /*aspec=*/ 1024 / 512, /*near=*/ 0.1, 
@@ -338,36 +323,20 @@ class Game {
         this.camera.position.set(0, 1.7, 0);
         this.camera.lookAt(0, 1.7, -2);
         this.scene.add(this.camera);
-        this.particles = new particleSystem_1.ParticleSystem();
-        this.scene.add(this.particles);
         this.setUpRenderer();
-        this.whiteBoard = new paintCylinder_1.PaintCylinder();
-        this.whiteBoard.position.set(0, 1.7, 0);
-        this.scene.add(this.whiteBoard);
-        {
-            const light1 = new THREE.DirectionalLight('white', 0.8);
-            light1.position.set(0, 5, 0);
-            this.scene.add(light1);
-            // const light2 = new THREE.DirectionalLight('white', 0.1);
-            // light2.position.set(0, -5, 0);
-            // this.scene.add(light2);
-            const light3 = new THREE.AmbientLight('white', 0.2);
-            this.scene.add(light3);
-        }
-        this.loadPlatform();
-        const projection = new projectionCylinder_1.ProjectionCylinder(this.whiteBoard, 1.5);
-        this.tactile = new tactileInterface_1.TactileInterface(this.whiteBoard, projection, this.scene, audioCtx);
         this.setUpAnimation();
-        this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.tactile, this.particles));
-        this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.tactile, this.particles));
+        this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.tactileProvider));
+        this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.tactileProvider));
         this.setUpKeyHandler();
         this.setUpTouchHandlers();
+        this.run();
     }
-    loadPlatform() {
-        const loader = new GLTFLoader_js_1.GLTFLoader();
-        loader.load('model/platform.gltf', (gltf) => {
-            this.scene.add(gltf.scene);
-        });
+    async run() {
+        const labObject = new THREE.Group();
+        const laboratory = new laboratory_1.Laboratory(this.audioCtx, labObject, this.tactileProvider);
+        this.scene.add(labObject);
+        // TODO: This should go into a loop somehow.
+        await this.laboratory.run();
     }
     getRay(ev) {
         const x = (ev.clientX / 1024) * 2 - 1;
@@ -391,7 +360,7 @@ class Game {
             for (let i = 0; i < ev.touches.length; ++i) {
                 const index = this.getTouchIndex(ev.touches[i].identifier, idToIndex);
                 const ray = this.getRay(ev.touches[i]);
-                this.tactile.start(ray, index);
+                this.tactileProvider.start(ray, index);
             }
             ev.preventDefault();
         });
@@ -399,13 +368,13 @@ class Game {
             for (let i = 0; i < ev.touches.length; ++i) {
                 const index = this.getTouchIndex(ev.touches[i].identifier, idToIndex);
                 const ray = this.getRay(ev.touches[i]);
-                this.tactile.move(ray, index);
+                this.tactileProvider.move(ray, index);
             }
             ev.preventDefault();
         });
         const handleEnd = (ev) => {
             for (const index of idToIndex.values()) {
-                this.tactile.end(index);
+                this.tactileProvider.end(index);
             }
             idToIndex.clear();
             ev.preventDefault();
@@ -420,36 +389,12 @@ class Game {
             .sub(ray.origin).normalize();
         return ray;
     }
-    slowColor = new THREE.Color('#0ff');
-    mediumColor = new THREE.Color('#00f');
-    fastColor = new THREE.Color('#f0f');
-    addRandomDot(deltaS) {
-        const r = 1.5 * Math.sqrt(Math.random());
-        const t = Math.PI * 2 * Math.random();
-        const y = Math.random() * 0.1;
-        const p = new THREE.Vector3(r * Math.cos(t), y, r * Math.sin(t));
-        const v = new THREE.Vector3(0.1 * (Math.random() - 0.5), 0.05 * (Math.random() + 0.01), 0.1 * (Math.random() - 0.5));
-        let color = this.fastColor;
-        if (deltaS > 1 / 50) {
-            color = this.slowColor;
-        }
-        else if (deltaS > 1 / 85) {
-            color = this.mediumColor;
-        }
-        this.particles.AddParticle(p, v, color);
-    }
     clock = new THREE.Clock(/*autostart=*/ true);
     animationLoop() {
         let deltaS = this.clock.getDelta();
         deltaS = Math.min(0.1, deltaS);
-        this.addRandomDot(deltaS);
-        this.floorMaterial.setT(0.05 * this.clock.elapsedTime);
         this.renderer.render(this.scene, this.camera);
         this.handleKeys();
-        for (const h of this.hands) {
-            h.tick();
-        }
-        this.particles.step(deltaS);
     }
     setUpAnimation() {
         this.renderer.setAnimationLoop((function (self) {
@@ -957,16 +902,14 @@ class Hand {
     side;
     scene;
     tactile;
-    particles;
     gamepad;
     grip;
     line;
     penDown;
-    constructor(side, scene, renderer, tactile, particles) {
+    constructor(side, scene, renderer, tactile) {
         this.side = side;
         this.scene = scene;
         this.tactile = tactile;
-        this.particles = particles;
         const index = (side == 'left') ? 0 : 1;
         this.grip = renderer.xr.getControllerGrip(index);
         // this.grip = new THREE.Group();
@@ -979,6 +922,9 @@ class Hand {
         this.setUpMeshes();
         this.grip.addEventListener('selectstart', (ev) => this.handleSelectStart(ev));
         this.grip.addEventListener('selectend', (ev) => this.handleSelectEnd(ev));
+        this.grip.onAfterRender = (renderer, scene, camera, geometry, material, group) => {
+            this.tick();
+        };
     }
     setUpMeshes() {
         const lineMaterial = new THREE.LineBasicMaterial({ color: '#def' });
@@ -1302,6 +1248,118 @@ class ImageTool {
 }
 exports.ImageTool = ImageTool;
 //# sourceMappingURL=imageTool.js.map
+
+/***/ }),
+
+/***/ 855:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Laboratory = void 0;
+const THREE = __importStar(__webpack_require__(578));
+const GLTFLoader_js_1 = __webpack_require__(687);
+const floorMaterial_1 = __webpack_require__(41);
+const fogMaterial_1 = __webpack_require__(927);
+const paintCylinder_1 = __webpack_require__(183);
+const particleSystem_1 = __webpack_require__(564);
+const projectionCylinder_1 = __webpack_require__(233);
+const tactileInterface_1 = __webpack_require__(791);
+class Laboratory {
+    audioCtx;
+    scene;
+    whiteBoard;
+    particles;
+    floorMaterial;
+    doneCallback;
+    constructor(audioCtx, scene, tactileProvider) {
+        this.audioCtx = audioCtx;
+        this.scene = scene;
+        const fogSphere = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 3), new fogMaterial_1.FogMaterial());
+        fogSphere.position.set(0, -0.4, 0);
+        this.scene.add(fogSphere);
+        this.floorMaterial = new floorMaterial_1.FloorMaterial();
+        const groundPlane = new THREE.Mesh(new THREE.PlaneBufferGeometry(40, 40), this.floorMaterial);
+        groundPlane.rotateX(Math.PI / 2);
+        groundPlane.position.set(0, -0.4, 0);
+        const clock = new THREE.Clock();
+        groundPlane.onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
+            const deltaS = clock.getDelta();
+            this.floorMaterial.setT(0.05 * clock.elapsedTime);
+            this.addRandomDot(deltaS);
+        };
+        this.scene.add(groundPlane);
+        this.particles = new particleSystem_1.ParticleSystem();
+        this.scene.add(this.particles);
+        this.whiteBoard = new paintCylinder_1.PaintCylinder();
+        this.whiteBoard.position.set(0, 1.7, 0);
+        this.scene.add(this.whiteBoard);
+        {
+            const light1 = new THREE.DirectionalLight('white', 0.8);
+            light1.position.set(0, 5, 0);
+            this.scene.add(light1);
+            // const light2 = new THREE.DirectionalLight('white', 0.1);
+            // light2.position.set(0, -5, 0);
+            // this.scene.add(light2);
+            const light3 = new THREE.AmbientLight('white', 0.2);
+            this.scene.add(light3);
+        }
+        this.loadPlatform();
+        const projection = new projectionCylinder_1.ProjectionCylinder(this.whiteBoard, 1.5);
+        const tactile = new tactileInterface_1.TactileInterface(this.whiteBoard, projection, this.scene, audioCtx);
+        tactileProvider.addSink(tactile);
+    }
+    run() {
+        return new Promise((resolve, reject) => {
+            this.doneCallback = resolve;
+        });
+    }
+    slowColor = new THREE.Color('#0ff');
+    mediumColor = new THREE.Color('#00f');
+    fastColor = new THREE.Color('#f0f');
+    addRandomDot(deltaS) {
+        const r = 1.5 * Math.sqrt(Math.random());
+        const t = Math.PI * 2 * Math.random();
+        const y = Math.random() * 0.1;
+        const p = new THREE.Vector3(r * Math.cos(t), y, r * Math.sin(t));
+        const v = new THREE.Vector3(0.1 * (Math.random() - 0.5), 0.05 * (Math.random() + 0.01), 0.1 * (Math.random() - 0.5));
+        let color = this.fastColor;
+        if (deltaS > 1 / 50) {
+            color = this.slowColor;
+        }
+        else if (deltaS > 1 / 85) {
+            color = this.mediumColor;
+        }
+        this.particles.AddParticle(p, v, color);
+    }
+    loadPlatform() {
+        const loader = new GLTFLoader_js_1.GLTFLoader();
+        loader.load('model/platform.gltf', (gltf) => {
+            this.scene.add(gltf.scene);
+        });
+    }
+}
+exports.Laboratory = Laboratory;
+//# sourceMappingURL=laboratory.js.map
 
 /***/ }),
 
@@ -1653,6 +1711,10 @@ void main() {
         this.geometry.boundingSphere =
             new THREE.Sphere(new THREE.Vector3(), 50);
         this.UpdateGeometry();
+        const clock = new THREE.Clock();
+        this.onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
+            this.step(clock.getDelta());
+        };
     }
     AddParticle(position, velocity, color) {
         if (!position.manhattanLength() || !velocity.manhattanLength()) {
@@ -2004,7 +2066,7 @@ class S {
         S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
         S.setDefault('pi', 30, 'Pen initial thickness.');
         S.setDefault('pf', 15, 'Pen final thickness');
-        S.setDefault('ep', 2, 'Episode number');
+        S.setDefault('ep', 3, 'Episode number');
         S.setDefault('lm', 3.0, 'Multiplier for lowest note.');
         S.setDefault('hm', 1.0, 'Multiplier for highest note.');
     }
@@ -2549,6 +2611,38 @@ class TactileInterface {
 }
 exports.TactileInterface = TactileInterface;
 //# sourceMappingURL=tactileInterface.js.map
+
+/***/ }),
+
+/***/ 873:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.TactileProvider = void 0;
+class TactileProvider {
+    sinks = [];
+    addSink(sink) {
+        this.sinks.push(sink);
+    }
+    start(ray, id) {
+        for (const sink of this.sinks) {
+            sink.start(ray, id);
+        }
+    }
+    move(ray, id) {
+        for (const sink of this.sinks) {
+            sink.move(ray, id);
+        }
+    }
+    end(id) {
+        for (const sink of this.sinks) {
+            sink.end(id);
+        }
+    }
+}
+exports.TactileProvider = TactileProvider;
+//# sourceMappingURL=tactileProvider.js.map
 
 /***/ }),
 

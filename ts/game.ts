@@ -1,45 +1,22 @@
 import * as THREE from "three";
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 import { Hand } from "./hand";
-import { PaintCylinder } from "./paintCylinder";
-import { ParticleSystem } from "./particleSystem";
-import { TactileInterface } from "./tactileInterface";
-import { ProjectionCylinder } from "./projectionCylinder";
-import { FogMaterial } from "./fogMaterial";
-import { FloorMaterial } from "./floorMaterial";
+import { Laboratory } from "./laboratory";
+import { TactileProvider } from "./tactileProvider";
 
 export class Game {
   private scene: THREE.Scene;
   private camera: THREE.Camera;
   private renderer: THREE.WebGLRenderer;
-  private whiteBoard: PaintCylinder;
-  private particles: ParticleSystem;
   private keysDown = new Set<string>();
-
-  private tactile: TactileInterface;
-
   private hands: Hand[] = [];
 
-  private floorMaterial: FloorMaterial;
+  private laboratory: Laboratory;
+  private tactileProvider = new TactileProvider();
 
   constructor(private audioCtx: AudioContext) {
     this.scene = new THREE.Scene();
-
-    const fogSphere = new THREE.Mesh(
-      new THREE.IcosahedronBufferGeometry(20, 3),
-      new FogMaterial());
-    fogSphere.position.set(0, -0.4, 0);
-    this.scene.add(fogSphere);
-
-    this.floorMaterial = new FloorMaterial();
-    const groundPlane = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(40, 40),
-      this.floorMaterial);
-    groundPlane.rotateX(Math.PI / 2);
-    groundPlane.position.set(0, -0.4, 0);
-    this.scene.add(groundPlane);
 
     this.renderer = new THREE.WebGLRenderer();
     this.camera = new THREE.PerspectiveCamera(
@@ -49,44 +26,24 @@ export class Game {
     this.camera.lookAt(0, 1.7, -2);
     this.scene.add(this.camera);
 
-    this.particles = new ParticleSystem();
-    this.scene.add(this.particles);
     this.setUpRenderer();
-    this.whiteBoard = new PaintCylinder();
-    this.whiteBoard.position.set(0, 1.7, 0);
-    this.scene.add(this.whiteBoard);
-
-    {
-      const light1 = new THREE.DirectionalLight('white', 0.8);
-      light1.position.set(0, 5, 0);
-      this.scene.add(light1);
-      // const light2 = new THREE.DirectionalLight('white', 0.1);
-      // light2.position.set(0, -5, 0);
-      // this.scene.add(light2);
-      const light3 = new THREE.AmbientLight('white', 0.2);
-      this.scene.add(light3);
-    }
-
-    this.loadPlatform();
-
-    const projection = new ProjectionCylinder(this.whiteBoard, 1.5);
-    this.tactile = new TactileInterface(
-      this.whiteBoard, projection, this.scene, audioCtx);
 
     this.setUpAnimation();
     this.hands.push(
-      new Hand('left', this.scene, this.renderer, this.tactile, this.particles))
+      new Hand('left', this.scene, this.renderer, this.tactileProvider))
     this.hands.push(
-      new Hand('right', this.scene, this.renderer, this.tactile, this.particles))
+      new Hand('right', this.scene, this.renderer, this.tactileProvider))
     this.setUpKeyHandler();
     this.setUpTouchHandlers();
+    this.run();
   }
 
-  private loadPlatform() {
-    const loader = new GLTFLoader();
-    loader.load('model/platform.gltf', (gltf) => {
-      this.scene.add(gltf.scene);
-    });
+  private async run() {
+    const labObject = new THREE.Group();
+    const laboratory = new Laboratory(this.audioCtx, labObject, this.tactileProvider);
+    this.scene.add(labObject);
+    // TODO: This should go into a loop somehow.
+    await this.laboratory.run();
   }
 
   private getRay(ev: Touch | PointerEvent): THREE.Ray {
@@ -117,7 +74,7 @@ export class Game {
           const index = this.getTouchIndex(ev.touches[i].identifier,
             idToIndex);
           const ray = this.getRay(ev.touches[i]);
-          this.tactile.start(ray, index);
+          this.tactileProvider.start(ray, index);
         }
         ev.preventDefault();
       });
@@ -127,13 +84,13 @@ export class Game {
           const index = this.getTouchIndex(ev.touches[i].identifier,
             idToIndex);
           const ray = this.getRay(ev.touches[i]);
-          this.tactile.move(ray, index);
+          this.tactileProvider.move(ray, index);
         }
         ev.preventDefault();
       });
     const handleEnd = (ev: TouchEvent) => {
       for (const index of idToIndex.values()) {
-        this.tactile.end(index);
+        this.tactileProvider.end(index);
       }
       idToIndex.clear();
       ev.preventDefault();
@@ -150,41 +107,13 @@ export class Game {
     return ray;
   }
 
-  private slowColor = new THREE.Color('#0ff');
-  private mediumColor = new THREE.Color('#00f');
-  private fastColor = new THREE.Color('#f0f');
-
-  private addRandomDot(deltaS: number) {
-    const r = 1.5 * Math.sqrt(Math.random());
-    const t = Math.PI * 2 * Math.random();
-    const y = Math.random() * 0.1;
-    const p = new THREE.Vector3(
-      r * Math.cos(t), y, r * Math.sin(t));
-    const v = new THREE.Vector3(
-      0.1 * (Math.random() - 0.5),
-      0.05 * (Math.random() + 0.01),
-      0.1 * (Math.random() - 0.5));
-    let color = this.fastColor;
-    if (deltaS > 1 / 50) {
-      color = this.slowColor;
-    } else if (deltaS > 1 / 85) {
-      color = this.mediumColor;
-    }
-    this.particles.AddParticle(p, v, color);
-  }
 
   private clock = new THREE.Clock(/*autostart=*/true);
   private animationLoop() {
     let deltaS = this.clock.getDelta();
     deltaS = Math.min(0.1, deltaS);
-    this.addRandomDot(deltaS);
-    this.floorMaterial.setT(0.05 * this.clock.elapsedTime);
     this.renderer.render(this.scene, this.camera);
     this.handleKeys();
-    for (const h of this.hands) {
-      h.tick();
-    }
-    this.particles.step(deltaS);
   }
 
   private setUpAnimation() {

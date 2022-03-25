@@ -72,6 +72,13 @@ void main() {
       new THREE.Sphere(new THREE.Vector3(), 50);
 
     this.UpdateGeometry();
+    const clock = new THREE.Clock();
+    this.onBeforeRender = (
+      renderer: THREE.WebGLRenderer, scene: THREE.Scene,
+      camera: THREE.Camera, geometry: THREE.BufferGeometry,
+      material: THREE.Material, group: THREE.Group) => {
+      this.step(clock.getDelta());
+    };
   }
 
   AddParticle(position: THREE.Vector3, velocity: THREE.Vector3,

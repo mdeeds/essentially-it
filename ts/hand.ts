@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { Object3D } from "three";
-import { ParticleSystem } from "./particleSystem";
-import { TactileInterface } from "./tactileInterface";
+import { TactileProvider } from "./tactileProvider";
 
 export type Side = 'left' | 'right';
 
@@ -12,8 +11,7 @@ export class Hand {
   private penDown: boolean;
 
   constructor(readonly side: Side, private scene: THREE.Object3D,
-    renderer: THREE.WebGLRenderer, private tactile: TactileInterface,
-    private particles: ParticleSystem) {
+    renderer: THREE.WebGLRenderer, private tactile: TactileProvider) {
     const index = (side == 'left') ? 0 : 1;
     this.grip = renderer.xr.getControllerGrip(index);
     // this.grip = new THREE.Group();
@@ -28,6 +26,12 @@ export class Hand {
       'selectstart', (ev) => this.handleSelectStart(ev));
     this.grip.addEventListener(
       'selectend', (ev) => this.handleSelectEnd(ev));
+    this.grip.onAfterRender = (
+      renderer: THREE.WebGLRenderer, scene: THREE.Scene,
+      camera: THREE.Camera, geometry: THREE.BufferGeometry,
+      material: THREE.Material, group: THREE.Group) => {
+      this.tick();
+    };
   }
 
   private setUpMeshes() {
@@ -55,7 +59,7 @@ export class Hand {
 
   private v = new THREE.Vector3();
   private p = new THREE.Vector3();
-  tick() {
+  private tick() {
     this.grip.getWorldPosition(this.p);
     this.v.copy(this.minusZ);
     this.grip.localToWorld(this.v);
