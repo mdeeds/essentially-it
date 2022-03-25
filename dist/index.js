@@ -933,7 +933,7 @@ class Hand {
         const lineGeometry = new THREE.BufferGeometry()
             .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, -10, 0)]);
         this.line = new THREE.Line(lineGeometry, lineMaterial);
-        this.grip.onAfterRender = (renderer, scene, camera, geometry, material, group) => {
+        this.line.onAfterRender = (renderer, scene, camera, geometry, material, group) => {
             this.tick();
         };
         this.grip.add(this.line);
