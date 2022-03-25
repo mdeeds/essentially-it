@@ -927,15 +927,15 @@ class Hand {
         this.setUpMeshes();
         this.grip.addEventListener('selectstart', (ev) => this.handleSelectStart(ev));
         this.grip.addEventListener('selectend', (ev) => this.handleSelectEnd(ev));
-        this.grip.onAfterRender = (renderer, scene, camera, geometry, material, group) => {
-            this.tick();
-        };
     }
     setUpMeshes() {
         const lineMaterial = new THREE.LineBasicMaterial({ color: '#def' });
         const lineGeometry = new THREE.BufferGeometry()
             .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, -10, 0)]);
         this.line = new THREE.Line(lineGeometry, lineMaterial);
+        this.grip.onAfterRender = (renderer, scene, camera, geometry, material, group) => {
+            this.tick();
+        };
         this.grip.add(this.line);
         this.scene.add(this.grip);
     }
@@ -957,6 +957,9 @@ class Hand {
     v = new THREE.Vector3();
     p = new THREE.Vector3();
     tick() {
+        this.p.set(0, 0, 0);
+        this.v.set(Math.random() * 0.1 - 0.05, 0.1, Math.random() * 0.1 - 0.05);
+        this.particleSystem.AddParticle(this.p, this.v, this.pink);
         this.grip.getWorldPosition(this.p);
         this.v.copy(this.minusZ);
         this.grip.localToWorld(this.v);
