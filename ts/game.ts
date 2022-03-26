@@ -13,7 +13,6 @@ export class Game {
   private keysDown = new Set<string>();
   private hands: Hand[] = [];
 
-  private laboratory: Laboratory;
   private tactileProvider = new TactileProvider();
 
   constructor(private audioCtx: AudioContext) {
@@ -50,7 +49,8 @@ export class Game {
     const laboratory = new Laboratory(this.audioCtx, labObject, this.tactileProvider);
     this.scene.add(labObject);
     // TODO: This should go into a loop somehow.
-    await this.laboratory.run();
+    await laboratory.run();
+    this.scene.remove(labObject);
   }
 
   private getRay(ev: Touch | PointerEvent): THREE.Ray {

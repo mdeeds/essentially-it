@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { Button } from "./button";
 
 import { FloorMaterial } from "./floorMaterial";
 import { FogMaterial } from "./fogMaterial";
@@ -20,7 +21,7 @@ export class Laboratory implements World {
 
   constructor(private audioCtx: AudioContext,
     private scene: THREE.Group,
-    tactileProvider: TactileProvider) {
+    private tactileProvider: TactileProvider) {
     const fogSphere = new THREE.Mesh(
       new THREE.IcosahedronBufferGeometry(20, 3),
       new FogMaterial());
@@ -98,10 +99,30 @@ export class Laboratory implements World {
   //   this.particles.AddParticle(p, v, color);
   // }
 
+
+  private getNamedObject(name: string, o: THREE.Object3D): THREE.Object3D {
+    console.log(`'${o.name}'`);
+    if (o.name === name) {
+      return o;
+    }
+    for (const child of o.children) {
+      const match = this.getNamedObject(name, child);
+      if (match) {
+        return match;
+      }
+    }
+    return null;
+  }
+
   private loadPlatform() {
     const loader = new GLTFLoader();
     loader.load('model/platform.gltf', (gltf) => {
       this.scene.add(gltf.scene);
+      const buttonObject = this.getNamedObject('Power_Button', gltf.scene);
+      if (buttonObject === null) {
+        console.log('not found.');
+      }
+      new Button(buttonObject, this.tactileProvider, this.doneCallback);
     });
   }
 }

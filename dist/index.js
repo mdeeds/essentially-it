@@ -32,6 +32,62 @@ exports.AudioHelper = AudioHelper;
 
 /***/ }),
 
+/***/ 582:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Button = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class Button {
+    model;
+    callback;
+    isPressed = false;
+    constructor(model, tactileProvider, callback) {
+        this.model = model;
+        this.callback = callback;
+        tactileProvider.addSink(this);
+    }
+    p = new THREE.Vector3();
+    start(ray, id) {
+        this.model.getWorldPosition(this.p);
+        this.p.sub(ray.origin);
+        console.log(`Distance: ${this.p.length()}`);
+        if (!this.isPressed && this.p.length() < 0.1) {
+            this.isPressed = true;
+            this.callback();
+        }
+        else {
+            this.isPressed = false;
+        }
+    }
+    move(ray, id) { }
+    end(id) { }
+}
+exports.Button = Button;
+//# sourceMappingURL=button.js.map
+
+/***/ }),
+
 /***/ 847:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -312,7 +368,6 @@ class Game {
     renderer;
     keysDown = new Set();
     hands = [];
-    laboratory;
     tactileProvider = new tactileProvider_1.TactileProvider();
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
@@ -339,7 +394,8 @@ class Game {
         const laboratory = new laboratory_1.Laboratory(this.audioCtx, labObject, this.tactileProvider);
         this.scene.add(labObject);
         // TODO: This should go into a loop somehow.
-        await this.laboratory.run();
+        await laboratory.run();
+        this.scene.remove(labObject);
     }
     getRay(ev) {
         const x = (ev.clientX / 1024) * 2 - 1;
@@ -1295,6 +1351,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Laboratory = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const GLTFLoader_js_1 = __webpack_require__(687);
+const button_1 = __webpack_require__(582);
 const floorMaterial_1 = __webpack_require__(41);
 const fogMaterial_1 = __webpack_require__(927);
 const paintCylinder_1 = __webpack_require__(183);
@@ -1304,6 +1361,7 @@ const tactileInterface_1 = __webpack_require__(791);
 class Laboratory {
     audioCtx;
     scene;
+    tactileProvider;
     whiteBoard;
     // private particles: ParticleSystem;
     floorMaterial;
@@ -1311,6 +1369,7 @@ class Laboratory {
     constructor(audioCtx, scene, tactileProvider) {
         this.audioCtx = audioCtx;
         this.scene = scene;
+        this.tactileProvider = tactileProvider;
         const fogSphere = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 3), new fogMaterial_1.FogMaterial());
         fogSphere.position.set(0, -0.4, 0);
         this.scene.add(fogSphere);
@@ -1371,10 +1430,28 @@ class Laboratory {
     //   }
     //   this.particles.AddParticle(p, v, color);
     // }
+    getNamedObject(name, o) {
+        console.log(`'${o.name}'`);
+        if (o.name === name) {
+            return o;
+        }
+        for (const child of o.children) {
+            const match = this.getNamedObject(name, child);
+            if (match) {
+                return match;
+            }
+        }
+        return null;
+    }
     loadPlatform() {
         const loader = new GLTFLoader_js_1.GLTFLoader();
         loader.load('model/platform.gltf', (gltf) => {
             this.scene.add(gltf.scene);
+            const buttonObject = this.getNamedObject('Power_Button', gltf.scene);
+            if (buttonObject === null) {
+                console.log('not found.');
+            }
+            new button_1.Button(buttonObject, this.tactileProvider, this.doneCallback);
         });
     }
 }

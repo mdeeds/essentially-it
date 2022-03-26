@@ -114,7 +114,6 @@ export class SpectrogramTool implements Tool {
     }
   }
 
-
   private addSamplesToSpectrogramCanvas(noteWeights: Float32Array) {
     if (!this.needsUpdate) {
       return;
