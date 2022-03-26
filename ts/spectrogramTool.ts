@@ -84,6 +84,37 @@ export class SpectrogramTool implements Tool {
 
   private needsUpdate = true;
 
+  private static plookup = (() => {
+    const numbers = [];
+    let i = 0;
+    for (let x = 0; x <= 1.0; x += 0.001) {
+      numbers[i++] = Math.pow(x, 0.3);
+    }
+    return numbers;
+  })();
+
+  private static plookupFine = (() => {
+    const numbers = [];
+    let i = 0;
+    for (let x = 0; x <= 0.01; x += 0.00001) {
+      numbers[i++] = Math.pow(x, 0.3);
+    }
+    return numbers;
+  })();
+
+  private static conv(f: number) {
+    if (f < 0) {
+      return 0;
+    } else if (f > 1) {
+      return 1;
+    } else if (f < 0.01) {
+      return SpectrogramTool.plookupFine[Math.round(f * 100000)];
+    } else {
+      return SpectrogramTool.plookup[Math.round(f * 1000)];
+    }
+  }
+
+
   private addSamplesToSpectrogramCanvas(noteWeights: Float32Array) {
     if (!this.needsUpdate) {
       return;
@@ -91,18 +122,16 @@ export class SpectrogramTool implements Tool {
     this.needsUpdate = false;
     const ctx = this.spectrogramCanvas.getContext('2d');
     if (this.material) {
-      const imageData = ctx.getImageData(
-        0, 0, this.spectrogramCanvas.width, this.spectrogramCanvas.height);
-      const newImageData = ctx.createImageData(imageData);
-      const stride = SpectrogramTool.kNoteCount * 4;
-      for (let i = 0; i < newImageData.data.length - stride; ++i) {
-        newImageData.data[i] = imageData.data[i + stride];
-      }
-      let j = 0;
-      for (let i = imageData.data.length - stride;
-        i < imageData.data.length; i += 4) {
-        // const f = Math.pow(noteWeights[j], 0.8);
-        const f = Math.pow(noteWeights[j], 0.3);
+      // Shift everything up one pixel
+      const oldContent = ctx.getImageData(
+        0, 1, this.spectrogramCanvas.width, this.spectrogramCanvas.height - 1);
+      ctx.putImageData(oldContent, 0, 0);
+
+      // Splat the last row
+      const newImageData = ctx.createImageData(this.spectrogramCanvas.width, 1);
+      for (let x = 0; x < newImageData.width; ++x) {
+        const i = x * 4;
+        const f = SpectrogramTool.conv(noteWeights[x]);
         //   f   | r  g  b
         // ----------------
         //  0    | 0  0  0
@@ -114,7 +143,6 @@ export class SpectrogramTool implements Tool {
         newImageData.data[i + 1] = (f - 0.25) * 255 * 2;
         newImageData.data[i + 2] = (f - 0.5) * 255 * 2;
         newImageData.data[i + 3] = 255;
-        ++j;
       }
 
       // const peakOffset =
@@ -125,7 +153,7 @@ export class SpectrogramTool implements Tool {
       // newImageData.data[i + 2] = 128;
       this.peak = 0;
 
-      ctx.putImageData(newImageData, 0, 0);
+      ctx.putImageData(newImageData, 0, this.spectrogramCanvas.height - 1);
     }
   }
 
