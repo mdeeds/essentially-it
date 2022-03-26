@@ -56,16 +56,16 @@ export class Hand {
 
   private handleSelectStart(ev: any) {
     this.tactile.start(this.ray, this.side == 'left' ? 0 : 1);
-    this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
-      this.red);
+    // this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+    //   this.red);
     this.penDown = true;
   }
 
   private handleSelectEnd(ev: any) {
     this.tactile.end(this.side == 'left' ? 0 : 1);
     this.penDown = false;
-    this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
-      this.blue);
+    // this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+    //   this.blue);
   }
 
   private v = new THREE.Vector3();
@@ -80,8 +80,8 @@ export class Hand {
     this.v.sub(this.p);
     this.ray.set(this.p, this.v);
     if (this.penDown) {
-      this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
-        this.pink);
+      // this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+      //   this.pink);
       this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
     }
   }

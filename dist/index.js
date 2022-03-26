@@ -946,13 +946,15 @@ class Hand {
     pink = new THREE.Color('#4a8');
     handleSelectStart(ev) {
         this.tactile.start(this.ray, this.side == 'left' ? 0 : 1);
-        this.particleSystem.AddParticle(this.ray.origin, this.ray.direction, this.red);
+        // this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+        //   this.red);
         this.penDown = true;
     }
     handleSelectEnd(ev) {
         this.tactile.end(this.side == 'left' ? 0 : 1);
         this.penDown = false;
-        this.particleSystem.AddParticle(this.ray.origin, this.ray.direction, this.blue);
+        // this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+        //   this.blue);
     }
     v = new THREE.Vector3();
     p = new THREE.Vector3();
@@ -966,7 +968,8 @@ class Hand {
         this.v.sub(this.p);
         this.ray.set(this.p, this.v);
         if (this.penDown) {
-            this.particleSystem.AddParticle(this.ray.origin, this.ray.direction, this.pink);
+            // this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+            //   this.pink);
             this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
         }
     }
@@ -1295,14 +1298,14 @@ const GLTFLoader_js_1 = __webpack_require__(687);
 const floorMaterial_1 = __webpack_require__(41);
 const fogMaterial_1 = __webpack_require__(927);
 const paintCylinder_1 = __webpack_require__(183);
-const particleSystem_1 = __webpack_require__(564);
+// import { ParticleSystem } from "./particleSystem";
 const projectionCylinder_1 = __webpack_require__(233);
 const tactileInterface_1 = __webpack_require__(791);
 class Laboratory {
     audioCtx;
     scene;
     whiteBoard;
-    particles;
+    // private particles: ParticleSystem;
     floorMaterial;
     doneCallback;
     constructor(audioCtx, scene, tactileProvider) {
@@ -1319,11 +1322,11 @@ class Laboratory {
         groundPlane.onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
             const deltaS = clock.getDelta();
             this.floorMaterial.setT(0.05 * clock.elapsedTime);
-            this.addRandomDot(deltaS);
+            // this.addRandomDot(deltaS);
         };
         this.scene.add(groundPlane);
-        this.particles = new particleSystem_1.ParticleSystem();
-        this.scene.add(this.particles);
+        // this.particles = new ParticleSystem();
+        // this.scene.add(this.particles);
         this.whiteBoard = new paintCylinder_1.PaintCylinder();
         this.whiteBoard.position.set(0, 1.7, 0);
         this.scene.add(this.whiteBoard);
@@ -1347,24 +1350,27 @@ class Laboratory {
             this.doneCallback = resolve;
         });
     }
-    slowColor = new THREE.Color('#0ff');
-    mediumColor = new THREE.Color('#00f');
-    fastColor = new THREE.Color('#f0f');
-    addRandomDot(deltaS) {
-        const r = 1.5 * Math.sqrt(Math.random());
-        const t = Math.PI * 2 * Math.random();
-        const y = Math.random() * 0.1;
-        const p = new THREE.Vector3(r * Math.cos(t), y, r * Math.sin(t));
-        const v = new THREE.Vector3(0.1 * (Math.random() - 0.5), 0.05 * (Math.random() + 0.01), 0.1 * (Math.random() - 0.5));
-        let color = this.fastColor;
-        if (deltaS > 1 / 50) {
-            color = this.slowColor;
-        }
-        else if (deltaS > 1 / 85) {
-            color = this.mediumColor;
-        }
-        this.particles.AddParticle(p, v, color);
-    }
+    // private slowColor = new THREE.Color('#0ff');
+    // private mediumColor = new THREE.Color('#00f');
+    // private fastColor = new THREE.Color('#f0f');
+    // private addRandomDot(deltaS: number) {
+    //   const r = 1.5 * Math.sqrt(Math.random());
+    //   const t = Math.PI * 2 * Math.random();
+    //   const y = Math.random() * 0.1;
+    //   const p = new THREE.Vector3(
+    //     r * Math.cos(t), y, r * Math.sin(t));
+    //   const v = new THREE.Vector3(
+    //     0.1 * (Math.random() - 0.5),
+    //     0.05 * (Math.random() + 0.01),
+    //     0.1 * (Math.random() - 0.5));
+    //   let color = this.fastColor;
+    //   if (deltaS > 1 / 50) {
+    //     color = this.slowColor;
+    //   } else if (deltaS > 1 / 85) {
+    //     color = this.mediumColor;
+    //   }
+    //   this.particles.AddParticle(p, v, color);
+    // }
     loadPlatform() {
         const loader = new GLTFLoader_js_1.GLTFLoader();
         loader.load('model/platform.gltf', (gltf) => {
