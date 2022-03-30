@@ -7,12 +7,13 @@ export class StarField extends THREE.Object3D {
     const stars = this.makeParticles();
     this.add(stars);
     const clock = new THREE.Clock();
+    const starRadius = S.float('sr');
     stars.onBeforeRender = (
       renderer: THREE.WebGLRenderer, scene: THREE.Scene,
       camera: THREE.Camera, geometry: THREE.BufferGeometry,
       material: THREE.Material, group: THREE.Group) => {
-      stars.position.z = 3000 * Math.sin(clock.getElapsedTime() / 30);
-      stars.position.x = 3000 * Math.cos(clock.getElapsedTime() / 30);
+      stars.position.z = 0.1 * starRadius * Math.sin(clock.getElapsedTime() / 30);
+      stars.position.x = 0.1 * starRadius * Math.cos(clock.getElapsedTime() / 30);
     };
 
     for (let theta = -Math.PI; theta < Math.PI; theta += 0.02) {
@@ -79,8 +80,8 @@ export class StarField extends THREE.Object3D {
       varying vec4 vColor;
       void main() {
         vec2 coords = gl_PointCoord;
-        // gl_FragColor = texture2D(diffuseTexture, coords) * vColor;
-        float intensity = 2.0 * (0.5 - length(gl_PointCoord - 0.5));
+        float intensity = 2.0 * (0.5 - length(gl_PointCoord - 0.5))
+        * ${S.float('si').toFixed(5)};
         gl_FragColor = vColor * intensity;
       }`,
       blending: THREE.AdditiveBlending,

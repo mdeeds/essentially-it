@@ -29,9 +29,10 @@ export class S {
     S.setDefault('lm', 3.0, 'Multiplier for lowest note.');
     S.setDefault('hm', 1.0, 'Multiplier for highest note.')
     S.setDefault('sh', 0, 'Start at home screen if set.');
-    S.setDefault('ns', 10000, 'Number of stars in home starfield.');
-    S.setDefault('sr', 1000, 'Radius of the starfield.');
-    S.setDefault('mr', 0.1, 'Minimum star radius.');
+    S.setDefault('ns', 100000, 'Number of stars in home starfield.');
+    S.setDefault('sr', 10000, 'Radius of the starfield.');
+    S.setDefault('mr', 2, 'Minimum star radius.');
+    S.setDefault('si', 0.9, 'Star intensity');
   }
 
   public static float(name: string): number {
