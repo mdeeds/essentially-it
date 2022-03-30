@@ -28,21 +28,10 @@ export class SpeechTool implements Tool {
             event.results[i][0].transcript);
         }
       };
-    for (const type of ['start', 'error', 'end', 'audiostart', 'audioend', 'nomatch']) {
-      this.recognition[`on${type}`] =
-        (event: any) => {
-          this.logType(event as Event);
-        };
-    }
     this.recognition.start();
   }
 
-  private logType(event: Event) {
-    console.log(`Event: ${event.type}`);
-  }
-
   start(xy: THREE.Vector2, ray: THREE.Ray): void {
-    console.log('Start method');
     try {
       this.recognition.stop();
       this.recognition.start();
@@ -50,7 +39,6 @@ export class SpeechTool implements Tool {
   }
 
   move(xy: THREE.Vector2, ray: THREE.Ray): void {
-    console.log('Move method');
     if (this.text) {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.ctx.fillStyle = this.isFinal ? 'black' : 'turquoise';

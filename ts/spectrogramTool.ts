@@ -171,18 +171,7 @@ export class SpectrogramTool implements Tool {
     return new THREE.Mesh(planeGeometry, this.getMaterial());
   }
 
-  start(xy: THREE.Vector2, ray: THREE.Ray): void {
-    if (!this.worldObject) {
-      this.worldObject = this.makeObject();
-      this.scene.add(this.worldObject);
-      this.worldObject.onBeforeRender = () => { this.needsUpdate = true; }
-    }
-    this.worldObject.position.copy(ray.direction);
-    this.worldObject.position.multiplyScalar(1);
-    this.worldObject.position.add(ray.origin);
-  }
-
-  move(xy: THREE.Vector2, ray: THREE.Ray): void {
+  private updatePosition(ray: THREE.Ray) {
     if (!this.worldObject) {
       this.worldObject = this.makeObject();
       this.scene.add(this.worldObject);
@@ -195,6 +184,15 @@ export class SpectrogramTool implements Tool {
       ray.direction.x, ray.direction.z);
     this.worldObject.rotation.y = theta + Math.PI;
     this.worldObject.updateMatrix();
+
+  }
+
+  start(xy: THREE.Vector2, ray: THREE.Ray): void {
+    this.updatePosition(ray);
+  }
+
+  move(xy: THREE.Vector2, ray: THREE.Ray): void {
+    this.updatePosition(ray);
   }
 
   end(): boolean {

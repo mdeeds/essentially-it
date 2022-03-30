@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { Matrix4 } from "three";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { InstancedObject } from "./instancedObject";
 
@@ -33,26 +34,30 @@ export class Panel extends THREE.Object3D {
   }
 
   private async buildKnobs() {
+    console.log('Build Knobs');
     const knobModel = await this.loadKnob();
     const instanced = new InstancedObject(knobModel, this.knobs.length);
     this.add(instanced);
-    const left = -(this.knobsWide * 0.5 * Panel.kKnobSpacingM);
-    const top = -(this.knobsHigh * 0.5 * Panel.kKnobSpacingM);
+    const left = -((this.knobsWide - 1) * 0.5 * Panel.kKnobSpacingM);
+    const top = -((this.knobsHigh - 1) * 0.5 * Panel.kKnobSpacingM);
     for (let i = 0; i < this.knobs.length; ++i) {
       const x = Math.floor(i / this.knobsHigh);
       const y = (i % this.knobsHigh);
-      const m = new THREE.Matrix4();
-      m.makeTranslation(
+      const translation = new Matrix4();
+      translation.makeTranslation(
         left + x * Panel.kKnobSpacingM,
         top + y * Panel.kKnobSpacingM, 0.05);
-      instanced.setMatrixAt(i, m);
+      const rotation = new THREE.Matrix4();
+      rotation.makeRotationX(Math.PI / 2);
+      rotation.premultiply(translation);
+      instanced.setMatrixAt(i, rotation);
     }
   }
 
   private async loadKnob(): Promise<THREE.Object3D> {
     const loader = new GLTFLoader();
     return new Promise((resolve) => {
-      loader.load('model/platform.gltf', (gltf) => {
+      loader.load('model/knob.gltf', (gltf) => {
         resolve(gltf.scene);
       });
     });
