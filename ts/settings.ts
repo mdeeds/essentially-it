@@ -28,6 +28,10 @@ export class S {
     S.setDefault('ep', 3, 'Episode number');
     S.setDefault('lm', 3.0, 'Multiplier for lowest note.');
     S.setDefault('hm', 1.0, 'Multiplier for highest note.')
+    S.setDefault('sh', 0, 'Start at home screen if set.');
+    S.setDefault('ns', 10000, 'Number of stars in home starfield.');
+    S.setDefault('sr', 1000, 'Radius of the starfield.');
+    S.setDefault('mr', 0.1, 'Minimum star radius.');
   }
 
   public static float(name: string): number {

@@ -2,8 +2,10 @@ import * as THREE from "three";
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 
 import { Hand } from "./hand";
+import { StarField } from "./home/starField";
 import { Laboratory } from "./laboratory";
 import { ParticleSystem } from "./particleSystem";
+import { S } from "./settings";
 import { TactileProvider } from "./tactileProvider";
 
 export class Game {
@@ -21,7 +23,7 @@ export class Game {
     this.renderer = new THREE.WebGLRenderer();
     this.camera = new THREE.PerspectiveCamera(
       /*fov=*/75, /*aspec=*/1024 / 512, /*near=*/0.1,
-      /*far=*/100);
+      /*far=*/200);
     this.camera.position.set(0, 1.7, 0);
     this.camera.lookAt(0, 1.7, -2);
     this.scene.add(this.camera);
@@ -41,16 +43,23 @@ export class Game {
         this.tactileProvider, particleSystem))
     this.setUpKeyHandler();
     this.setUpTouchHandlers();
-    this.run();
+    this.run(S.float('sh') ? 'home' : 'lab');
   }
 
-  private async run() {
-    const labObject = new THREE.Group();
-    const laboratory = new Laboratory(this.audioCtx, labObject, this.tactileProvider);
-    this.scene.add(labObject);
-    // TODO: This should go into a loop somehow.
-    await laboratory.run();
-    this.scene.remove(labObject);
+  private async run(location: string) {
+    switch (location) {
+      case 'lab':
+        const labObject = new THREE.Group();
+        const laboratory = new Laboratory(this.audioCtx, labObject, this.tactileProvider);
+        this.scene.add(labObject);
+        await laboratory.run();
+        this.scene.remove(labObject);
+        setTimeout(() => { this.run('home') });
+        break;
+      case 'home': default:
+        this.scene.add(new StarField());
+        break;
+    }
   }
 
   private getRay(ev: Touch | PointerEvent): THREE.Ray {

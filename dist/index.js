@@ -358,8 +358,10 @@ exports.Game = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const VRButton_js_1 = __webpack_require__(652);
 const hand_1 = __webpack_require__(673);
+const starField_1 = __webpack_require__(60);
 const laboratory_1 = __webpack_require__(855);
 const particleSystem_1 = __webpack_require__(564);
+const settings_1 = __webpack_require__(451);
 const tactileProvider_1 = __webpack_require__(873);
 class Game {
     audioCtx;
@@ -375,7 +377,7 @@ class Game {
         this.renderer = new THREE.WebGLRenderer();
         this.camera = new THREE.PerspectiveCamera(
         /*fov=*/ 75, /*aspec=*/ 1024 / 512, /*near=*/ 0.1, 
-        /*far=*/ 100);
+        /*far=*/ 200);
         this.camera.position.set(0, 1.7, 0);
         this.camera.lookAt(0, 1.7, -2);
         this.scene.add(this.camera);
@@ -387,15 +389,23 @@ class Game {
         this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.tactileProvider, particleSystem));
         this.setUpKeyHandler();
         this.setUpTouchHandlers();
-        this.run();
+        this.run(settings_1.S.float('sh') ? 'home' : 'lab');
     }
-    async run() {
-        const labObject = new THREE.Group();
-        const laboratory = new laboratory_1.Laboratory(this.audioCtx, labObject, this.tactileProvider);
-        this.scene.add(labObject);
-        // TODO: This should go into a loop somehow.
-        await laboratory.run();
-        this.scene.remove(labObject);
+    async run(location) {
+        switch (location) {
+            case 'lab':
+                const labObject = new THREE.Group();
+                const laboratory = new laboratory_1.Laboratory(this.audioCtx, labObject, this.tactileProvider);
+                this.scene.add(labObject);
+                await laboratory.run();
+                this.scene.remove(labObject);
+                setTimeout(() => { this.run('home'); });
+                break;
+            case 'home':
+            default:
+                this.scene.add(new starField_1.StarField());
+                break;
+        }
     }
     getRay(ev) {
         const x = (ev.clientX / 1024) * 2 - 1;
@@ -1238,6 +1248,118 @@ class HighlighterTool {
 }
 exports.HighlighterTool = HighlighterTool;
 //# sourceMappingURL=highlighterTool.js.map
+
+/***/ }),
+
+/***/ 60:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.StarField = void 0;
+const THREE = __importStar(__webpack_require__(578));
+const settings_1 = __webpack_require__(451);
+class StarField extends THREE.Object3D {
+    constructor() {
+        super();
+        const stars = this.makeParticles();
+        this.add(stars);
+        for (let theta = -Math.PI; theta < Math.PI; theta += 0.02) {
+            const x = Math.cos(theta) * 5;
+            const z = Math.sin(theta) * 5;
+            const y = 3 * (Math.random() - 0.5);
+            const sphere = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.5, 3), new THREE.MeshStandardMaterial({ color: '#09f' }));
+            sphere.position.set(x, y, z);
+            this.add(sphere);
+        }
+        const l1 = new THREE.DirectionalLight('#ff9', 0.8);
+        l1.position.set(0.5, 3, -0.5);
+        this.add(l1);
+        const l2 = new THREE.DirectionalLight('#9ff', 0.8);
+        l2.position.set(-0.5, 3, 0.5);
+        this.add(l2);
+    }
+    setAttributes(geometry) {
+        const positions = [];
+        const sizes = [];
+        for (let i = 0; i < settings_1.S.float('ns'); ++i) {
+            const p = new THREE.Vector3((Math.random() - 0.5) * settings_1.S.float('sr'), Math.random() * settings_1.S.float('sr'), (Math.random() - 0.5) * settings_1.S.float('sr'));
+            const v = new THREE.Vector3(0, 0, 0);
+            positions.push(p.x, p.y, p.z);
+            sizes.push(1.0);
+        }
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+        geometry.attributes['position'].needsUpdate = true;
+        geometry.attributes['size'].needsUpdate = true;
+    }
+    makeParticles() {
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                diffuseTexture: {
+                    value: new THREE.TextureLoader().load('./img/dot.png')
+                },
+            },
+            vertexShader: `
+        // uniform float pointMultiplier;
+        attribute float size;
+        varying vec4 vColor;
+        void main() {
+          vec3 pos = position;
+          if (length(pos) > 200.0) {
+            pos = pos * (200.0 / length(position));
+          }
+          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
+          // gl_PointSize = size * pointMultiplier / gl_Position.w;
+          // gl_PointSize appears to be measured in screen pixels.
+          gl_PointSize = max(800.0 * size / gl_Position.w, ${settings_1.S.float('mr').toFixed(3)});
+          
+          vColor = vec4(1.0, 1.0, 1.0, 1.0);
+        }`,
+            fragmentShader: `
+      uniform sampler2D diffuseTexture;
+      varying vec4 vColor;
+      void main() {
+        vec2 coords = gl_PointCoord;
+        // gl_FragColor = texture2D(diffuseTexture, coords) * vColor;
+        float intensity = 2.0 * (0.5 - length(gl_PointCoord - 0.5));
+        gl_FragColor = vColor * intensity;
+      }`,
+            blending: THREE.AdditiveBlending,
+            depthTest: false,
+            depthWrite: false,
+            transparent: false,
+            vertexColors: true,
+        });
+        const geometry = new THREE.BufferGeometry();
+        this.setAttributes(geometry);
+        const points = new THREE.Points(geometry, material);
+        points.frustumCulled = false;
+        return points;
+    }
+}
+exports.StarField = StarField;
+//# sourceMappingURL=starField.js.map
 
 /***/ }),
 
@@ -2166,6 +2288,10 @@ class S {
         S.setDefault('ep', 3, 'Episode number');
         S.setDefault('lm', 3.0, 'Multiplier for lowest note.');
         S.setDefault('hm', 1.0, 'Multiplier for highest note.');
+        S.setDefault('sh', 0, 'Start at home screen if set.');
+        S.setDefault('ns', 10000, 'Number of stars in home starfield.');
+        S.setDefault('sr', 1000, 'Radius of the starfield.');
+        S.setDefault('mr', 0.1, 'Minimum star radius.');
     }
     static float(name) {
         if (S.cache.has(name)) {
