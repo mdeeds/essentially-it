@@ -6,6 +6,14 @@ export class StarField extends THREE.Object3D {
     super();
     const stars = this.makeParticles();
     this.add(stars);
+    const clock = new THREE.Clock();
+    stars.onBeforeRender = (
+      renderer: THREE.WebGLRenderer, scene: THREE.Scene,
+      camera: THREE.Camera, geometry: THREE.BufferGeometry,
+      material: THREE.Material, group: THREE.Group) => {
+      stars.position.z = 3000 * Math.sin(clock.getElapsedTime() / 30);
+      stars.position.x = 3000 * Math.cos(clock.getElapsedTime() / 30);
+    };
 
     for (let theta = -Math.PI; theta < Math.PI; theta += 0.02) {
       const x = Math.cos(theta) * 5;
@@ -32,9 +40,8 @@ export class StarField extends THREE.Object3D {
     for (let i = 0; i < S.float('ns'); ++i) {
       const p = new THREE.Vector3(
         (Math.random() - 0.5) * S.float('sr'),
-        Math.random() * S.float('sr'),
+        (Math.random() - 0.5) * S.float('sr'),
         (Math.random() - 0.5) * S.float('sr'));
-      const v = new THREE.Vector3(0, 0, 0);
       positions.push(p.x, p.y, p.z);
       sizes.push(1.0);
     }
@@ -49,26 +56,23 @@ export class StarField extends THREE.Object3D {
   private makeParticles(): THREE.Object3D {
     const material = new THREE.ShaderMaterial({
       uniforms: {
-        diffuseTexture: {
-          value: new THREE.TextureLoader().load('./img/dot.png')
-        },
       },
       vertexShader: `
         // uniform float pointMultiplier;
         attribute float size;
         varying vec4 vColor;
         void main() {
-          vec3 pos = position;
-          if (length(pos) > 200.0) {
-            pos = pos * (200.0 / length(position));
+          vColor = vec4(1.0, 1.0, 1.0, 1.0);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          float distance = length(mvPosition.xyz);
+          if (distance > 1000.0) {
+            mvPosition.xyz = mvPosition.xyz * (1000.0 / distance);
           }
-          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
           gl_Position = projectionMatrix * mvPosition;
           // gl_PointSize = size * pointMultiplier / gl_Position.w;
           // gl_PointSize appears to be measured in screen pixels.
-          gl_PointSize = max(800.0 * size / gl_Position.w, ${S.float('mr').toFixed(3)});
+          gl_PointSize = max(800.0 * size / distance, ${S.float('mr').toFixed(3)});
           
-          vColor = vec4(1.0, 1.0, 1.0, 1.0);
         }`,
       fragmentShader: `
       uniform sampler2D diffuseTexture;

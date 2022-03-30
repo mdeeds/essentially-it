@@ -23,7 +23,7 @@ export class Game {
     this.renderer = new THREE.WebGLRenderer();
     this.camera = new THREE.PerspectiveCamera(
       /*fov=*/75, /*aspec=*/1024 / 512, /*near=*/0.1,
-      /*far=*/200);
+      /*far=*/1100);
     this.camera.position.set(0, 1.7, 0);
     this.camera.lookAt(0, 1.7, -2);
     this.scene.add(this.camera);
