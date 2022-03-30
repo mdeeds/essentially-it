@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { AttenuatedParam } from "./params";
 
 // X should range from 0 to 1.
 export type ValueSetter = (x: number) => void;
@@ -11,6 +12,12 @@ export class KnobTarget {
   public static fromAudioParam(param: AudioParam, audioCtx: AudioContext, lagS: number) {
     return new KnobTarget((x) => {
       param.linearRampToValueAtTime(x, audioCtx.currentTime + lagS);
+    })
+  }
+
+  public static fromAttenuator(att: AttenuatedParam) {
+    return new KnobTarget((x) => {
+      att.setAttenuation(x);
     })
   }
 
