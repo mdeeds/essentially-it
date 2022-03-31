@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { InstancedObject } from "./instancedObject";
 import { AttenuatedParam } from "./params";
 
 // X should range from 0 to 1.
@@ -29,6 +30,25 @@ export class KnobTarget {
     });
   }
 
+  public static fromInstancedObject(object: InstancedObject,
+    i: number) {
+    return new KnobTarget((x) => {
+      const hour = 10 * (x - 0.5);  // 0 = up
+      const theta = Math.PI * 2 / 12 * hour;
+      const m = new THREE.Matrix4();
+      object.getMatrixAt(i, m);
+      const n = new THREE.Matrix4();
+      n.copyPosition(m);
+      m.makeRotationZ(theta);
+      console.log(`Theta: ${theta}; x: ${x}`);
+      n.multiply(m);
+      const rotation = new THREE.Matrix4();
+      rotation.makeRotationX(Math.PI / 2);
+      n.multiply(rotation);
+      object.setMatrixAt(i, n);
+    });
+  }
+
   public static fromMatrixRotation(m: THREE.Matrix4) {
     return new KnobTarget((x) => {
       const hour = 10 * (x - 0.5);  // 0 = up
@@ -36,7 +56,7 @@ export class KnobTarget {
       const p = new THREE.Vector3(
         m.elements[12], m.elements[13], m.elements[14]);
       p.multiplyScalar(1 / m.elements[15]);
-      m.makeRotationZ(theta);
+      m.makeRotationY(theta);
       m.setPosition(p);
     });
   }

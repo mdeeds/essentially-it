@@ -3,7 +3,7 @@ import { Matrix4 } from "three";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { InstancedObject } from "./instancedObject";
 
-import { Knob } from "./knob";
+import { Knob, KnobTarget } from "./knob";
 
 export class Panel extends THREE.Object3D {
   private static kKnobSpacingM = 0.3;
@@ -15,7 +15,6 @@ export class Panel extends THREE.Object3D {
 
   private buildPanel() {
     this.knobsWide = Math.ceil(this.knobs.length / this.knobsHigh);
-
     const panelCanvas = document.createElement('canvas');
     const panelTexture = new THREE.CanvasTexture(panelCanvas);
     const panelMaterial = new THREE.MeshBasicMaterial({
@@ -51,6 +50,9 @@ export class Panel extends THREE.Object3D {
       rotation.makeRotationX(Math.PI / 2);
       rotation.premultiply(translation);
       instanced.setMatrixAt(i, rotation);
+
+      const knob = this.knobs[i];
+      knob.addTarget(KnobTarget.fromInstancedObject(instanced, i));
     }
   }
 
