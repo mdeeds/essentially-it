@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { Motion } from "./motion";
 import { PaintCylinder } from "./paintCylinder";
 import { ProjectionCylinder } from "./projectionCylinder";
 import { S } from "./settings";
@@ -14,10 +15,11 @@ export class TactileInterface implements TactileSink {
 
   constructor(private paint: PaintCylinder,
     private projection: ProjectionCylinder,
-    scene: THREE.Object3D, audioCtx: AudioContext) {
+    scene: THREE.Object3D, audioCtx: AudioContext,
+    motions: Motion[]) {
 
     this.toolBelt = new ToolBelt(paint.getTmpCanvas(),
-      paint.getImgCanvas(), scene, audioCtx);
+      paint.getImgCanvas(), scene, audioCtx, motions);
     this.paint.add(this.toolBelt);
 
     this.handTool.set(0, this.toolBelt.getTool(0));

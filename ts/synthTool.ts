@@ -2,6 +2,7 @@ import { timeStamp } from "console";
 import * as THREE from "three";
 import { Knob } from "./conduit/knob";
 import { Panel } from "./conduit/panel";
+import { Motion } from "./motion";
 
 import { Tool } from "./tool";
 
@@ -9,7 +10,7 @@ export class SynthTool implements Tool {
   private panelObject: THREE.Object3D;
   private iconObject: THREE.Object3D = null;
 
-  constructor(scene: THREE.Object3D) {
+  constructor(scene: THREE.Object3D, private motions: Motion[]) {
     const knobs: Knob[] = [];
     for (let i = 0; i < 4; ++i) {
       knobs.push(new Knob(0, 1, Math.random()));

@@ -5,6 +5,7 @@ import { EraseTool } from "./eraseTool";
 import { GraphitiTool } from "./graphitiTool";
 import { HighlighterTool } from "./highlighterTool";
 import { ImageTool } from "./imageTool";
+import { Motion } from "./motion";
 import { PenTool } from "./penTool";
 import { PlayTool } from "./playTool";
 import { S } from "./settings";
@@ -21,15 +22,16 @@ export class ToolBelt extends THREE.Group {
   constructor(tmpCanvas: HTMLCanvasElement,
     imgCanvas: HTMLCanvasElement,
     scene: THREE.Object3D,
-    audioCtx: AudioContext) {
+    audioCtx: AudioContext,
+    motions: Motion[]) {
     super();
-    this.addTools(tmpCanvas, imgCanvas, scene, audioCtx);
+    this.addTools(tmpCanvas, imgCanvas, scene, audioCtx, motions);
   }
 
   private async addTools(tmpCanvas: HTMLCanvasElement,
     imgCanvas: HTMLCanvasElement,
-    scene: THREE.Object3D,
-    audioCtx: AudioContext) {
+    scene: THREE.Object3D, audioCtx: AudioContext,
+    motions: Motion[]) {
     const ctx = tmpCanvas.getContext('2d');
     this.tools.push(new EraseTool(ctx));
     this.tools.push(new PenTool(ctx, 'black'));
@@ -68,7 +70,7 @@ export class ToolBelt extends THREE.Group {
         this.tools.push(new SawtoothToneTool(scene, audioCtx, mix));
         break;
       case 4:
-        this.tools.push(new SynthTool(scene));
+        this.tools.push(new SynthTool(scene, motions));
     }
     if (window['webkitSpeechRecognition']) {
       this.tools.push(new SpeechTool(imgCanvas));
@@ -89,7 +91,6 @@ export class ToolBelt extends THREE.Group {
       theta += thetaStep;
       this.add(o);
     }
-
   }
 
   getTool(index: number): Tool {

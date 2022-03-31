@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Object3D } from "three";
+import { Motion } from "./motion";
 import { ParticleSystem } from "./particleSystem";
 import { TactileProvider } from "./tactileProvider";
 
@@ -7,6 +8,7 @@ export type Side = 'left' | 'right';
 
 export class Hand {
   readonly gamepad: Gamepad;
+  readonly motion = new Motion;
   private grip: THREE.Group;
   private line: Object3D;
   private penDown: boolean;
@@ -16,6 +18,7 @@ export class Hand {
     private particleSystem: ParticleSystem) {
     const index = (side == 'left') ? 0 : 1;
     this.grip = renderer.xr.getControllerGrip(index);
+    this.grip.add(this.motion);
     // this.grip = new THREE.Group();
     this.grip.position.set((index - 0.5) * 0.1, 0.1, -0.1);
     console.log(`Grip name: ${this.grip.name}`);

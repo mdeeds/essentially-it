@@ -5,6 +5,7 @@ import { Button } from "./button";
 
 import { FloorMaterial } from "./floorMaterial";
 import { FogMaterial } from "./fogMaterial";
+import { Motion } from "./motion";
 import { PaintCylinder } from "./paintCylinder";
 // import { ParticleSystem } from "./particleSystem";
 import { ProjectionCylinder } from "./projectionCylinder";
@@ -21,7 +22,8 @@ export class Laboratory implements World {
 
   constructor(private audioCtx: AudioContext,
     private scene: THREE.Group,
-    private tactileProvider: TactileProvider) {
+    private tactileProvider: TactileProvider,
+    motions: Motion[]) {
     const fogSphere = new THREE.Mesh(
       new THREE.IcosahedronBufferGeometry(20, 3),
       new FogMaterial());
@@ -66,7 +68,7 @@ export class Laboratory implements World {
     const projection = new ProjectionCylinder(this.whiteBoard, 1.5);
 
     const tactile = new TactileInterface(
-      this.whiteBoard, projection, this.scene, audioCtx);
+      this.whiteBoard, projection, this.scene, audioCtx, motions);
     tactileProvider.addSink(tactile);
   }
 

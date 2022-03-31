@@ -50,7 +50,9 @@ export class Game {
     switch (location) {
       case 'lab':
         const labObject = new THREE.Group();
-        const laboratory = new Laboratory(this.audioCtx, labObject, this.tactileProvider);
+        const laboratory = new Laboratory(
+          this.audioCtx, labObject, this.tactileProvider,
+          [this.hands[0].motion, this.hands[1].motion]);
         this.scene.add(labObject);
         await laboratory.run();
         this.scene.remove(labObject);
