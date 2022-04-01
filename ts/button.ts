@@ -15,7 +15,6 @@ export class Button implements TactileSink {
   start(ray: THREE.Ray, id: number): void {
     this.model.getWorldPosition(this.p);
     this.p.sub(ray.origin);
-    console.log(`Distance: ${this.p.length()}`);
     if (!this.isPressed && this.p.length() < 0.1) {
       this.isPressed = true;
       this.callback();

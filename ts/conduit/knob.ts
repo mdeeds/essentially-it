@@ -69,6 +69,7 @@ export class KnobTarget {
 export class Knob {
   private targets: KnobTarget[] = [];
   constructor(
+    readonly name: string,
     readonly low: number, readonly high: number, private value: number) {
     this.value = Math.max(low, Math.min(high, value));
   }

@@ -4,10 +4,10 @@ import { AnyParam } from "./params";
 export type TransferFunction = (x: number) => number;
 
 export class ADSR {
-  readonly attackKnob: Knob = new Knob(0, 5, 0.05);
-  readonly decayKnob: Knob = new Knob(0, 5, 0.05);
-  readonly sustainKnob: Knob = new Knob(0, 5, 0.3);
-  readonly releaseKnob: Knob = new Knob(0, 5, 1.0);
+  readonly attackKnob: Knob = new Knob('A', 0, 5, 0.05);
+  readonly decayKnob: Knob = new Knob('D', 0, 5, 0.05);
+  readonly sustainKnob: Knob = new Knob('S', 0, 5, 0.3);
+  readonly releaseKnob: Knob = new Knob('R', 0, 5, 1.0);
 
   private attackS = 0.05;
   private decayS = 0.05;

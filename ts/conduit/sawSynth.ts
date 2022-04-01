@@ -3,12 +3,12 @@ import { Knob, KnobTarget } from "./knob";
 import { AttenuatedParam, MultiParam } from "./params";
 
 export class SawSynth {
-  readonly envPitch = new Knob(0.0, 1.0, 0.0);
-  readonly midiPitch = new Knob(0, 127, 43);
+  readonly envPitch = new Knob('Freq', 0.0, 1.0, 0.0);
+  readonly midiPitch = new Knob('MIDI', 0, 127, 43);
   public e2Attack: Knob;
   public e2Release: Knob;
-  readonly envFilter = new Knob(0.0, 1.0, 0.0);
-  readonly resonance = new Knob(0, 5, 0);
+  readonly envFilter = new Knob('Freq', 0.0, 1.0, 0.0);
+  readonly resonance = new Knob('Res', 0, 5, 0);
   public e1Attack: Knob;
   public e1Release: Knob;
 

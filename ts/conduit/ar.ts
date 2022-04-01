@@ -4,8 +4,8 @@ import { AnyParam } from "./params";
 export type TransferFunction = (x: number) => number;
 
 export class AR {
-  readonly attackKnob: Knob = new Knob(0, 5, 0.05);
-  readonly releaseKnob: Knob = new Knob(0, 5, 1.0);
+  readonly attackKnob: Knob = new Knob('A', 0, 5, 0.05);
+  readonly releaseKnob: Knob = new Knob('R', 0, 5, 1.0);
 
   private attackS = 0.05;
   private releaseS = 1;

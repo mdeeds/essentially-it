@@ -71,7 +71,6 @@ class Button {
     start(ray, id) {
         this.model.getWorldPosition(this.p);
         this.p.sub(ray.origin);
-        console.log(`Distance: ${this.p.length()}`);
         if (!this.isPressed && this.p.length() < 0.1) {
             this.isPressed = true;
             this.callback();
@@ -85,6 +84,347 @@ class Button {
 }
 exports.Button = Button;
 //# sourceMappingURL=button.js.map
+
+/***/ }),
+
+/***/ 425:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.InstancedObject = void 0;
+const THREE = __importStar(__webpack_require__(578));
+const three_1 = __webpack_require__(578);
+class InstancedObject extends THREE.Object3D {
+    maxInstanceCount;
+    meshes = [];
+    instanceCount = 0;
+    constructor(source, maxInstanceCount) {
+        super();
+        this.maxInstanceCount = maxInstanceCount;
+        this.buildInstancedMeshes(source);
+    }
+    buildInstancedMeshes(source) {
+        if (source instanceof THREE.Mesh) {
+            this.addMesh(source);
+        }
+        else {
+            for (const child of source.children) {
+                this.buildInstancedMeshes(child);
+            }
+        }
+    }
+    addMesh(mesh) {
+        console.log(`Mesh: ${mesh.name}`);
+        if (mesh.material instanceof three_1.MeshStandardMaterial) {
+            mesh.material.side = THREE.FrontSide;
+        }
+        const matrix = new THREE.Matrix4();
+        mesh.updateMatrix();
+        matrix.copy(mesh.matrix);
+        let o = mesh.parent;
+        while (o) {
+            console.log(o.name);
+            o.updateMatrix();
+            matrix.premultiply(o.matrix);
+            o = o.parent;
+        }
+        mesh.geometry.applyMatrix4(matrix);
+        const instanced = new THREE.InstancedMesh(mesh.geometry, mesh.material, this.maxInstanceCount);
+        instanced.receiveShadow = true;
+        instanced.castShadow = true;
+        this.meshes.push(instanced);
+        this.add(instanced);
+    }
+    addInstance(matrix) {
+        if (this.instanceCount >= this.maxInstanceCount) {
+            throw new Error("Too many instances!");
+        }
+        for (const m of this.meshes) {
+            m.setMatrixAt(this.instanceCount, matrix);
+            m.instanceMatrix.needsUpdate = true;
+        }
+        ++this.instanceCount;
+        return (this.instanceCount - 1);
+    }
+    setMatrixAt(i, matrix) {
+        for (const m of this.meshes) {
+            m.setMatrixAt(i, matrix);
+            m.instanceMatrix.needsUpdate = true;
+        }
+    }
+    getMatrixAt(i, out) {
+        this.meshes[0].getMatrixAt(i, out);
+    }
+    getInstanceCount() {
+        return this.instanceCount;
+    }
+}
+exports.InstancedObject = InstancedObject;
+//# sourceMappingURL=instancedObject.js.map
+
+/***/ }),
+
+/***/ 424:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Knob = exports.KnobTarget = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class KnobTarget {
+    set;
+    constructor(set) {
+        this.set = set;
+    }
+    static fromAudioParam(param, audioCtx, lagS) {
+        return new KnobTarget((x) => {
+            param.linearRampToValueAtTime(x, audioCtx.currentTime + lagS);
+        });
+    }
+    static fromAttenuator(att) {
+        return new KnobTarget((x) => {
+            att.setAttenuation(x);
+        });
+    }
+    static fromObjectRotation(object) {
+        return new KnobTarget((x) => {
+            const hour = 10 * (x - 0.5); // 0 = up
+            const theta = Math.PI * 2 / 12 * hour;
+            object.rotation.z = theta;
+        });
+    }
+    static fromInstancedObject(object, i) {
+        return new KnobTarget((x) => {
+            const hour = 10 * (x - 0.5); // 0 = up
+            const theta = Math.PI * 2 / 12 * hour;
+            const m = new THREE.Matrix4();
+            object.getMatrixAt(i, m);
+            const n = new THREE.Matrix4();
+            n.copyPosition(m);
+            m.makeRotationZ(theta);
+            console.log(`Theta: ${theta}; x: ${x}`);
+            n.multiply(m);
+            const rotation = new THREE.Matrix4();
+            rotation.makeRotationX(Math.PI / 2);
+            n.multiply(rotation);
+            object.setMatrixAt(i, n);
+        });
+    }
+    static fromMatrixRotation(m) {
+        return new KnobTarget((x) => {
+            const hour = 10 * (x - 0.5); // 0 = up
+            const theta = Math.PI * 2 / 12 * hour;
+            const p = new THREE.Vector3(m.elements[12], m.elements[13], m.elements[14]);
+            p.multiplyScalar(1 / m.elements[15]);
+            m.makeRotationY(theta);
+            m.setPosition(p);
+        });
+    }
+    setValue(value) {
+        this.set(value);
+    }
+}
+exports.KnobTarget = KnobTarget;
+class Knob {
+    name;
+    low;
+    high;
+    value;
+    targets = [];
+    constructor(name, low, high, value) {
+        this.name = name;
+        this.low = low;
+        this.high = high;
+        this.value = value;
+        this.value = Math.max(low, Math.min(high, value));
+    }
+    change(relativeDelta) {
+        const absoluteDelta = relativeDelta * (this.high - this.low);
+        this.value += absoluteDelta;
+        this.value = Math.max(this.low, Math.min(this.high, this.value));
+        for (const t of this.targets) {
+            t.setValue(this.value);
+        }
+    }
+    addTarget(target) {
+        this.targets.push(target);
+        target.setValue(this.value);
+    }
+}
+exports.Knob = Knob;
+//# sourceMappingURL=knob.js.map
+
+/***/ }),
+
+/***/ 705:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Panel = void 0;
+const THREE = __importStar(__webpack_require__(578));
+const three_1 = __webpack_require__(578);
+const GLTFLoader_js_1 = __webpack_require__(687);
+const instancedObject_1 = __webpack_require__(425);
+const knob_1 = __webpack_require__(424);
+class Panel extends THREE.Object3D {
+    knobs;
+    knobsHigh;
+    motions;
+    static kKnobSpacingM = 0.18;
+    knobsWide;
+    constructor(knobs, knobsHigh, motions) {
+        super();
+        this.knobs = knobs;
+        this.knobsHigh = knobsHigh;
+        this.motions = motions;
+        this.buildPanel();
+    }
+    buildPanel() {
+        this.knobsWide = Math.ceil(this.knobs.length / this.knobsHigh);
+        const panelCanvas = document.createElement('canvas');
+        panelCanvas.width = this.knobsWide * 256;
+        panelCanvas.height = this.knobsHigh * 256;
+        const panelTexture = new THREE.CanvasTexture(panelCanvas);
+        const panelMaterial = new THREE.MeshBasicMaterial({
+            map: panelTexture
+        });
+        this.renderPanel(panelCanvas, panelTexture);
+        const surface = new THREE.PlaneBufferGeometry(this.knobsWide * Panel.kKnobSpacingM, this.knobsHigh * Panel.kKnobSpacingM);
+        this.add(new THREE.Mesh(surface, panelMaterial));
+        this.buildKnobs();
+    }
+    getKnobUV(i) {
+        const u = (Math.floor(i / this.knobsHigh) + 0.5) / (this.knobsWide);
+        const v = (i % this.knobsHigh + 0.5) / (this.knobsHigh);
+        return new THREE.Vector2(u, v);
+    }
+    // Returns knob position in real coordinates
+    getKnobXY(i) {
+        const width = this.knobsWide * Panel.kKnobSpacingM;
+        const height = this.knobsHigh * Panel.kKnobSpacingM;
+        const uv = this.getKnobUV(i);
+        const x = (uv.x - 0.5) * width;
+        const y = (uv.y - 0.5) * height;
+        return new THREE.Vector2(x, y);
+    }
+    async loadFont() {
+        const fontLoader = new FontFace('Teko', 'url(Teko-Regular.ttf)');
+        return new Promise(async (resolve) => {
+            await fontLoader.load();
+            console.log('Teko loaded.');
+            resolve();
+        });
+    }
+    async renderPanel(panelCanvas, panelTexture) {
+        const ctx = panelCanvas.getContext('2d');
+        ctx.fillStyle = '#d14';
+        ctx.fillRect(0, 0, panelCanvas.width, panelCanvas.height);
+        console.log('Panel filled');
+        await this.loadFont();
+        ctx.font = '32px "Teko"';
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.2;
+        ctx.textAlign = 'center';
+        for (let i = 0; i < this.knobs.length; ++i) {
+            const knob = this.knobs[i];
+            const uv = this.getKnobUV(i);
+            const x = uv.x * panelCanvas.width;
+            const y = uv.y * panelCanvas.height
+                + panelCanvas.height / this.knobsHigh * 0.4;
+            ctx.strokeText(knob.name, x, y);
+            ctx.fillText(knob.name, x, y);
+        }
+        console.log('Panel styled');
+        panelTexture.needsUpdate = true;
+    }
+    async buildKnobs() {
+        console.log('Build Knobs');
+        const knobModel = await this.loadKnob();
+        const instanced = new instancedObject_1.InstancedObject(knobModel, this.knobs.length);
+        this.add(instanced);
+        for (let i = 0; i < this.knobs.length; ++i) {
+            const xy = this.getKnobXY(i);
+            const translation = new three_1.Matrix4();
+            translation.makeTranslation(xy.x, xy.y, 0);
+            const rotation = new THREE.Matrix4();
+            rotation.makeRotationX(Math.PI / 2);
+            rotation.premultiply(translation);
+            instanced.setMatrixAt(i, rotation);
+            const knob = this.knobs[i];
+            knob.addTarget(knob_1.KnobTarget.fromInstancedObject(instanced, i));
+        }
+    }
+    async loadKnob() {
+        const loader = new GLTFLoader_js_1.GLTFLoader();
+        return new Promise((resolve) => {
+            loader.load('model/knob.gltf', (gltf) => {
+                resolve(gltf.scene);
+            });
+        });
+    }
+}
+exports.Panel = Panel;
+//# sourceMappingURL=panel.js.map
 
 /***/ }),
 
@@ -395,7 +735,7 @@ class Game {
         switch (location) {
             case 'lab':
                 const labObject = new THREE.Group();
-                const laboratory = new laboratory_1.Laboratory(this.audioCtx, labObject, this.tactileProvider);
+                const laboratory = new laboratory_1.Laboratory(this.audioCtx, labObject, this.tactileProvider, [this.hands[0].motion, this.hands[1].motion]);
                 this.scene.add(labObject);
                 await laboratory.run();
                 this.scene.remove(labObject);
@@ -967,12 +1307,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Hand = void 0;
 const THREE = __importStar(__webpack_require__(578));
+const motion_1 = __webpack_require__(341);
 class Hand {
     side;
     scene;
     tactile;
     particleSystem;
     gamepad;
+    motion = new motion_1.Motion;
     grip;
     line;
     penDown;
@@ -983,6 +1325,7 @@ class Hand {
         this.particleSystem = particleSystem;
         const index = (side == 'left') ? 0 : 1;
         this.grip = renderer.xr.getControllerGrip(index);
+        this.grip.add(this.motion);
         // this.grip = new THREE.Group();
         this.grip.position.set((index - 0.5) * 0.1, 0.1, -0.1);
         console.log(`Grip name: ${this.grip.name}`);
@@ -1489,7 +1832,7 @@ class Laboratory {
     // private particles: ParticleSystem;
     floorMaterial;
     doneCallback;
-    constructor(audioCtx, scene, tactileProvider) {
+    constructor(audioCtx, scene, tactileProvider, motions) {
         this.audioCtx = audioCtx;
         this.scene = scene;
         this.tactileProvider = tactileProvider;
@@ -1524,7 +1867,7 @@ class Laboratory {
         }
         this.loadPlatform();
         const projection = new projectionCylinder_1.ProjectionCylinder(this.whiteBoard, 1.5);
-        const tactile = new tactileInterface_1.TactileInterface(this.whiteBoard, projection, this.scene, audioCtx);
+        const tactile = new tactileInterface_1.TactileInterface(this.whiteBoard, projection, this.scene, audioCtx, motions);
         tactileProvider.addSink(tactile);
     }
     run() {
@@ -1580,6 +1923,66 @@ class Laboratory {
 }
 exports.Laboratory = Laboratory;
 //# sourceMappingURL=laboratory.js.map
+
+/***/ }),
+
+/***/ 341:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Motion = void 0;
+const THREE = __importStar(__webpack_require__(578));
+class Motion extends THREE.Object3D {
+    prevX = new THREE.Vector3();
+    velocity = new THREE.Vector3();
+    p = new THREE.Vector3();
+    orientX = new THREE.Vector3();
+    orientY = new THREE.Vector3();
+    orientZ = new THREE.Vector3();
+    v = new THREE.Vector3();
+    constructor() {
+        super();
+        this.onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
+            this.updateMatrixWorld();
+            this.p.set(1, 0, 0);
+            this.p.applyMatrix4(this.matrixWorld);
+            this.orientX.copy(this.p);
+            this.p.set(0, 1, 0);
+            this.p.applyMatrix4(this.matrixWorld);
+            this.orientY.copy(this.p);
+            this.p.set(0, 0, 1);
+            this.p.applyMatrix4(this.matrixWorld);
+            this.orientZ.copy(this.p);
+            this.getWorldPosition(this.p);
+            this.v.copy(this.p);
+            this.v.sub(this.prevX);
+            this.velocity.lerp(this.v, 0.2);
+            this.prevX.copy(this.p);
+        };
+    }
+}
+exports.Motion = Motion;
+//# sourceMappingURL=motion.js.map
 
 /***/ }),
 
@@ -2282,11 +2685,11 @@ class S {
         container.appendChild(helpText);
     }
     static {
+        S.setDefault('ep', 4, 'Episode number');
         S.setDefault('mi', 6, 'Mandelbrot iterations.');
         S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
         S.setDefault('pi', 30, 'Pen initial thickness.');
         S.setDefault('pf', 15, 'Pen final thickness');
-        S.setDefault('ep', 3, 'Episode number');
         S.setDefault('lm', 3.0, 'Multiplier for lowest note.');
         S.setDefault('hm', 1.0, 'Multiplier for highest note.');
         S.setDefault('sh', 0, 'Start at home screen if set.');
@@ -2488,17 +2891,7 @@ class SpectrogramTool {
         let planeGeometry = new THREE.PlaneBufferGeometry(1, 1);
         return new THREE.Mesh(planeGeometry, this.getMaterial());
     }
-    start(xy, ray) {
-        if (!this.worldObject) {
-            this.worldObject = this.makeObject();
-            this.scene.add(this.worldObject);
-            this.worldObject.onBeforeRender = () => { this.needsUpdate = true; };
-        }
-        this.worldObject.position.copy(ray.direction);
-        this.worldObject.position.multiplyScalar(1);
-        this.worldObject.position.add(ray.origin);
-    }
-    move(xy, ray) {
+    updatePosition(ray) {
         if (!this.worldObject) {
             this.worldObject = this.makeObject();
             this.scene.add(this.worldObject);
@@ -2510,6 +2903,12 @@ class SpectrogramTool {
         const theta = Math.atan2(ray.direction.x, ray.direction.z);
         this.worldObject.rotation.y = theta + Math.PI;
         this.worldObject.updateMatrix();
+    }
+    start(xy, ray) {
+        this.updatePosition(ray);
+    }
+    move(xy, ray) {
+        this.updatePosition(ray);
     }
     end() {
         return false;
@@ -2590,19 +2989,9 @@ class SpeechTool {
                         event.results[i][0].transcript);
                 }
             };
-        for (const type of ['start', 'error', 'end', 'audiostart', 'audioend', 'nomatch']) {
-            this.recognition[`on${type}`] =
-                (event) => {
-                    this.logType(event);
-                };
-        }
         this.recognition.start();
     }
-    logType(event) {
-        console.log(`Event: ${event.type}`);
-    }
     start(xy, ray) {
-        console.log('Start method');
         try {
             this.recognition.stop();
             this.recognition.start();
@@ -2610,7 +2999,6 @@ class SpeechTool {
         catch (e) { }
     }
     move(xy, ray) {
-        console.log('Move method');
         if (this.text) {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.ctx.fillStyle = this.isFinal ? 'black' : 'turquoise';
@@ -2775,6 +3163,84 @@ exports.ShaderSphereTool2 = ShaderSphereTool2;
 
 /***/ }),
 
+/***/ 891:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SynthTool = void 0;
+const THREE = __importStar(__webpack_require__(578));
+const knob_1 = __webpack_require__(424);
+const panel_1 = __webpack_require__(705);
+class SynthTool {
+    motions;
+    panelObject;
+    iconObject = null;
+    constructor(scene, motions) {
+        this.motions = motions;
+        const knobs = [];
+        for (let i = 0; i < 4; ++i) {
+            knobs.push(new knob_1.Knob(`K${i}`, 0, 1, Math.random()));
+        }
+        this.panelObject = new panel_1.Panel(knobs, 2, motions);
+        // this.panelObject = new THREE.Mesh(
+        //   new THREE.OctahedronBufferGeometry(1, 4),
+        //   new THREE.MeshStandardMaterial({ color: '#9a3' }));
+        this.panelObject.visible = false;
+        scene.add(this.panelObject);
+        const cone = new THREE.Mesh(new THREE.ConeBufferGeometry(0.5, 1.0, 32, 1), new THREE.MeshStandardMaterial({ color: '#9a3' }));
+        cone.scale.set(0.1, 0.1, 0.1);
+        this.iconObject = cone;
+    }
+    p = new THREE.Vector3();
+    updatePosition(ray) {
+        this.p.copy(ray.direction);
+        this.p.setLength(2.0);
+        this.p.add(ray.origin);
+        this.panelObject.position.copy(this.p);
+        const theta = Math.atan2(ray.direction.x, ray.direction.z);
+        this.panelObject.rotation.y = theta + Math.PI;
+        this.panelObject.updateMatrix();
+    }
+    start(xy, ray) {
+        this.updatePosition(ray);
+        this.panelObject.visible = true;
+    }
+    move(xy, ray) {
+        this.updatePosition(ray);
+    }
+    // Returns true if the work should be committed.
+    end() {
+        return false;
+    }
+    getIconObject() {
+        return this.iconObject;
+    }
+}
+exports.SynthTool = SynthTool;
+//# sourceMappingURL=synthTool.js.map
+
+/***/ }),
+
 /***/ 791:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
@@ -2789,10 +3255,10 @@ class TactileInterface {
     activeHands = new Map();
     handTool = new Map();
     toolBelt = null;
-    constructor(paint, projection, scene, audioCtx) {
+    constructor(paint, projection, scene, audioCtx, motions) {
         this.paint = paint;
         this.projection = projection;
-        this.toolBelt = new toolBelt_1.ToolBelt(paint.getTmpCanvas(), paint.getImgCanvas(), scene, audioCtx);
+        this.toolBelt = new toolBelt_1.ToolBelt(paint.getTmpCanvas(), paint.getImgCanvas(), scene, audioCtx, motions);
         this.paint.add(this.toolBelt);
         this.handTool.set(0, this.toolBelt.getTool(0));
         this.handTool.set(1, this.toolBelt.getTool(1));
@@ -3197,14 +3663,15 @@ const settings_1 = __webpack_require__(451);
 const spectrogramTool_1 = __webpack_require__(268);
 const speechTool_1 = __webpack_require__(297);
 const sphereTool_1 = __webpack_require__(11);
+const synthTool_1 = __webpack_require__(891);
 const toneTool_1 = __webpack_require__(88);
 class ToolBelt extends THREE.Group {
     tools = [];
-    constructor(tmpCanvas, imgCanvas, scene, audioCtx) {
+    constructor(tmpCanvas, imgCanvas, scene, audioCtx, motions) {
         super();
-        this.addTools(tmpCanvas, imgCanvas, scene, audioCtx);
+        this.addTools(tmpCanvas, imgCanvas, scene, audioCtx, motions);
     }
-    async addTools(tmpCanvas, imgCanvas, scene, audioCtx) {
+    async addTools(tmpCanvas, imgCanvas, scene, audioCtx, motions) {
         const ctx = tmpCanvas.getContext('2d');
         this.tools.push(new eraseTool_1.EraseTool(ctx));
         this.tools.push(new penTool_1.PenTool(ctx, 'black'));
@@ -3236,6 +3703,8 @@ class ToolBelt extends THREE.Group {
                 this.tools.push(new toneTool_1.TriangleToneTool(scene, audioCtx, mix));
                 this.tools.push(new toneTool_1.SawtoothToneTool(scene, audioCtx, mix));
                 break;
+            case 4:
+                this.tools.push(new synthTool_1.SynthTool(scene, motions));
         }
         if (window['webkitSpeechRecognition']) {
             this.tools.push(new speechTool_1.SpeechTool(imgCanvas));

@@ -13,9 +13,9 @@ export class SynthTool implements Tool {
   constructor(scene: THREE.Object3D, private motions: Motion[]) {
     const knobs: Knob[] = [];
     for (let i = 0; i < 4; ++i) {
-      knobs.push(new Knob(0, 1, Math.random()));
+      knobs.push(new Knob(`K${i}`, 0, 1, Math.random()));
     }
-    this.panelObject = new Panel(knobs, 2);
+    this.panelObject = new Panel(knobs, 2, motions);
     // this.panelObject = new THREE.Mesh(
     //   new THREE.OctahedronBufferGeometry(1, 4),
     //   new THREE.MeshStandardMaterial({ color: '#9a3' }));
