@@ -14,21 +14,21 @@ import { TactileProvider } from "./tactileProvider";
 
 import { World } from "./world";
 
-export class Laboratory implements World {
+export class Laboratory extends THREE.Object3D implements World {
   private whiteBoard: PaintCylinder;
   // private particles: ParticleSystem;
   private floorMaterial: FloorMaterial;
-  private doneCallback: () => void;
+  private doneCallback: (next: string) => void;
 
   constructor(private audioCtx: AudioContext,
-    private scene: THREE.Group,
     private tactileProvider: TactileProvider,
     motions: Motion[]) {
+    super();
     const fogSphere = new THREE.Mesh(
       new THREE.IcosahedronBufferGeometry(20, 3),
       new FogMaterial());
     fogSphere.position.set(0, -0.4, 0);
-    this.scene.add(fogSphere);
+    this.add(fogSphere);
 
     this.floorMaterial = new FloorMaterial();
     const groundPlane = new THREE.Mesh(
@@ -47,33 +47,33 @@ export class Laboratory implements World {
       // this.addRandomDot(deltaS);
     }
 
-    this.scene.add(groundPlane);
+    this.add(groundPlane);
     // this.particles = new ParticleSystem();
     // this.scene.add(this.particles);
     this.whiteBoard = new PaintCylinder();
     this.whiteBoard.position.set(0, 1.7, 0);
-    this.scene.add(this.whiteBoard);
+    this.add(this.whiteBoard);
     {
       const light1 = new THREE.DirectionalLight('white', 0.8);
       light1.position.set(0, 5, 0);
-      this.scene.add(light1);
+      this.add(light1);
       // const light2 = new THREE.DirectionalLight('white', 0.1);
       // light2.position.set(0, -5, 0);
       // this.scene.add(light2);
       const light3 = new THREE.AmbientLight('white', 0.2);
-      this.scene.add(light3);
+      this.add(light3);
     }
 
     this.loadPlatform();
     const projection = new ProjectionCylinder(this.whiteBoard, 1.5);
 
     const tactile = new TactileInterface(
-      this.whiteBoard, projection, this.scene, audioCtx, motions);
+      this.whiteBoard, projection, this, audioCtx, motions);
     tactileProvider.addSink(tactile);
   }
 
-  public run(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
+  public run(): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
       this.doneCallback = resolve;
     });
   }
@@ -119,12 +119,13 @@ export class Laboratory implements World {
   private loadPlatform() {
     const loader = new GLTFLoader();
     loader.load('model/platform.gltf', (gltf) => {
-      this.scene.add(gltf.scene);
+      this.add(gltf.scene);
       const buttonObject = this.getNamedObject('Power_Button', gltf.scene);
       if (buttonObject === null) {
         console.log('not found.');
       }
-      new Button(buttonObject, this.tactileProvider, this.doneCallback);
+      new Button(buttonObject, this.tactileProvider,
+        () => { this.doneCallback(null) });
     });
   }
 }

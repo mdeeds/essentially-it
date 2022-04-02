@@ -2,11 +2,12 @@ import * as THREE from "three";
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 
 import { Hand } from "./hand";
-import { StarField } from "./home/starField";
+import { Home } from "./home/home";
 import { Laboratory } from "./laboratory";
 import { ParticleSystem } from "./particleSystem";
 import { S } from "./settings";
 import { TactileProvider } from "./tactileProvider";
+import { World } from "./world";
 
 export class Game {
   private scene: THREE.Scene;
@@ -46,22 +47,31 @@ export class Game {
     this.run(S.float('sh') ? 'home' : 'lab');
   }
 
+  private lab: Laboratory = null;
+  private home: Home = null;
+
   private async run(location: string) {
+    let nextWorld: World = null;
     switch (location) {
       case 'lab':
-        const labObject = new THREE.Group();
-        const laboratory = new Laboratory(
-          this.audioCtx, labObject, this.tactileProvider,
-          [this.hands[0].motion, this.hands[1].motion]);
-        this.scene.add(labObject);
-        await laboratory.run();
-        this.scene.remove(labObject);
-        setTimeout(() => { this.run('home') });
+        if (this.lab === null) {
+          this.lab = new Laboratory(
+            this.audioCtx, this.tactileProvider,
+            [this.hands[0].motion, this.hands[1].motion]);
+        }
+        nextWorld = this.lab;
         break;
       case 'home': default:
-        this.scene.add(new StarField());
+        if (this.home === null) {
+          this.home = new Home();
+        }
+        nextWorld = this.home;
         break;
     }
+    this.scene.add(nextWorld);
+    const nextWorldName = await nextWorld.run();
+    this.scene.remove(this.lab);
+    setTimeout(() => { this.run(nextWorldName) });
   }
 
   private getRay(ev: Touch | PointerEvent): THREE.Ray {
