@@ -19,6 +19,7 @@ export class AR {
       (x: number) => { this.attackS = x; }))
     this.releaseKnob.addTarget(new KnobTarget(
       (x: number) => { this.releaseS = x; }))
+    this.param.setValueAtTime(this.transferFunction(0), audioCtx.currentTime);
   }
 
   private linearTrigger(): number {

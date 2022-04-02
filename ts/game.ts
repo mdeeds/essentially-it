@@ -1,9 +1,11 @@
 import * as THREE from "three";
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import { ConduitStage } from "./conduit/stage";
 
 import { Hand } from "./hand";
 import { Home } from "./home/home";
 import { Laboratory } from "./laboratory";
+import { Motion } from "./motion";
 import { ParticleSystem } from "./particleSystem";
 import { S } from "./settings";
 import { TactileProvider } from "./tactileProvider";
@@ -15,6 +17,7 @@ export class Game {
   private renderer: THREE.WebGLRenderer;
   private keysDown = new Set<string>();
   private hands: Hand[] = [];
+  private headMotion: Motion;
 
   private tactileProvider = new TactileProvider();
 
@@ -29,6 +32,8 @@ export class Game {
     this.camera.position.set(0, 1.7, 0);
     this.camera.lookAt(0, 1.7, -2);
     this.camera.name = 'The Camera';
+    this.headMotion = new Motion();
+    this.camera.add(this.headMotion);
     this.scene.add(this.camera);
 
     this.setUpRenderer();
@@ -46,12 +51,55 @@ export class Game {
         this.tactileProvider, particleSystem))
     this.setUpKeyHandler();
     this.setUpTouchHandlers();
-    this.logScene(this.scene, 'Early: ');
-    this.run(S.float('sh') ? 'home' : 'lab');
+    switch (S.float('sh')) {
+      default:
+      case 0: this.run('lab'); break;
+      case 1: this.run('home'); break;
+      case 2: this.run('conduit'); break;
+    }
   }
 
   private lab: Laboratory = null;
+  private conduit: ConduitStage = null;
   private home: Home = null;
+
+  private async run(location: string) {
+    let nextWorld: World = null;
+    switch (location) {
+      case 'lab':
+        if (this.lab === null) {
+          this.lab = new Laboratory(
+            this.audioCtx, this.tactileProvider,
+            [this.hands[0].motion, this.hands[1].motion]);
+          this.lab.position.set(0, 0, 0);
+        }
+        nextWorld = this.lab;
+        break;
+      case 'conduit':
+        if (this.conduit === null) {
+          this.conduit = new ConduitStage(
+            this.audioCtx,
+            [this.hands[0].motion, this.hands[1].motion]);
+          this.conduit.position.set(0, 0, 0);
+        }
+        nextWorld = this.conduit;
+        break;
+      case 'home': default:
+        if (this.home === null) {
+          this.home = new Home();
+        }
+        nextWorld = this.home;
+        break;
+    }
+    this.scene.add(nextWorld);
+    await this.expand(nextWorld);
+    this.logScene(this.scene, '#: ');
+
+    const nextWorldName = await nextWorld.run();
+    await this.shrink(nextWorld);
+    this.scene.remove(nextWorld);
+    setTimeout(() => { this.run(nextWorldName) });
+  }
 
   private logScene(o: THREE.Object3D, padding: string) {
     const p = new THREE.Vector3();
@@ -63,49 +111,6 @@ export class Game {
     for (const c of o.children) {
       this.logScene(c, padding + ' ');
     }
-  }
-
-  private async run(location: string) {
-    let nextWorld: World = null;
-    console.log(this.camera.position);
-    const p = new THREE.Vector3();
-    this.camera.getWorldPosition(p);
-    console.log(p);
-
-    switch (location) {
-      case 'lab':
-        if (this.lab === null) {
-          this.lab = new Laboratory(
-            this.audioCtx, this.tactileProvider,
-            [this.hands[0].motion, this.hands[1].motion]);
-          this.lab.position.set(0, 0, 0);
-        }
-        nextWorld = this.lab;
-        break;
-      case 'home': default:
-        if (this.home === null) {
-          this.home = new Home();
-        }
-        nextWorld = this.home;
-        break;
-    }
-    this.scene.add(nextWorld);
-    this.logScene(this.scene, 'Initial: ');
-    await this.expand(nextWorld);
-    this.logScene(this.scene, 'Expanded: ');
-
-    console.log('Position of world:');
-    console.log(nextWorld.position);
-    nextWorld.getWorldPosition(p);
-    console.log(p);
-
-    const nextWorldName = await nextWorld.run();
-    console.log('Shrink start')
-    await this.shrink(nextWorld);
-    console.log('Shrink end')
-    this.logScene(this.scene, 'Shrunken: ');
-    this.scene.remove(nextWorld);
-    setTimeout(() => { this.run(nextWorldName) });
   }
 
   private async expand(o: THREE.Object3D) {
@@ -137,11 +142,6 @@ export class Game {
       o.updateMatrixWorld();
       frameDone();
     });
-
-    console.log('booleans');
-    console.log((scale > finalScale));
-    console.log((multiplier > 1));
-    console.log((scale > finalScale) != (multiplier > 1));
 
     while ((scale > finalScale) != (multiplier > 1)) {
       await nextFrame();
@@ -222,6 +222,7 @@ export class Game {
     deltaS = Math.min(0.1, deltaS);
     this.renderer.render(this.scene, this.camera);
     this.handleKeys();
+    this.handleHeadMotion();
   }
 
   private setUpAnimation() {
@@ -277,6 +278,10 @@ export class Game {
     if (this.keysDown.has('KeyD')) {
       this.camera.position.add(this.r);
     }
+  }
+
+  private handleHeadMotion() {
+
   }
 
   private setUpKeyHandler() {

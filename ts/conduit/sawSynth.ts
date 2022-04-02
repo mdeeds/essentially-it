@@ -1,10 +1,12 @@
 import { AR } from "./ar";
 import { Knob, KnobTarget } from "./knob";
 import { AttenuatedParam, MultiParam } from "./params";
+import { Synth } from "./synth";
 
-export class SawSynth {
-  readonly envPitch = new Knob('Freq', 0.0, 1.0, 0.0);
+export class SawSynth implements Synth {
   readonly midiPitch = new Knob('MIDI', 0, 127, 43);
+
+  readonly envPitch = new Knob('Freq', 0.0, 1.0, 0.0);
   public e2Attack: Knob;
   public e2Release: Knob;
   readonly envFilter = new Knob('Freq', 0.0, 1.0, 0.0);
@@ -41,6 +43,14 @@ export class SawSynth {
     bpf.connect(vca);
     vca.connect(volume);
     volume.connect(audioCtx.destination);
+  }
+
+  getKnobs(): Knob[] {
+    return [
+      this.e1Attack, this.e1Release,
+      this.envFilter, this.resonance,
+      this.e2Attack, this.e2Release,
+      this.envPitch,]
   }
 
   private makeOsc(): OscillatorNode {
