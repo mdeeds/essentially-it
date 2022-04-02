@@ -24,6 +24,7 @@ export class Laboratory extends THREE.Object3D implements World {
     private tactileProvider: TactileProvider,
     motions: Motion[]) {
     super();
+    this.name = 'Laboratory';
     const fogSphere = new THREE.Mesh(
       new THREE.IcosahedronBufferGeometry(20, 3),
       new FogMaterial());
@@ -55,12 +56,14 @@ export class Laboratory extends THREE.Object3D implements World {
     this.add(this.whiteBoard);
     {
       const light1 = new THREE.DirectionalLight('white', 0.8);
+      light1.name = 'light';
       light1.position.set(0, 5, 0);
       this.add(light1);
       // const light2 = new THREE.DirectionalLight('white', 0.1);
       // light2.position.set(0, -5, 0);
       // this.scene.add(light2);
       const light3 = new THREE.AmbientLight('white', 0.2);
+      light3.name = 'ambient';
       this.add(light3);
     }
 
@@ -119,6 +122,7 @@ export class Laboratory extends THREE.Object3D implements World {
   private loadPlatform() {
     const loader = new GLTFLoader();
     loader.load('model/platform.gltf', (gltf) => {
+      gltf.scene.name = 'model/platform.gltf';
       this.add(gltf.scene);
       const buttonObject = this.getNamedObject('Power_Button', gltf.scene);
       if (buttonObject === null) {

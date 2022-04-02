@@ -42,6 +42,7 @@ void main() {
 
   constructor() {
     super();
+    this.name = 'ParticleSystem';
     const uniforms = {
       diffuseTexture: {
         value: new THREE.TextureLoader().load('./img/dot.png')

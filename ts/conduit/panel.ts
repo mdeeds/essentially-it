@@ -12,6 +12,7 @@ export class Panel extends THREE.Object3D {
   constructor(private knobs: Knob[], private knobsHigh: number,
     private motions: Motion[]) {
     super();
+    this.name = 'Panel';
     this.buildPanel();
   }
 

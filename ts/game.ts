@@ -20,6 +20,7 @@ export class Game {
 
   constructor(private audioCtx: AudioContext) {
     this.scene = new THREE.Scene();
+    this.scene.name = 'The Scene';
 
     this.renderer = new THREE.WebGLRenderer();
     this.camera = new THREE.PerspectiveCamera(
@@ -27,6 +28,7 @@ export class Game {
       /*far=*/1100);
     this.camera.position.set(0, 1.7, 0);
     this.camera.lookAt(0, 1.7, -2);
+    this.camera.name = 'The Camera';
     this.scene.add(this.camera);
 
     this.setUpRenderer();
@@ -44,14 +46,32 @@ export class Game {
         this.tactileProvider, particleSystem))
     this.setUpKeyHandler();
     this.setUpTouchHandlers();
+    this.logScene(this.scene, 'Early: ');
     this.run(S.float('sh') ? 'home' : 'lab');
   }
 
   private lab: Laboratory = null;
   private home: Home = null;
 
+  private logScene(o: THREE.Object3D, padding: string) {
+    const p = new THREE.Vector3();
+    o.getWorldPosition(p);
+    console.log(`${padding}${o.name} @ ` +
+      `${o.position.x.toFixed(3)},${o.position.y.toFixed(3)},${o.position.z.toFixed(3)} ` +
+      `s:${o.scale.length()}`);
+    // `w:${p.x.toFixed(3)},${p.y.toFixed(3)},${p.z.toFixed(3)}`);
+    for (const c of o.children) {
+      this.logScene(c, padding + ' ');
+    }
+  }
+
   private async run(location: string) {
     let nextWorld: World = null;
+    console.log(this.camera.position);
+    const p = new THREE.Vector3();
+    this.camera.getWorldPosition(p);
+    console.log(p);
+
     switch (location) {
       case 'lab':
         if (this.lab === null) {
@@ -70,11 +90,20 @@ export class Game {
         break;
     }
     this.scene.add(nextWorld);
+    this.logScene(this.scene, 'Initial: ');
     await this.expand(nextWorld);
+    this.logScene(this.scene, 'Expanded: ');
+
+    console.log('Position of world:');
+    console.log(nextWorld.position);
+    nextWorld.getWorldPosition(p);
+    console.log(p);
+
     const nextWorldName = await nextWorld.run();
     console.log('Shrink start')
     await this.shrink(nextWorld);
     console.log('Shrink end')
+    this.logScene(this.scene, 'Shrunken: ');
     this.scene.remove(nextWorld);
     setTimeout(() => { this.run(nextWorldName) });
   }
@@ -102,7 +131,10 @@ export class Game {
     this.scene.onBeforeRender = ((
       renderer: THREE.WebGLRenderer, scene: THREE.Scene,
       camera: THREE.Camera, renderTarget: any) => {
-      o.scale.setLength(scale);
+      o.scale.set(scale, scale, scale);
+      o.position.set(0, 0, 0);
+      o.updateMatrix();
+      o.updateMatrixWorld();
       frameDone();
     });
 
@@ -114,7 +146,6 @@ export class Game {
     while ((scale > finalScale) != (multiplier > 1)) {
       await nextFrame();
       scale = scale * multiplier;
-      console.log(`Scale = ${scale}`);
     }
     scale = finalScale;
     await nextFrame();

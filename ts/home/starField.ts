@@ -4,6 +4,7 @@ import { S } from "../settings";
 export class StarField extends THREE.Object3D {
   constructor() {
     super();
+    this.name = 'StarField';
     const stars = this.makeParticles();
     this.add(stars);
     const clock = new THREE.Clock();

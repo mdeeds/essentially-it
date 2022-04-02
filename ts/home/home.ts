@@ -6,6 +6,7 @@ export class Home extends THREE.Object3D {
   private nextWorld: (world: string) => void;
   constructor() {
     super();
+    this.name = 'Home';
     const starField = new StarField();
     this.add(starField);
     this.makePerimeter();

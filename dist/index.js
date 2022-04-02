@@ -336,6 +336,7 @@ class Panel extends THREE.Object3D {
         this.knobs = knobs;
         this.knobsHigh = knobsHigh;
         this.motions = motions;
+        this.name = 'Panel';
         this.buildPanel();
     }
     buildPanel() {
@@ -698,7 +699,7 @@ exports.Game = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const VRButton_js_1 = __webpack_require__(652);
 const hand_1 = __webpack_require__(673);
-const starField_1 = __webpack_require__(60);
+const home_1 = __webpack_require__(722);
 const laboratory_1 = __webpack_require__(855);
 const particleSystem_1 = __webpack_require__(564);
 const settings_1 = __webpack_require__(451);
@@ -714,12 +715,14 @@ class Game {
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
         this.scene = new THREE.Scene();
+        this.scene.name = 'The Scene';
         this.renderer = new THREE.WebGLRenderer();
         this.camera = new THREE.PerspectiveCamera(
         /*fov=*/ 75, /*aspec=*/ 1024 / 512, /*near=*/ 0.1, 
         /*far=*/ 1100);
         this.camera.position.set(0, 1.7, 0);
         this.camera.lookAt(0, 1.7, -2);
+        this.camera.name = 'The Camera';
         this.scene.add(this.camera);
         this.setUpRenderer();
         this.setUpAnimation();
@@ -729,23 +732,93 @@ class Game {
         this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.tactileProvider, particleSystem));
         this.setUpKeyHandler();
         this.setUpTouchHandlers();
+        this.logScene(this.scene, 'Early: ');
         this.run(settings_1.S.float('sh') ? 'home' : 'lab');
     }
+    lab = null;
+    home = null;
+    logScene(o, padding) {
+        const p = new THREE.Vector3();
+        o.getWorldPosition(p);
+        console.log(`${padding}${o.name} @ ` +
+            `${o.position.x.toFixed(3)},${o.position.y.toFixed(3)},${o.position.z.toFixed(3)} ` +
+            `s:${o.scale.length()}`);
+        // `w:${p.x.toFixed(3)},${p.y.toFixed(3)},${p.z.toFixed(3)}`);
+        for (const c of o.children) {
+            this.logScene(c, padding + ' ');
+        }
+    }
     async run(location) {
+        let nextWorld = null;
+        console.log(this.camera.position);
+        const p = new THREE.Vector3();
+        this.camera.getWorldPosition(p);
+        console.log(p);
         switch (location) {
             case 'lab':
-                const labObject = new THREE.Group();
-                const laboratory = new laboratory_1.Laboratory(this.audioCtx, labObject, this.tactileProvider, [this.hands[0].motion, this.hands[1].motion]);
-                this.scene.add(labObject);
-                await laboratory.run();
-                this.scene.remove(labObject);
-                setTimeout(() => { this.run('home'); });
+                if (this.lab === null) {
+                    this.lab = new laboratory_1.Laboratory(this.audioCtx, this.tactileProvider, [this.hands[0].motion, this.hands[1].motion]);
+                    this.lab.position.set(0, 0, 0);
+                }
+                nextWorld = this.lab;
                 break;
             case 'home':
             default:
-                this.scene.add(new starField_1.StarField());
+                if (this.home === null) {
+                    this.home = new home_1.Home();
+                }
+                nextWorld = this.home;
                 break;
         }
+        this.scene.add(nextWorld);
+        this.logScene(this.scene, 'Initial: ');
+        await this.expand(nextWorld);
+        this.logScene(this.scene, 'Expanded: ');
+        console.log('Position of world:');
+        console.log(nextWorld.position);
+        nextWorld.getWorldPosition(p);
+        console.log(p);
+        const nextWorldName = await nextWorld.run();
+        console.log('Shrink start');
+        await this.shrink(nextWorld);
+        console.log('Shrink end');
+        this.logScene(this.scene, 'Shrunken: ');
+        this.scene.remove(nextWorld);
+        setTimeout(() => { this.run(nextWorldName); });
+    }
+    async expand(o) {
+        await this.animateScale(o, 0.01, 1.0, 1.03);
+    }
+    async shrink(o) {
+        await this.animateScale(o, 1, 0.01, 0.97);
+    }
+    async animateScale(o, initialScale, finalScale, multiplier) {
+        let scale = initialScale;
+        let frameDone;
+        const nextFrame = async () => {
+            return new Promise((resolve) => {
+                frameDone = resolve;
+            });
+        };
+        this.scene.onBeforeRender = ((renderer, scene, camera, renderTarget) => {
+            o.scale.set(scale, scale, scale);
+            o.position.set(0, 0, 0);
+            o.updateMatrix();
+            o.updateMatrixWorld();
+            frameDone();
+        });
+        console.log('booleans');
+        console.log((scale > finalScale));
+        console.log((multiplier > 1));
+        console.log((scale > finalScale) != (multiplier > 1));
+        while ((scale > finalScale) != (multiplier > 1)) {
+            await nextFrame();
+            scale = scale * multiplier;
+        }
+        scale = finalScale;
+        await nextFrame();
+        this.scene.onBeforeRender = function () { };
+        return new Promise((resolve) => { resolve(); });
     }
     getRay(ev) {
         const x = (ev.clientX / 1024) * 2 - 1;
@@ -1594,6 +1667,63 @@ exports.HighlighterTool = HighlighterTool;
 
 /***/ }),
 
+/***/ 722:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Home = void 0;
+const THREE = __importStar(__webpack_require__(578));
+const starField_1 = __webpack_require__(60);
+class Home extends THREE.Object3D {
+    nextWorld;
+    constructor() {
+        super();
+        this.name = 'Home';
+        const starField = new starField_1.StarField();
+        this.add(starField);
+        this.makePerimeter();
+    }
+    makePerimeter() {
+        for (let theta = -Math.PI; theta < Math.PI; theta += 0.02) {
+            const x = Math.cos(theta) * 2;
+            const z = Math.sin(theta) * 2;
+            const y = 1.1 * Math.random();
+            const sphere = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.1, 3), new THREE.MeshStandardMaterial({ color: '#09f' }));
+            sphere.position.set(x, y, z);
+            this.add(sphere);
+        }
+    }
+    async run() {
+        return new Promise((resolve) => {
+            this.nextWorld = resolve;
+        });
+    }
+}
+exports.Home = Home;
+//# sourceMappingURL=home.js.map
+
+/***/ }),
+
 /***/ 60:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -1624,6 +1754,7 @@ const settings_1 = __webpack_require__(451);
 class StarField extends THREE.Object3D {
     constructor() {
         super();
+        this.name = 'StarField';
         const stars = this.makeParticles();
         this.add(stars);
         const clock = new THREE.Clock();
@@ -1632,14 +1763,6 @@ class StarField extends THREE.Object3D {
             stars.position.z = 0.1 * starRadius * Math.sin(clock.getElapsedTime() / 30);
             stars.position.x = 0.1 * starRadius * Math.cos(clock.getElapsedTime() / 30);
         };
-        for (let theta = -Math.PI; theta < Math.PI; theta += 0.02) {
-            const x = Math.cos(theta) * 5;
-            const z = Math.sin(theta) * 5;
-            const y = 3 * (Math.random() - 0.5);
-            const sphere = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.5, 3), new THREE.MeshStandardMaterial({ color: '#09f' }));
-            sphere.position.set(x, y, z);
-            this.add(sphere);
-        }
         const l1 = new THREE.DirectionalLight('#ff9', 0.8);
         l1.position.set(0.5, 3, -0.5);
         this.add(l1);
@@ -1824,21 +1947,21 @@ const paintCylinder_1 = __webpack_require__(183);
 // import { ParticleSystem } from "./particleSystem";
 const projectionCylinder_1 = __webpack_require__(233);
 const tactileInterface_1 = __webpack_require__(791);
-class Laboratory {
+class Laboratory extends THREE.Object3D {
     audioCtx;
-    scene;
     tactileProvider;
     whiteBoard;
     // private particles: ParticleSystem;
     floorMaterial;
     doneCallback;
-    constructor(audioCtx, scene, tactileProvider, motions) {
+    constructor(audioCtx, tactileProvider, motions) {
+        super();
         this.audioCtx = audioCtx;
-        this.scene = scene;
         this.tactileProvider = tactileProvider;
+        this.name = 'Laboratory';
         const fogSphere = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 3), new fogMaterial_1.FogMaterial());
         fogSphere.position.set(0, -0.4, 0);
-        this.scene.add(fogSphere);
+        this.add(fogSphere);
         this.floorMaterial = new floorMaterial_1.FloorMaterial();
         const groundPlane = new THREE.Mesh(new THREE.PlaneBufferGeometry(40, 40), this.floorMaterial);
         groundPlane.rotateX(Math.PI / 2);
@@ -1849,25 +1972,27 @@ class Laboratory {
             this.floorMaterial.setT(0.05 * clock.elapsedTime);
             // this.addRandomDot(deltaS);
         };
-        this.scene.add(groundPlane);
+        this.add(groundPlane);
         // this.particles = new ParticleSystem();
         // this.scene.add(this.particles);
         this.whiteBoard = new paintCylinder_1.PaintCylinder();
         this.whiteBoard.position.set(0, 1.7, 0);
-        this.scene.add(this.whiteBoard);
+        this.add(this.whiteBoard);
         {
             const light1 = new THREE.DirectionalLight('white', 0.8);
+            light1.name = 'light';
             light1.position.set(0, 5, 0);
-            this.scene.add(light1);
+            this.add(light1);
             // const light2 = new THREE.DirectionalLight('white', 0.1);
             // light2.position.set(0, -5, 0);
             // this.scene.add(light2);
             const light3 = new THREE.AmbientLight('white', 0.2);
-            this.scene.add(light3);
+            light3.name = 'ambient';
+            this.add(light3);
         }
         this.loadPlatform();
         const projection = new projectionCylinder_1.ProjectionCylinder(this.whiteBoard, 1.5);
-        const tactile = new tactileInterface_1.TactileInterface(this.whiteBoard, projection, this.scene, audioCtx, motions);
+        const tactile = new tactileInterface_1.TactileInterface(this.whiteBoard, projection, this, audioCtx, motions);
         tactileProvider.addSink(tactile);
     }
     run() {
@@ -1912,12 +2037,13 @@ class Laboratory {
     loadPlatform() {
         const loader = new GLTFLoader_js_1.GLTFLoader();
         loader.load('model/platform.gltf', (gltf) => {
-            this.scene.add(gltf.scene);
+            gltf.scene.name = 'model/platform.gltf';
+            this.add(gltf.scene);
             const buttonObject = this.getNamedObject('Power_Button', gltf.scene);
             if (buttonObject === null) {
                 console.log('not found.');
             }
-            new button_1.Button(buttonObject, this.tactileProvider, this.doneCallback);
+            new button_1.Button(buttonObject, this.tactileProvider, () => { this.doneCallback(null); });
         });
     }
 }
@@ -2308,6 +2434,7 @@ void main() {
     points;
     constructor() {
         super();
+        this.name = 'ParticleSystem';
         const uniforms = {
             diffuseTexture: {
                 value: new THREE.TextureLoader().load('./img/dot.png')
