@@ -58,6 +58,7 @@ export class Game {
           this.lab = new Laboratory(
             this.audioCtx, this.tactileProvider,
             [this.hands[0].motion, this.hands[1].motion]);
+          this.lab.position.set(0, 0, 0);
         }
         nextWorld = this.lab;
         break;
@@ -69,9 +70,57 @@ export class Game {
         break;
     }
     this.scene.add(nextWorld);
+    await this.expand(nextWorld);
     const nextWorldName = await nextWorld.run();
-    this.scene.remove(this.lab);
+    console.log('Shrink start')
+    await this.shrink(nextWorld);
+    console.log('Shrink end')
+    this.scene.remove(nextWorld);
     setTimeout(() => { this.run(nextWorldName) });
+  }
+
+  private async expand(o: THREE.Object3D) {
+    await this.animateScale(o, 0.01, 1.0, 1.03);
+  }
+
+  private async shrink(o: THREE.Object3D) {
+    await this.animateScale(o, 1, 0.01, 0.97);
+  }
+
+  private async animateScale(
+    o: THREE.Object3D, initialScale: number, finalScale: number,
+    multiplier: number): Promise<void> {
+    let scale = initialScale;
+    let frameDone: () => void;
+
+    const nextFrame = async (): Promise<void> => {
+      return new Promise<void>((resolve) => {
+        frameDone = resolve;
+      });
+    }
+
+    this.scene.onBeforeRender = ((
+      renderer: THREE.WebGLRenderer, scene: THREE.Scene,
+      camera: THREE.Camera, renderTarget: any) => {
+      o.scale.setLength(scale);
+      frameDone();
+    });
+
+    console.log('booleans');
+    console.log((scale > finalScale));
+    console.log((multiplier > 1));
+    console.log((scale > finalScale) != (multiplier > 1));
+
+    while ((scale > finalScale) != (multiplier > 1)) {
+      await nextFrame();
+      scale = scale * multiplier;
+      console.log(`Scale = ${scale}`);
+    }
+    scale = finalScale;
+    await nextFrame();
+
+    this.scene.onBeforeRender = function () { };
+    return new Promise<void>((resolve) => { resolve(); });
   }
 
   private getRay(ev: Touch | PointerEvent): THREE.Ray {

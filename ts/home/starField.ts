@@ -16,17 +16,6 @@ export class StarField extends THREE.Object3D {
       stars.position.x = 0.1 * starRadius * Math.cos(clock.getElapsedTime() / 30);
     };
 
-    for (let theta = -Math.PI; theta < Math.PI; theta += 0.02) {
-      const x = Math.cos(theta) * 5;
-      const z = Math.sin(theta) * 5;
-      const y = 3 * (Math.random() - 0.5);
-      const sphere = new THREE.Mesh(
-        new THREE.IcosahedronBufferGeometry(0.5, 3),
-        new THREE.MeshStandardMaterial({ color: '#09f' }));
-      sphere.position.set(x, y, z);
-      this.add(sphere);
-    }
-
     const l1 = new THREE.DirectionalLight('#ff9', 0.8);
     l1.position.set(0.5, 3, -0.5);
     this.add(l1)
