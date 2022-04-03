@@ -1,12 +1,14 @@
 import * as THREE from "three";
-import { BufferGeometry, Sphere } from "three";
+import { BufferGeometry, NearestMipmapLinearFilter, Sphere } from "three";
 import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { SelectionSphere } from "./conduit/selectionSphere";
 
 import { Tool } from "./tool";
 
-export class SphereTool implements Tool {
+class SphereTool implements Tool {
   constructor(private scene: THREE.Object3D,
-    private objectFactory: () => THREE.Object3D) { }
+    private objectFactory: () => THREE.Object3D,
+    private reach: number) { }
 
   private worldObject: THREE.Object3D;
 
@@ -30,7 +32,7 @@ export class SphereTool implements Tool {
       this.scene.add(this.worldObject);
     }
     this.worldObject.position.copy(ray.direction);
-    this.worldObject.position.multiplyScalar(2);
+    this.worldObject.position.multiplyScalar(this.reach);
     this.worldObject.position.add(ray.origin);
   }
 
@@ -40,7 +42,7 @@ export class SphereTool implements Tool {
       this.scene.add(this.worldObject);
     }
     this.worldObject.position.copy(ray.direction);
-    this.worldObject.position.multiplyScalar(2);
+    this.worldObject.position.multiplyScalar(this.reach);
     this.worldObject.position.add(ray.origin);
     const theta = -Math.atan2(
       ray.direction.x, ray.direction.z);
@@ -66,9 +68,10 @@ export class SphereTool implements Tool {
 export class StandardSphereTool extends SphereTool {
   constructor(scene: THREE.Object3D, smooth: boolean) {
     super(scene, () => {
-      return SphereTool.makeSphere(new THREE.MeshStandardMaterial({ color: '#fff' }),
+      return SphereTool.makeSphere(
+        new THREE.MeshStandardMaterial({ color: '#fff' }),
         smooth);
-    });
+    }, 2.0);
   }
 }
 
@@ -91,7 +94,7 @@ export class ShaderSphereTool1 extends SphereTool {
 
     super(scene, () => {
       return SphereTool.makeSphere(material, true);
-    });
+    }, 2.0);
   }
 }
 
@@ -114,6 +117,34 @@ export class ShaderSphereTool2 extends SphereTool {
 
     super(scene, () => {
       return SphereTool.makeSphere(material, true);
-    });
+    }, 2.0);
+  }
+}
+
+export class ShaderSphereTool3 extends SphereTool {
+  constructor(scene: THREE.Object3D) {
+    super(scene, () => {
+      return new SelectionSphere(1);
+    }, 0.5);
+  }
+}
+
+export class ShaderSphereTool4 extends SphereTool {
+  constructor(scene: THREE.Object3D) {
+    super(scene, () => {
+      return new SelectionSphere(2);
+    }, 0.5);
+  }
+}
+
+export class LineSphereTool extends SphereTool {
+  constructor(scene: THREE.Object3D) {
+    super(scene, () => {
+      const geometry = new THREE.IcosahedronBufferGeometry(0.13, 3);
+      const edges = new THREE.EdgesGeometry(geometry);
+      const line = new THREE.LineSegments(
+        edges, new THREE.LineBasicMaterial({ color: 'blue' }));
+      return line;
+    }, 0.5);
   }
 }

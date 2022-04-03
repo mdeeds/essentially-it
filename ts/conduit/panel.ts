@@ -5,6 +5,7 @@ import { Motion } from "../motion";
 import { InstancedObject } from "./instancedObject";
 
 import { Knob, KnobTarget } from "./knob";
+import { KnobAction } from "./knobAction";
 
 export class Panel extends THREE.Object3D {
   private static kKnobSpacingM = 0.18;
@@ -47,7 +48,7 @@ export class Panel extends THREE.Object3D {
     const height = this.knobsHigh * Panel.kKnobSpacingM;
     const uv = this.getKnobUV(i);
     const x = (uv.x - 0.5) * width;
-    const y = (uv.y - 0.5) * height;
+    const y = (0.5 - uv.y) * height;
     return new THREE.Vector2(x, y);
   }
 
@@ -92,6 +93,7 @@ export class Panel extends THREE.Object3D {
     const knobModel = await this.loadKnob();
     const instanced = new InstancedObject(knobModel, this.knobs.length);
     this.add(instanced);
+    const aPosition = new THREE.Vector3();
     for (let i = 0; i < this.knobs.length; ++i) {
       const xy = this.getKnobXY(i);
       const translation = new Matrix4();
@@ -100,9 +102,15 @@ export class Panel extends THREE.Object3D {
       rotation.makeRotationX(Math.PI / 2);
       rotation.premultiply(translation);
       instanced.setMatrixAt(i, rotation);
+      aPosition.set(0, 0, 0);
+      aPosition.applyMatrix4(rotation);
       const knob = this.knobs[i];
       knob.addTarget(KnobTarget.fromInstancedObject(instanced, i));
     }
+    const selection = new KnobAction(null);
+    selection.name = 'Selection';
+    selection.position.copy(aPosition);
+    this.add(selection);
   }
 
   private async loadKnob(): Promise<THREE.Object3D> {
