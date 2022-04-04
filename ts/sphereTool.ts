@@ -1,9 +1,14 @@
 import * as THREE from "three";
 import { BufferGeometry, NearestMipmapLinearFilter, Sphere } from "three";
 import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
+import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+
 import { SelectionSphere } from "./conduit/selectionSphere";
 
 import { Tool } from "./tool";
+import { NiceLineMaterial } from "./niceLineMaterial";
 
 class SphereTool implements Tool {
   constructor(private scene: THREE.Object3D,
@@ -146,5 +151,41 @@ export class LineSphereTool extends SphereTool {
         edges, new THREE.LineBasicMaterial({ color: 'blue' }));
       return line;
     }, 0.5);
+  }
+}
+
+export class StringSphere extends SphereTool {
+  constructor(scene: THREE.Object3D) {
+    // const material = new LineMaterial({
+    //   color: 0x0000ff,
+    //   worldUnits: true,
+    //   linewidth: 0.005,
+    //   dashed: false,
+    //   alphaToCoverage: true,
+    // });
+
+    const material = new NiceLineMaterial();
+
+    material.resolution.set(1024, 512);
+
+    const positions: number[] = [];
+    for (let i = 0; i < 100; ++i) {
+      const p = new THREE.Vector3(
+        Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+      p.normalize();
+      positions.push(0, 0, 0);
+      positions.push(p.x, p.y, p.z);
+    }
+
+    const geometry = new LineGeometry();
+    geometry.setPositions(positions);
+    // geometry.setColors(colors);
+
+    const line = new Line2(geometry, material);
+    line.name = 'StringSphere';
+
+    super(scene, () => {
+      return line;
+    }, 0.5)
   }
 }

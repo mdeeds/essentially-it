@@ -11,7 +11,7 @@ import { PlayTool } from "./playTool";
 import { S } from "./settings";
 import { SpectrogramTool } from "./spectrogramTool";
 import { SpeechTool } from "./speechTool";
-import { ShaderSphereTool1, ShaderSphereTool2, StandardSphereTool, ShaderSphereTool3, ShaderSphereTool4, LineSphereTool } from "./sphereTool";
+import { ShaderSphereTool1, ShaderSphereTool2, StandardSphereTool, ShaderSphereTool3, ShaderSphereTool4, LineSphereTool, StringSphere } from "./sphereTool";
 import { SawtoothToneTool, SineToneTool, SquareToneTool, TriangleToneTool } from "./toneTool";
 import { Tool } from "./tool";
 
@@ -24,6 +24,7 @@ export class ToolBelt extends THREE.Group {
     audioCtx: AudioContext,
     motions: Motion[]) {
     super();
+    this.name = 'Tool Belt';
     this.addTools(tmpCanvas, imgCanvas, scene, audioCtx, motions);
   }
 
@@ -72,6 +73,10 @@ export class ToolBelt extends THREE.Group {
         this.tools.push(new ShaderSphereTool3(scene));
         this.tools.push(new ShaderSphereTool4(scene));
         this.tools.push(new LineSphereTool(scene));
+        this.tools.push(new ImageTool(
+          imgCanvas, 'ep/4/SelectionCode1.png', 2.0));
+        this.tools.push(new ImageTool(
+          imgCanvas, 'ep/4/SelectionCode2.png', 2.0));
         break;
     }
     if (window['webkitSpeechRecognition']) {

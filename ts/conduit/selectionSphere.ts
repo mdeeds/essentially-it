@@ -28,7 +28,6 @@ export class SelectionSphere extends THREE.Object3D {
 
           // Calculate position
           gl_Position = projectionMatrix * viewPosition;
-
         }`,
       fragmentShader: `
       varying vec3 v_toCamera;
