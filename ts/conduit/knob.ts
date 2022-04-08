@@ -40,7 +40,6 @@ export class KnobTarget {
       const n = new THREE.Matrix4();
       n.copyPosition(m);
       m.makeRotationZ(theta);
-      console.log(`Theta: ${theta}; x: ${x}`);
       n.multiply(m);
       const rotation = new THREE.Matrix4();
       rotation.makeRotationX(Math.PI / 2);

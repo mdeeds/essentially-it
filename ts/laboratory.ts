@@ -106,7 +106,6 @@ export class Laboratory extends THREE.Object3D implements World {
 
 
   private getNamedObject(name: string, o: THREE.Object3D): THREE.Object3D {
-    console.log(`'${o.name}'`);
     if (o.name === name) {
       return o;
     }

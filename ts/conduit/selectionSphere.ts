@@ -1,22 +1,30 @@
 import * as THREE from "three";
 
 export class SelectionSphere extends THREE.Object3D {
-  constructor(version: number) {
+  private material: THREE.ShaderMaterial;
+  constructor(version: number, private color: THREE.Color) {
     super();
-    let material: THREE.ShaderMaterial;
     switch (version) {
-      default: case 1: material = this.makeHighlightMaterial1(); break;
-      case 2: material = this.makeHighlightMaterial2(); break;
+      default: case 1: this.material = this.makeHighlightMaterial1(); break;
+      case 2: this.material = this.makeHighlightMaterial2(); break;
     }
     const highlight = new THREE.Mesh(
-      new THREE.IcosahedronBufferGeometry(0.13, 3),
-      material
+      new THREE.IcosahedronBufferGeometry(0.2, 4),
+      this.material
     );
     this.add(highlight);
   }
 
+  setColor(color: THREE.Color) {
+    this.material.uniforms['u_Color'].value = color;
+    this.material.uniformsNeedUpdate = true;
+  }
+
   makeHighlightMaterial1(): THREE.ShaderMaterial {
     const material = new THREE.ShaderMaterial({
+      uniforms: {
+        u_Color: { value: this.color }
+      },
       vertexShader: `
         varying vec3 v_toCamera;
         varying vec3 v_normal;
@@ -28,17 +36,18 @@ export class SelectionSphere extends THREE.Object3D {
 
           // Calculate position
           gl_Position = projectionMatrix * viewPosition;
-        }`,
+       }`,
       fragmentShader: `
       varying vec3 v_toCamera;
       varying vec3 v_normal;
+      uniform vec3 u_Color;
       void main() {
         // Calculate color from camera and normal
         float viewDot = dot(v_toCamera, v_normal);
         float r = sqrt(1.0 - viewDot * viewDot);
         float density = 0.5 - abs(r - 0.5);
         density = density * density * 3.5;
-        gl_FragColor = vec4(0.3,0.1,1.0, density);  
+        gl_FragColor = vec4(u_Color, density);  
       }`,
       blending: THREE.NormalBlending,
       depthTest: true,
@@ -51,8 +60,12 @@ export class SelectionSphere extends THREE.Object3D {
 
   makeHighlightMaterial2(): THREE.ShaderMaterial {
     const material = new THREE.ShaderMaterial({
+      uniforms: {
+        u_Color: { value: this.color }
+      },
       vertexShader: `
         varying vec4 v_color;
+        uniform vec3 u_Color;
         void main() {
           // Calculate camera and normal vectors.
           vec4 viewPosition = modelViewMatrix * vec4(position, 1);
@@ -64,7 +77,7 @@ export class SelectionSphere extends THREE.Object3D {
           float r = sqrt(1.0 - viewDot * viewDot);
           float density = 0.5 - abs(r - 0.5);
           density = density * density * 3.5;
-          v_color = vec4(0.3,0.1,1.0, density);
+          v_color = vec4(u_Color, density);
 
           // Calculate position
           gl_Position = projectionMatrix * viewPosition;

@@ -10,6 +10,7 @@ import { KnobAction } from "./knobAction";
 export class Panel extends THREE.Object3D {
   private static kKnobSpacingM = 0.18;
   private knobsWide: number;
+  private instancedKnobs: InstancedObject;
   constructor(private knobs: Knob[], private knobsHigh: number,
     private motions: Motion[]) {
     super();
@@ -88,12 +89,20 @@ export class Panel extends THREE.Object3D {
     panelTexture.needsUpdate = true;
   }
 
+  private selectKnob(i: number) {
+    const knob = this.knobs[i];
+    const selection = new KnobAction(knob, this.motions);
+    this.instancedKnobs.getMatrixAt(i, selection.matrix);
+    selection.position.applyMatrix4(selection.matrix);
+    selection.name = 'Selection';
+    this.add(selection);
+  }
+
   private async buildKnobs() {
     console.log('Build Knobs');
     const knobModel = await this.loadKnob();
-    const instanced = new InstancedObject(knobModel, this.knobs.length);
-    this.add(instanced);
-    const aPosition = new THREE.Vector3();
+    this.instancedKnobs = new InstancedObject(knobModel, this.knobs.length);
+    this.add(this.instancedKnobs);
     for (let i = 0; i < this.knobs.length; ++i) {
       const xy = this.getKnobXY(i);
       const translation = new Matrix4();
@@ -101,16 +110,12 @@ export class Panel extends THREE.Object3D {
       const rotation = new THREE.Matrix4();
       rotation.makeRotationX(Math.PI / 2);
       rotation.premultiply(translation);
-      instanced.setMatrixAt(i, rotation);
-      aPosition.set(0, 0, 0);
-      aPosition.applyMatrix4(rotation);
+      this.instancedKnobs.setMatrixAt(i, rotation);
       const knob = this.knobs[i];
-      knob.addTarget(KnobTarget.fromInstancedObject(instanced, i));
+      knob.addTarget(KnobTarget.fromInstancedObject(this.instancedKnobs, i));
     }
-    const selection = new KnobAction(null);
-    selection.name = 'Selection';
-    selection.position.copy(aPosition);
-    this.add(selection);
+    this.selectKnob(0);
+    this.selectKnob(3);
   }
 
   private async loadKnob(): Promise<THREE.Object3D> {

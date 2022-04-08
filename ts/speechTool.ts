@@ -15,7 +15,6 @@ export class SpeechTool implements Tool {
     this.recognition.lang = "en-US";
     this.recognition.continuous = false;
     this.recognition.interimResults = true;
-    console.log(this.recognition);
 
     this.recognition.onresult =
       (event: any) => {
@@ -23,9 +22,6 @@ export class SpeechTool implements Tool {
           const result: SpeechRecognitionResult = event.results[i];
           this.text = result[0].transcript.toLowerCase();
           this.isFinal = result.isFinal;
-          console.log(
-            (result.isFinal ? '*' : ' ') +
-            event.results[i][0].transcript);
         }
       };
     this.recognition.start();

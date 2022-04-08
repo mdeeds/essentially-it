@@ -3,19 +3,21 @@ import { Object3D } from "three";
 import { Motion } from "./motion";
 import { ParticleSystem } from "./particleSystem";
 import { TactileProvider } from "./tactileProvider";
+import { Tick, Ticker } from "./ticker";
 
 export type Side = 'left' | 'right';
 
-export class Hand {
+export class Hand implements Ticker {
   readonly gamepad: Gamepad;
-  readonly motion = new Motion;
+  private motion: Motion;
   private grip: THREE.Group;
   private line: Object3D;
   private penDown: boolean;
 
   constructor(readonly side: Side, private scene: THREE.Object3D,
     renderer: THREE.WebGLRenderer, private tactile: TactileProvider,
-    private particleSystem: ParticleSystem) {
+    private particleSystem: ParticleSystem, camera: THREE.Object3D) {
+    this.motion = new Motion(camera);
     const index = (side == 'left') ? 0 : 1;
     this.grip = renderer.xr.getControllerGrip(index);
     this.grip.add(this.motion);
@@ -33,20 +35,16 @@ export class Hand {
       'selectend', (ev) => this.handleSelectEnd(ev));
   }
 
+  public getMotion(): Motion {
+    return this.motion;
+  }
+
   private setUpMeshes() {
     const lineMaterial = new THREE.LineBasicMaterial({ color: '#def' });
     const lineGeometry = new THREE.BufferGeometry()
       .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, -10, 0)]);
     this.line = new THREE.Line(lineGeometry, lineMaterial);
-    this.line.onAfterRender = (
-      renderer: THREE.WebGLRenderer, scene: THREE.Scene,
-      camera: THREE.Camera, geometry: THREE.BufferGeometry,
-      material: THREE.Material, group: THREE.Group) => {
-      this.tick();
-    };
-
     this.grip.add(this.line);
-
     this.scene.add(this.grip);
   }
 
@@ -73,7 +71,7 @@ export class Hand {
 
   private v = new THREE.Vector3();
   private p = new THREE.Vector3();
-  private tick() {
+  public tick(t: Tick) {
     this.p.set(0, 0, 0);
     this.v.set(Math.random() * 0.1 - 0.05, 0.1, Math.random() * 0.1 - 0.05);
     this.particleSystem.AddParticle(this.p, this.v, this.pink);

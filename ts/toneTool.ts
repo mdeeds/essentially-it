@@ -184,7 +184,6 @@ class ToneTool implements Tool {
     if (!this.worldObject) {
       this.worldObject = this.makeObject();
       this.scene.add(this.worldObject);
-      this.worldObject.onBeforeRender = () => { this.needsUpdate = true; }
     }
     this.worldObject.position.copy(ray.direction);
     this.worldObject.position.multiplyScalar(1);
@@ -196,7 +195,6 @@ class ToneTool implements Tool {
     if (!this.worldObject) {
       this.worldObject = this.makeObject();
       this.scene.add(this.worldObject);
-      this.worldObject.onBeforeRender = () => { this.needsUpdate = true; }
     }
     this.worldObject.position.copy(ray.direction);
     this.worldObject.position.multiplyScalar(1);

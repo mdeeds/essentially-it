@@ -129,7 +129,7 @@ export class ShaderSphereTool2 extends SphereTool {
 export class ShaderSphereTool3 extends SphereTool {
   constructor(scene: THREE.Object3D) {
     super(scene, () => {
-      return new SelectionSphere(1);
+      return new SelectionSphere(1, new THREE.Color(0.1, 0.0, 1.0));
     }, 0.5);
   }
 }
@@ -137,7 +137,7 @@ export class ShaderSphereTool3 extends SphereTool {
 export class ShaderSphereTool4 extends SphereTool {
   constructor(scene: THREE.Object3D) {
     super(scene, () => {
-      return new SelectionSphere(2);
+      return new SelectionSphere(2, new THREE.Color(0.1, 0.0, 1.0));
     }, 0.5);
   }
 }

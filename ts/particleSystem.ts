@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { Tick, Ticker } from "./ticker";
 
 class Particle {
   constructor(
@@ -11,7 +12,7 @@ class Particle {
   ) { }
 }
 
-export class ParticleSystem extends THREE.Object3D {
+export class ParticleSystem extends THREE.Object3D implements Ticker {
   private static kVS = `
 // uniform float pointMultiplier;
 attribute float size;
@@ -73,13 +74,10 @@ void main() {
       new THREE.Sphere(new THREE.Vector3(), 50);
 
     this.UpdateGeometry();
-    const clock = new THREE.Clock();
-    this.onBeforeRender = (
-      renderer: THREE.WebGLRenderer, scene: THREE.Scene,
-      camera: THREE.Camera, geometry: THREE.BufferGeometry,
-      material: THREE.Material, group: THREE.Group) => {
-      this.step(clock.getDelta());
-    };
+  }
+
+  public tick(t: Tick) {
+    this.step(t.deltaS);
   }
 
   AddParticle(position: THREE.Vector3, velocity: THREE.Vector3,

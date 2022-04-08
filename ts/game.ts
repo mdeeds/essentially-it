@@ -9,6 +9,7 @@ import { Motion } from "./motion";
 import { ParticleSystem } from "./particleSystem";
 import { S } from "./settings";
 import { TactileProvider } from "./tactileProvider";
+import { Tick, Ticker } from "./ticker";
 import { World } from "./world";
 
 export class Game {
@@ -32,7 +33,7 @@ export class Game {
     this.camera.position.set(0, 1.7, 0);
     this.camera.lookAt(0, 1.7, -2);
     this.camera.name = 'The Camera';
-    this.headMotion = new Motion();
+    this.headMotion = new Motion(this.camera);
     this.camera.add(this.headMotion);
     this.scene.add(this.camera);
 
@@ -45,10 +46,10 @@ export class Game {
 
     this.hands.push(
       new Hand('left', this.scene, this.renderer,
-        this.tactileProvider, particleSystem))
+        this.tactileProvider, particleSystem, this.camera))
     this.hands.push(
       new Hand('right', this.scene, this.renderer,
-        this.tactileProvider, particleSystem))
+        this.tactileProvider, particleSystem, this.camera))
     this.setUpKeyHandler();
     this.setUpTouchHandlers();
     switch (S.float('sh')) {
@@ -70,7 +71,7 @@ export class Game {
         if (this.lab === null) {
           this.lab = new Laboratory(
             this.audioCtx, this.tactileProvider,
-            [this.hands[0].motion, this.hands[1].motion]);
+            [this.hands[0].getMotion(), this.hands[1].getMotion()]);
           this.lab.position.set(0, 0, 0);
         }
         nextWorld = this.lab;
@@ -79,7 +80,7 @@ export class Game {
         if (this.conduit === null) {
           this.conduit = new ConduitStage(
             this.audioCtx,
-            [this.hands[0].motion, this.hands[1].motion]);
+            [this.hands[0].getMotion(), this.hands[1].getMotion()]);
           this.conduit.position.set(0, 0, 0);
         }
         nextWorld = this.conduit;
@@ -215,6 +216,17 @@ export class Game {
     return ray;
   }
 
+  private doTick(o: THREE.Object3D, t: Tick) {
+    if (!o.visible) {
+      return;
+    }
+    if (o['tick']) {
+      (o as any as Ticker).tick(t);
+    }
+    for (const child of o.children) {
+      this.doTick(child, t);
+    }
+  }
 
   private clock = new THREE.Clock(/*autostart=*/true);
   private animationLoop() {
@@ -223,6 +235,7 @@ export class Game {
     this.renderer.render(this.scene, this.camera);
     this.handleKeys();
     this.handleHeadMotion();
+    this.doTick(this.scene, new Tick(this.clock.elapsedTime, deltaS));
   }
 
   private setUpAnimation() {
