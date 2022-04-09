@@ -9,7 +9,6 @@ import { InstancedObject } from "./instancedObject";
 
 import { Knob, KnobTarget } from "./knob";
 import { KnobAction } from "./knobAction";
-import { SelectionSphere } from "./selectionSphere";
 
 export class Panel extends THREE.Object3D implements TactileSink {
   private static kKnobSpacingM = 0.18;
