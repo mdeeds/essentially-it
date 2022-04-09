@@ -7,7 +7,7 @@ import { Tick, Ticker } from "./ticker";
 
 export type Side = 'left' | 'right';
 
-export class Hand implements Ticker {
+export class Hand extends THREE.Object3D implements Ticker {
   readonly gamepad: Gamepad;
   private motion: Motion;
   private grip: THREE.Group;
@@ -17,6 +17,7 @@ export class Hand implements Ticker {
   constructor(readonly side: Side, private scene: THREE.Object3D,
     renderer: THREE.WebGLRenderer, private tactile: TactileProvider,
     private particleSystem: ParticleSystem, camera: THREE.Object3D) {
+    super();
     this.motion = new Motion(camera);
     const index = (side == 'left') ? 0 : 1;
     this.grip = renderer.xr.getControllerGrip(index);
@@ -45,6 +46,7 @@ export class Hand implements Ticker {
       .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, -10, 0)]);
     this.line = new THREE.Line(lineGeometry, lineMaterial);
     this.grip.add(this.line);
+    this.grip.add(this);
     this.scene.add(this.grip);
   }
 
@@ -81,9 +83,12 @@ export class Hand implements Ticker {
     this.v.sub(this.p);
     this.ray.set(this.p, this.v);
     if (this.penDown) {
-      // this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
-      //   this.pink);
+      this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+        this.pink);
       this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
+    } else {
+      this.v.set(0, 0.1, 0);
+      this.particleSystem.AddParticle(this.ray.origin, this.v, this.blue);
     }
   }
 }

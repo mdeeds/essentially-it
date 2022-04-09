@@ -1929,7 +1929,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Hand = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const motion_1 = __webpack_require__(341);
-class Hand {
+class Hand extends THREE.Object3D {
     side;
     scene;
     tactile;
@@ -1940,6 +1940,7 @@ class Hand {
     line;
     penDown;
     constructor(side, scene, renderer, tactile, particleSystem, camera) {
+        super();
         this.side = side;
         this.scene = scene;
         this.tactile = tactile;
@@ -1968,6 +1969,7 @@ class Hand {
             .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, -10, 0)]);
         this.line = new THREE.Line(lineGeometry, lineMaterial);
         this.grip.add(this.line);
+        this.grip.add(this);
         this.scene.add(this.grip);
     }
     ray = new THREE.Ray();
@@ -1999,9 +2001,12 @@ class Hand {
         this.v.sub(this.p);
         this.ray.set(this.p, this.v);
         if (this.penDown) {
-            // this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
-            //   this.pink);
+            this.particleSystem.AddParticle(this.ray.origin, this.ray.direction, this.pink);
             this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
+        }
+        else {
+            this.v.set(0, 0.1, 0);
+            this.particleSystem.AddParticle(this.ray.origin, this.v, this.blue);
         }
     }
 }
@@ -2520,14 +2525,21 @@ class Motion extends THREE.Object3D {
         { // X
             const lineMaterial = new THREE.LineBasicMaterial({ color: '#f00' });
             const lineGeometry = new THREE.BufferGeometry()
-                .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0.2, 0, 0)]);
+                .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0.1, 0, 0)]);
             const line = new THREE.Line(lineGeometry, lineMaterial);
             this.add(line);
         }
         { // Y
             const lineMaterial = new THREE.LineBasicMaterial({ color: '#0f0' });
             const lineGeometry = new THREE.BufferGeometry()
-                .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0.2, 0)]);
+                .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0.1, 0)]);
+            const line = new THREE.Line(lineGeometry, lineMaterial);
+            this.add(line);
+        }
+        { // Z
+            const lineMaterial = new THREE.LineBasicMaterial({ color: '#00f' });
+            const lineGeometry = new THREE.BufferGeometry()
+                .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0, 0.1)]);
             const line = new THREE.Line(lineGeometry, lineMaterial);
             this.add(line);
         }
