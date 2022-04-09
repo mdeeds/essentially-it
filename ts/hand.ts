@@ -83,12 +83,12 @@ export class Hand extends THREE.Object3D implements Ticker {
     this.v.sub(this.p);
     this.ray.set(this.p, this.v);
     if (this.penDown) {
-      this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
-        this.pink);
+      // this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+      //   this.pink);
       this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
     } else {
-      this.v.set(0, 0.1, 0);
-      this.particleSystem.AddParticle(this.ray.origin, this.v, this.blue);
+      // this.v.set(0, 0.1, 0);
+      // this.particleSystem.AddParticle(this.ray.origin, this.v, this.blue);
     }
   }
 }

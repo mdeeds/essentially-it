@@ -411,21 +411,33 @@ class KnobAction extends THREE.Object3D {
     motions;
     static blandColor = new THREE.Color('#888');
     highlight;
-    constructor(knob, motions) {
+    knob = null;
+    constructor(motions, color) {
         super();
         this.motions = motions;
-        this.highlight = new selectionSphere_1.SelectionSphere(1, new THREE.Color('yellow'));
+        this.highlight = new selectionSphere_1.SelectionSphere(1, color);
         this.add(this.highlight);
     }
     p = new THREE.Vector3();
     p2 = new THREE.Vector3();
     tick(t) {
-        this.highlight.setColor(KnobAction.blandColor);
+        if (!this.knob) {
+            return;
+        }
         for (let i = 0; i < this.motions.length; ++i) {
             const m = this.motions[i];
             if (m.getDistanceToCamera() > 0.4) {
+                if (m.orientX.y > 0.2) {
+                    this.knob.change(m.velocity.length());
+                }
+                else if (m.orientX.y < -0.2) {
+                    this.knob.change(-m.velocity.length());
+                }
             }
         }
+    }
+    setKnob(knob) {
+        this.knob = knob;
     }
 }
 exports.KnobAction = KnobAction;
@@ -465,7 +477,6 @@ const util_1 = __webpack_require__(891);
 const instancedObject_1 = __webpack_require__(425);
 const knob_1 = __webpack_require__(424);
 const knobAction_1 = __webpack_require__(63);
-const selectionSphere_1 = __webpack_require__(107);
 class Panel extends THREE.Object3D {
     knobs;
     knobsHigh;
@@ -485,7 +496,7 @@ class Panel extends THREE.Object3D {
         this.buildPanel();
         this.tactile.addSink(this);
         for (const c of Panel.pointColors) {
-            const highlight = new selectionSphere_1.SelectionSphere(1, c);
+            const highlight = new knobAction_1.KnobAction(motions, c);
             highlight.visible = false;
             this.add(highlight);
             this.highlights.push(highlight);
@@ -498,6 +509,7 @@ class Panel extends THREE.Object3D {
     m = new THREE.Matrix4();
     p2 = new THREE.Vector3();
     start(ray, id) {
+        let successful = false;
         for (let i = 0; i < this.instancedKnobs.getInstanceCount(); ++i) {
             this.p.set(0, 0, 0);
             this.instancedKnobs.getMatrixAt(i, this.m);
@@ -510,7 +522,13 @@ class Panel extends THREE.Object3D {
                 this.instancedKnobs.getMatrixAt(i, this.m);
                 this.highlights[id].position.set(0, 0, 0);
                 this.highlights[id].position.applyMatrix4(this.m);
+                this.highlights[id].setKnob(this.knobs[i]);
+                successful = true;
             }
+        }
+        if (!successful) {
+            this.highlights[id].visible = false;
+            this.highlights[id].setKnob(null);
         }
     }
     move(ray, id) { }
@@ -576,14 +594,6 @@ class Panel extends THREE.Object3D {
         }
         console.log('Panel styled');
         panelTexture.needsUpdate = true;
-    }
-    selectKnob(i) {
-        const knob = this.knobs[i];
-        const selection = new knobAction_1.KnobAction(knob, this.motions);
-        this.instancedKnobs.getMatrixAt(i, selection.matrix);
-        selection.position.applyMatrix4(selection.matrix);
-        selection.name = 'Selection';
-        this.add(selection);
     }
     async buildKnobs() {
         console.log('Build Knobs');
@@ -2001,12 +2011,13 @@ class Hand extends THREE.Object3D {
         this.v.sub(this.p);
         this.ray.set(this.p, this.v);
         if (this.penDown) {
-            this.particleSystem.AddParticle(this.ray.origin, this.ray.direction, this.pink);
+            // this.particleSystem.AddParticle(this.ray.origin, this.ray.direction,
+            //   this.pink);
             this.tactile.move(this.ray, this.side == 'left' ? 0 : 1);
         }
         else {
-            this.v.set(0, 0.1, 0);
-            this.particleSystem.AddParticle(this.ray.origin, this.v, this.blue);
+            // this.v.set(0, 0.1, 0);
+            // this.particleSystem.AddParticle(this.ray.origin, this.v, this.blue);
         }
     }
 }

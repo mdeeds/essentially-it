@@ -14,7 +14,7 @@ export class Panel extends THREE.Object3D implements TactileSink {
   private static kKnobSpacingM = 0.18;
   private knobsWide: number;
   private instancedKnobs: InstancedObject;
-  private highlights: SelectionSphere[] = [];
+  private highlights: KnobAction[] = [];
   constructor(private knobs: Knob[], private knobsHigh: number,
     private motions: Motion[], private tactile: TactileProvider) {
     super();
@@ -22,7 +22,7 @@ export class Panel extends THREE.Object3D implements TactileSink {
     this.buildPanel();
     this.tactile.addSink(this);
     for (const c of Panel.pointColors) {
-      const highlight = new SelectionSphere(1, c);
+      const highlight = new KnobAction(motions, c);
       highlight.visible = false;
       this.add(highlight);
       this.highlights.push(highlight);
@@ -36,6 +36,7 @@ export class Panel extends THREE.Object3D implements TactileSink {
   private m = new THREE.Matrix4();
   private p2 = new THREE.Vector3();
   start(ray: THREE.Ray, id: number): void {
+    let successful = false;
     for (let i = 0; i < this.instancedKnobs.getInstanceCount(); ++i) {
       this.p.set(0, 0, 0);
       this.instancedKnobs.getMatrixAt(i, this.m);
@@ -48,7 +49,13 @@ export class Panel extends THREE.Object3D implements TactileSink {
         this.instancedKnobs.getMatrixAt(i, this.m);
         this.highlights[id].position.set(0, 0, 0);
         this.highlights[id].position.applyMatrix4(this.m);
+        this.highlights[id].setKnob(this.knobs[i]);
+        successful = true;
       }
+    }
+    if (!successful) {
+      this.highlights[id].visible = false;
+      this.highlights[id].setKnob(null);
     }
   }
   move(ray: THREE.Ray, id: number): void { }
@@ -127,15 +134,6 @@ export class Panel extends THREE.Object3D implements TactileSink {
     }
     console.log('Panel styled');
     panelTexture.needsUpdate = true;
-  }
-
-  private selectKnob(i: number) {
-    const knob = this.knobs[i];
-    const selection = new KnobAction(knob, this.motions);
-    this.instancedKnobs.getMatrixAt(i, selection.matrix);
-    selection.position.applyMatrix4(selection.matrix);
-    selection.name = 'Selection';
-    this.add(selection);
   }
 
   private async buildKnobs() {
