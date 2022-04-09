@@ -105,9 +105,17 @@ export class Game {
   private logScene(o: THREE.Object3D, padding: string) {
     const p = new THREE.Vector3();
     o.getWorldPosition(p);
-    console.log(`${padding}${o.name} @ ` +
+
+    let ch = '@';
+    if (o instanceof THREE.Scene) {
+      ch = 'S';
+    } else if (o instanceof THREE.Mesh) {
+      ch = 'M';
+    }
+
+    console.log(`${padding}${o.name} ${ch} ` +
       `${o.position.x.toFixed(3)},${o.position.y.toFixed(3)},${o.position.z.toFixed(3)} ` +
-      `s:${o.scale.length()}`);
+      `s:${o.scale.x}`);
     // `w:${p.x.toFixed(3)},${p.y.toFixed(3)},${p.z.toFixed(3)}`);
     for (const c of o.children) {
       this.logScene(c, padding + ' ');
