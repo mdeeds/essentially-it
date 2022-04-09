@@ -404,7 +404,9 @@ const THREE = __importStar(__webpack_require__(5578));
 const selectionSphere_1 = __webpack_require__(7107);
 class KnobAction extends THREE.Object3D {
     motions;
-    static pointColor = new THREE.Color('#f39');
+    static pointColors = [
+        new THREE.Color('#f39'), new THREE.Color('#93f')
+    ];
     static blandColor = new THREE.Color('#888');
     highlight;
     constructor(knob, motions) {
@@ -413,11 +415,19 @@ class KnobAction extends THREE.Object3D {
         this.highlight = new selectionSphere_1.SelectionSphere(1, new THREE.Color('yellow'));
         this.add(this.highlight);
     }
+    p = new THREE.Vector3();
+    p2 = new THREE.Vector3();
     tick(t) {
         this.highlight.setColor(KnobAction.blandColor);
-        for (const m of this.motions) {
-            if (m.getDistanceToCamera() > 0.5) {
-                this.highlight.setColor(KnobAction.pointColor);
+        for (let i = 0; i < this.motions.length; ++i) {
+            const m = this.motions[i];
+            if (m.getDistanceToCamera() > 0.4) {
+                this.getWorldPosition(this.p);
+                m.rayZ.closestPointToPoint(this.p, this.p2);
+                this.p2.sub(this.p);
+                if (this.p2.length() < 0.1) {
+                    this.highlight.setColor(KnobAction.pointColors[i]);
+                }
             }
         }
     }
@@ -2584,6 +2594,7 @@ class Motion extends THREE.Object3D {
     orientX = new THREE.Vector3();
     orientY = new THREE.Vector3();
     orientZ = new THREE.Vector3();
+    rayZ = new THREE.Ray();
     distanceToCamera = 0;
     v = new THREE.Vector3();
     constructor(camera) {
@@ -2593,21 +2604,28 @@ class Motion extends THREE.Object3D {
     tick(t) {
         this.updateMatrixWorld();
         this.p.set(1, 0, 0);
-        this.p.applyMatrix4(this.matrixWorld);
+        this.p.applyMatrix3(this.normalMatrix);
         this.orientX.copy(this.p);
         this.p.set(0, 1, 0);
-        this.p.applyMatrix4(this.matrixWorld);
+        this.p.applyMatrix3(this.normalMatrix);
         this.orientY.copy(this.p);
         this.p.set(0, 0, 1);
-        this.p.applyMatrix4(this.matrixWorld);
+        this.p.applyMatrix3(this.normalMatrix);
+        ;
         this.orientZ.copy(this.p);
+        this.rayZ.direction.copy(this.orientZ);
         this.getWorldPosition(this.p);
         this.p.sub(this.camera.position);
+        this.p.y = 0; // Only consider distance on the X-Z plane.
         this.distanceToCamera = this.p.length();
         this.getWorldPosition(this.p);
-        this.v.copy(this.p);
-        this.v.sub(this.prevX);
-        this.velocity.lerp(this.v, 0.2);
+        this.rayZ.origin.copy(this.p);
+        if (t.deltaS > 0) {
+            this.v.copy(this.p);
+            this.v.sub(this.prevX);
+            this.v.multiplyScalar(1 / t.deltaS);
+            this.velocity.lerp(this.v, 0.2);
+        }
         this.prevX.copy(this.p);
     }
     getDistanceToCamera() {
