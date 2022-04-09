@@ -1,6 +1,5 @@
 import { Game } from "./game";
 import { S } from "./settings";
-import { HardWordle } from "./hardWordle";
 
 async function getAudioContext(): Promise<AudioContext> {
   const c = document.createElement('div');
@@ -19,11 +18,7 @@ async function getAudioContext(): Promise<AudioContext> {
 }
 
 async function go() {
-  if (S.float('wd')) {
-    new HardWordle();
-  } else {
-    new Game(await getAudioContext());
-  }
+  new Game(await getAudioContext());
 }
 
 go();
