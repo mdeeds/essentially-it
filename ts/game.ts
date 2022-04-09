@@ -80,7 +80,8 @@ export class Game {
         if (this.conduit === null) {
           this.conduit = new ConduitStage(
             this.audioCtx,
-            [this.hands[0].getMotion(), this.hands[1].getMotion()]);
+            [this.hands[0].getMotion(), this.hands[1].getMotion()],
+            this.tactileProvider);
           this.conduit.position.set(0, 0, 0);
         }
         nextWorld = this.conduit;

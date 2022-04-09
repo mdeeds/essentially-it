@@ -2,20 +2,60 @@ import * as THREE from "three";
 import { Matrix4 } from "three";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Motion } from "../motion";
+import { TactileProvider, TactileSink } from "../tactileProvider";
+import { Util } from "../util";
 import { InstancedObject } from "./instancedObject";
 
 import { Knob, KnobTarget } from "./knob";
 import { KnobAction } from "./knobAction";
+import { SelectionSphere } from "./selectionSphere";
 
-export class Panel extends THREE.Object3D {
+export class Panel extends THREE.Object3D implements TactileSink {
   private static kKnobSpacingM = 0.18;
   private knobsWide: number;
   private instancedKnobs: InstancedObject;
+  private highlights: SelectionSphere[] = [];
   constructor(private knobs: Knob[], private knobsHigh: number,
-    private motions: Motion[]) {
+    private motions: Motion[], private tactile: TactileProvider) {
     super();
     this.name = 'Panel';
     this.buildPanel();
+    this.tactile.addSink(this);
+    for (const c of Panel.pointColors) {
+      const highlight = new SelectionSphere(1, c);
+      highlight.visible = false;
+      this.add(highlight);
+      this.highlights.push(highlight);
+    }
+  }
+
+  private static pointColors = [
+    new THREE.Color('#f39'), new THREE.Color('#93f')];
+
+  private p = new THREE.Vector3();
+  private m = new THREE.Matrix4();
+  private p2 = new THREE.Vector3();
+  start(ray: THREE.Ray, id: number): void {
+    for (let i = 0; i < this.instancedKnobs.getInstanceCount(); ++i) {
+      this.p.set(0, 0, 0);
+      this.instancedKnobs.getMatrixAt(i, this.m);
+      this.p.applyMatrix4(this.m);
+      this.p.applyMatrix4(this.instancedKnobs.matrixWorld);
+      ray.closestPointToPoint(this.p, this.p2);
+      this.p2.sub(this.p);
+      if (this.p2.length() < 0.1) {
+        this.highlights[id].visible = true;
+        this.instancedKnobs.getMatrixAt(i, this.m);
+        this.highlights[id].position.set(0, 0, 0);
+        this.highlights[id].position.applyMatrix4(this.m);
+      }
+    }
+  }
+  move(ray: THREE.Ray, id: number): void { }
+  end(id: number): void { }
+
+  isEnabled(): boolean {
+    return Util.isModelVisible(this);
   }
 
   private buildPanel() {
@@ -114,8 +154,6 @@ export class Panel extends THREE.Object3D {
       const knob = this.knobs[i];
       knob.addTarget(KnobTarget.fromInstancedObject(this.instancedKnobs, i));
     }
-    this.selectKnob(0);
-    this.selectKnob(3);
   }
 
   private async loadKnob(): Promise<THREE.Object3D> {

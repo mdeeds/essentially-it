@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { DirectionalLight } from "three";
 import { Motion } from "../motion";
+import { TactileProvider } from "../tactileProvider";
 import { World } from "../world";
 import { Knob } from "./knob";
 import { Panel } from "./panel";
@@ -9,7 +10,8 @@ import { Synth } from "./synth";
 
 export class ConduitStage extends THREE.Object3D implements World {
   private synth: Synth;
-  constructor(audioCtx: AudioContext, private motions: Motion[]) {
+  constructor(audioCtx: AudioContext, private motions: Motion[],
+    tactile: TactileProvider) {
     super();
     const sky = new THREE.Mesh(
       new THREE.IcosahedronBufferGeometry(20, 1),
@@ -26,7 +28,7 @@ export class ConduitStage extends THREE.Object3D implements World {
 
     this.buildSynth(audioCtx);
     const knobs = this.synth.getKnobs();
-    const panel = new Panel(knobs, 2, motions);
+    const panel = new Panel(knobs, 2, motions, tactile);
     panel.position.set(1, 2.0, 0);
     panel.rotateY(-Math.PI / 2);
     this.add(panel);

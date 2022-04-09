@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { TactileProvider, TactileSink } from "./tactileProvider";
+import { Util } from "./util";
 
 export type ButtonCallback = () => void;
 
@@ -12,7 +13,7 @@ export class Button implements TactileSink {
   }
 
   isEnabled(): boolean {
-    return this.modelIsVisible(this.model);
+    return Util.isModelVisible(this.model);
   }
 
   private p = new THREE.Vector3();
@@ -28,17 +29,4 @@ export class Button implements TactileSink {
   }
   move(ray: THREE.Ray, id: number): void { }
   end(id: number): void { }
-
-  private modelIsVisible(o: THREE.Object3D) {
-    while (o !== null && o !== undefined) {
-      if (!o.visible) {
-        return false;
-      }
-      if (o instanceof THREE.Scene) {
-        return true;
-      }
-      o = o.parent;
-    }
-    return false;
-  }
 }

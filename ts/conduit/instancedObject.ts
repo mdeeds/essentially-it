@@ -61,6 +61,7 @@ export class InstancedObject extends THREE.Object3D {
       m.setMatrixAt(i, matrix);
       m.instanceMatrix.needsUpdate = true;
     }
+    this.instanceCount = Math.max(this.instanceCount, i + 1);
   }
   public getMatrixAt(i: number, out: THREE.Matrix4) {
     this.meshes[0].getMatrixAt(i, out);

@@ -5,8 +5,6 @@ import { Knob } from "./knob";
 import { SelectionSphere } from "./selectionSphere";
 
 export class KnobAction extends THREE.Object3D implements Ticker {
-  private static pointColors = [
-    new THREE.Color('#f39'), new THREE.Color('#93f')];
   private static blandColor = new THREE.Color('#888');
   private highlight: SelectionSphere;
 
@@ -23,12 +21,6 @@ export class KnobAction extends THREE.Object3D implements Ticker {
     for (let i = 0; i < this.motions.length; ++i) {
       const m = this.motions[i];
       if (m.getDistanceToCamera() > 0.4) {
-        this.getWorldPosition(this.p);
-        m.rayZ.closestPointToPoint(this.p, this.p2);
-        this.p2.sub(this.p);
-        if (this.p2.length() < 0.1) {
-          this.highlight.setColor(KnobAction.pointColors[i]);
-        }
       }
     }
   }
