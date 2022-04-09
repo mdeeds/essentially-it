@@ -19,6 +19,7 @@ export class Laboratory extends THREE.Object3D implements World {
   // private particles: ParticleSystem;
   private floorMaterial: FloorMaterial;
   private doneCallback: (next: string) => void;
+  private tactile: TactileInterface;
 
   constructor(private audioCtx: AudioContext,
     private tactileProvider: TactileProvider,
@@ -70,12 +71,13 @@ export class Laboratory extends THREE.Object3D implements World {
     this.loadPlatform();
     const projection = new ProjectionCylinder(this.whiteBoard, 1.5);
 
-    const tactile = new TactileInterface(
+    this.tactile = new TactileInterface(
       this.whiteBoard, projection, this, audioCtx, motions);
-    tactileProvider.addSink(tactile);
+    tactileProvider.addSink(this.tactile);
   }
 
   public run(): Promise<string> {
+    this.tactile.enabled = true;
     return new Promise<string>((resolve, reject) => {
       this.doneCallback = resolve;
     });
@@ -128,7 +130,10 @@ export class Laboratory extends THREE.Object3D implements World {
         console.log('not found.');
       }
       new Button(buttonObject, this.tactileProvider,
-        () => { this.doneCallback(null) });
+        () => {
+          this.tactile.enabled = false;
+          this.doneCallback(null)
+        });
     });
   }
 }

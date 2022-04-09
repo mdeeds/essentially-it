@@ -11,6 +11,10 @@ export class Button implements TactileSink {
     tactileProvider.addSink(this);
   }
 
+  isEnabled(): boolean {
+    return this.modelIsVisible(this.model);
+  }
+
   private p = new THREE.Vector3();
   start(ray: THREE.Ray, id: number): void {
     this.model.getWorldPosition(this.p);
@@ -24,4 +28,17 @@ export class Button implements TactileSink {
   }
   move(ray: THREE.Ray, id: number): void { }
   end(id: number): void { }
+
+  private modelIsVisible(o: THREE.Object3D) {
+    while (o !== null && o !== undefined) {
+      if (!o.visible) {
+        return false;
+      }
+      if (o instanceof THREE.Scene) {
+        return true;
+      }
+      o = o.parent;
+    }
+    return false;
+  }
 }

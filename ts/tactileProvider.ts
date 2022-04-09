@@ -4,6 +4,7 @@ export interface TactileSink {
   start(ray: THREE.Ray, id: number): void;
   move(ray: THREE.Ray, id: number): void;
   end(id: number): void;
+  isEnabled(): boolean;
 }
 
 export class TactileProvider {
@@ -15,19 +16,25 @@ export class TactileProvider {
 
   start(ray: THREE.Ray, id: number): void {
     for (const sink of this.sinks) {
-      sink.start(ray, id);
+      if (sink.isEnabled()) {
+        sink.start(ray, id);
+      }
     }
   }
 
   move(ray: THREE.Ray, id: number): void {
     for (const sink of this.sinks) {
-      sink.move(ray, id);
+      if (sink.isEnabled()) {
+        sink.move(ray, id);
+      }
     }
   }
 
   end(id: number): void {
     for (const sink of this.sinks) {
-      sink.end(id);
+      if (sink.isEnabled()) {
+        sink.end(id);
+      }
     }
   }
 }

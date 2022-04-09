@@ -12,6 +12,7 @@ export class TactileInterface implements TactileSink {
   private handTool = new Map<number, Tool>();
 
   private toolBelt: ToolBelt = null;
+  public enabled = true;
 
   constructor(private paint: PaintCylinder,
     private projection: ProjectionCylinder,
@@ -24,6 +25,10 @@ export class TactileInterface implements TactileSink {
 
     this.handTool.set(0, this.toolBelt.getTool(0));
     this.handTool.set(1, this.toolBelt.getTool(1));
+  }
+
+  isEnabled(): boolean {
+    return this.enabled;
   }
 
   private drawing: boolean = false;
