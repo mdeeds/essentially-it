@@ -17,14 +17,14 @@ export class Panel extends THREE.Object3D implements TactileSink {
   private highlights: KnobAction[] = [];
   constructor(private knobs: Knob[], private knobsHigh: number,
     private motions: Motion[], private tactile: TactileProvider,
-    particles: ParticleSystem) {
+    particles: ParticleSystem, private keySet: Set<string>) {
     super();
     this.name = 'Panel';
     this.buildPanel();
     this.tactile.addSink(this);
     for (const c of Panel.pointColors) {
       const highlight = new KnobAction(
-        motions[this.highlights.length], c, particles);
+        motions[this.highlights.length], c, particles, keySet);
       highlight.visible = false;
       this.add(highlight);
       this.highlights.push(highlight);

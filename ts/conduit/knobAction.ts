@@ -12,7 +12,7 @@ export class KnobAction extends THREE.Object3D implements Ticker {
   private knob: Knob = null;
 
   constructor(private motion: Motion, color: THREE.Color,
-    private particles: ParticleSystem) {
+    private particles: ParticleSystem, private keySet: Set<String>) {
     super();
     this.highlight = new SelectionSphere(1, color);
     this.add(this.highlight);
@@ -26,14 +26,23 @@ export class KnobAction extends THREE.Object3D implements Ticker {
     }
     let c = KnobAction.blandColor;
     const m = this.motion;
+    let delta = 0.0;
     if (m.getDistanceToCamera() > 0.4) {
       c = KnobAction.brightColor;
       if (m.orientX.y > 0.2) {
-        this.knob.change(m.velocity.length());
+        delta = m.velocity.length() * t.deltaS;
       } else if (
         m.orientX.y < -0.2) {
-        this.knob.change(-m.velocity.length());
+        delta = -m.velocity.length() * t.deltaS;
       }
+    }
+    if (this.keySet.has('Equal')) {
+      delta = t.deltaS;
+    } else if (this.keySet.has('Minus')) {
+      delta = -t.deltaS;
+    }
+    if (delta != 0.0) {
+      this.knob.change(delta);
     }
     this.particles.AddParticle(
       m.p, m.orientX, c);

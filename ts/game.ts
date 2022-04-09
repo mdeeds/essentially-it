@@ -80,7 +80,7 @@ export class Game {
           this.conduit = new ConduitStage(
             this.audioCtx,
             [this.hands[0].getMotion(), this.hands[1].getMotion()],
-            this.tactileProvider, this.particleSystem);
+            this.tactileProvider, this.particleSystem, this.keysDown);
           this.conduit.position.set(0, 0, 0);
         }
         nextWorld = this.conduit;

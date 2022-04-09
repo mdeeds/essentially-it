@@ -20,13 +20,13 @@ export class ADSR {
     private transferFunction: TransferFunction = ADSR.Identity,
     private exponential = false) {
     this.attackKnob.addTarget(new KnobTarget(
-      (x: number) => { this.attackS = x; }))
+      (p: number, x: number) => { this.attackS = x; }))
     this.decayKnob.addTarget(new KnobTarget(
-      (x: number) => { this.decayS = x; }))
+      (p: number, x: number) => { this.decayS = x; }))
     this.sustainKnob.addTarget(new KnobTarget(
-      (x: number) => { this.sustainS = x; }))
+      (p: number, x: number) => { this.sustainS = x; }))
     this.releaseKnob.addTarget(new KnobTarget(
-      (x: number) => { this.releaseS = x; }))
+      (p: number, x: number) => { this.releaseS = x; }))
   }
 
   private linearTrigger(): number {

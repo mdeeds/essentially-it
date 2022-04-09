@@ -6,13 +6,16 @@ import { Synth } from "./synth";
 export class SawSynth implements Synth {
   readonly midiPitch = new Knob('MIDI', 0, 127, 43);
 
-  readonly envPitch = new Knob('Freq', 0.0, 1.0, 0.0);
+  readonly envPitch = new Knob('Freq', 20, 2000, 200);
   public e2Attack: Knob;
   public e2Release: Knob;
   readonly envFilter = new Knob('Freq', 0.0, 1.0, 0.0);
   readonly resonance = new Knob('Res', 0, 5, 0);
   public e1Attack: Knob;
   public e1Release: Knob;
+
+  private env1: AR;
+  private env2: AR;
 
   private frequency = 110;  // Hz
   constructor(private audioCtx: AudioContext) {
@@ -24,17 +27,21 @@ export class SawSynth implements Synth {
       return this.frequency * Math.pow(2, x);
     };
     const freqMult = new MultiParam([osc.frequency, bpf.frequency]);
-    const env2 = new AR(this.audioCtx, osc.frequency, arBias, true);
-    this.e2Attack = env2.attackKnob;
-    this.e2Release = env2.releaseKnob;
+    this.env2 = new AR(this.audioCtx, osc.frequency, arBias, true);
+    this.e2Attack = this.env2.attackKnob;
+    this.e2Release = this.env2.releaseKnob;
+    this.envPitch.addTarget(new KnobTarget((p: number, x: number) => {
+      freqMult.exponentialRampToValueAtTime(
+        x, this.audioCtx.currentTime + 0.05);
+    }));
 
     const vca = this.makeVca();
     const volume = this.makeVca();
-    const env1 = new AR(this.audioCtx, vca.gain);
-    this.e1Attack = env1.attackKnob;
-    this.e1Release = env1.releaseKnob;
+    this.env1 = new AR(this.audioCtx, vca.gain);
+    this.e1Attack = this.env1.attackKnob;
+    this.e1Release = this.env1.releaseKnob;
 
-    this.midiPitch.addTarget(new KnobTarget((x) => {
+    this.midiPitch.addTarget(new KnobTarget((p: number, x: number) => {
       const hz = 440 * Math.pow(2, (x - 69) / 12);
       this.frequency = hz;
     }));
@@ -51,6 +58,11 @@ export class SawSynth implements Synth {
       this.envFilter, this.resonance,
       this.e2Attack, this.e2Release,
       this.envPitch,]
+  }
+
+  trigger(): void {
+    this.env1.trigger();
+    this.env2.trigger();
   }
 
   private makeOsc(): OscillatorNode {

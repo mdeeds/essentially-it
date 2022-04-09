@@ -16,9 +16,9 @@ export class AR {
     private transferFunction: TransferFunction = AR.Identity,
     private exponential = false) {
     this.attackKnob.addTarget(new KnobTarget(
-      (x: number) => { this.attackS = x; }))
+      (p: number, x: number) => { this.attackS = x; }))
     this.releaseKnob.addTarget(new KnobTarget(
-      (x: number) => { this.releaseS = x; }))
+      (p: number, x: number) => { this.releaseS = x; }))
     this.param.setValueAtTime(this.transferFunction(0), audioCtx.currentTime);
   }
 
