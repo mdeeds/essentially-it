@@ -534,6 +534,7 @@ class Panel extends THREE.Object3D {
             this.highlights[id].visible = false;
             this.highlights[id].setKnob(null);
         }
+        console.log(this.normalMatrix.elements);
     }
     move(ray, id) { }
     end(id) { }
@@ -2559,24 +2560,17 @@ class Motion extends THREE.Object3D {
             this.add(line);
         }
     }
-    normalMatrixWorld = new THREE.Matrix3();
     tick(t) {
-        this.normalMatrixWorld.identity();
-        let o = this;
-        while (o) {
-            this.normalMatrixWorld.multiply(o.normalMatrix);
-            o = o.parent;
-        }
+        this.normalMatrix.getNormalMatrix(this.matrixWorld);
         this.updateMatrixWorld();
         this.p.set(1, 0, 0);
-        this.p.applyMatrix3(this.normalMatrixWorld);
+        this.p.applyMatrix3(this.normalMatrix);
         this.orientX.copy(this.p);
         this.p.set(0, 1, 0);
-        this.p.applyMatrix3(this.normalMatrixWorld);
+        this.p.applyMatrix3(this.normalMatrix);
         this.orientY.copy(this.p);
         this.p.set(0, 0, 1);
-        this.p.applyMatrix3(this.normalMatrixWorld);
-        ;
+        this.p.applyMatrix3(this.normalMatrix);
         this.orientZ.copy(this.p);
         this.rayZ.direction.copy(this.orientZ);
         this.getWorldPosition(this.p);

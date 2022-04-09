@@ -59,6 +59,7 @@ export class Panel extends THREE.Object3D implements TactileSink {
       this.highlights[id].visible = false;
       this.highlights[id].setKnob(null);
     }
+    console.log(this.normalMatrix.elements);
   }
   move(ray: THREE.Ray, id: number): void { }
   end(id: number): void { }

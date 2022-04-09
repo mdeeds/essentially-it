@@ -37,23 +37,17 @@ export class Motion extends THREE.Object3D implements Ticker {
     }
   }
 
-  private normalMatrixWorld = new THREE.Matrix3();
   tick(t: Tick) {
-    this.normalMatrixWorld.identity();
-    let o: THREE.Object3D = this;
-    while (o) {
-      this.normalMatrixWorld.multiply(o.normalMatrix);
-      o = o.parent;
-    }
+    this.normalMatrix.getNormalMatrix(this.matrixWorld);
     this.updateMatrixWorld();
     this.p.set(1, 0, 0);
-    this.p.applyMatrix3(this.normalMatrixWorld);
+    this.p.applyMatrix3(this.normalMatrix);
     this.orientX.copy(this.p);
     this.p.set(0, 1, 0);
-    this.p.applyMatrix3(this.normalMatrixWorld);
+    this.p.applyMatrix3(this.normalMatrix);
     this.orientY.copy(this.p);
     this.p.set(0, 0, 1);
-    this.p.applyMatrix3(this.normalMatrixWorld);;
+    this.p.applyMatrix3(this.normalMatrix);
     this.orientZ.copy(this.p);
     this.rayZ.direction.copy(this.orientZ);
 
