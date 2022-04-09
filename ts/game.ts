@@ -21,6 +21,7 @@ export class Game {
   private headMotion: Motion;
 
   private tactileProvider = new TactileProvider();
+  private particleSystem = new ParticleSystem();
 
   constructor(private audioCtx: AudioContext) {
     this.scene = new THREE.Scene();
@@ -40,16 +41,14 @@ export class Game {
     this.setUpRenderer();
 
     this.setUpAnimation();
-
-    const particleSystem = new ParticleSystem();
-    this.scene.add(particleSystem);
+    this.scene.add(this.particleSystem);
 
     this.hands.push(
       new Hand('left', this.scene, this.renderer,
-        this.tactileProvider, particleSystem, this.camera))
+        this.tactileProvider, this.particleSystem, this.camera))
     this.hands.push(
       new Hand('right', this.scene, this.renderer,
-        this.tactileProvider, particleSystem, this.camera))
+        this.tactileProvider, this.particleSystem, this.camera))
     this.setUpKeyHandler();
     this.setUpTouchHandlers();
     switch (S.float('sh')) {
@@ -81,7 +80,7 @@ export class Game {
           this.conduit = new ConduitStage(
             this.audioCtx,
             [this.hands[0].getMotion(), this.hands[1].getMotion()],
-            this.tactileProvider);
+            this.tactileProvider, this.particleSystem);
           this.conduit.position.set(0, 0, 0);
         }
         nextWorld = this.conduit;

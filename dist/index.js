@@ -408,13 +408,16 @@ exports.KnobAction = void 0;
 const THREE = __importStar(__webpack_require__(578));
 const selectionSphere_1 = __webpack_require__(107);
 class KnobAction extends THREE.Object3D {
-    motions;
+    motion;
+    particles;
     static blandColor = new THREE.Color('#888');
+    static brightColor = new THREE.Color('#f0f');
     highlight;
     knob = null;
-    constructor(motions, color) {
+    constructor(motion, color, particles) {
         super();
-        this.motions = motions;
+        this.motion = motion;
+        this.particles = particles;
         this.highlight = new selectionSphere_1.SelectionSphere(1, color);
         this.add(this.highlight);
     }
@@ -424,17 +427,18 @@ class KnobAction extends THREE.Object3D {
         if (!this.knob) {
             return;
         }
-        for (let i = 0; i < this.motions.length; ++i) {
-            const m = this.motions[i];
-            if (m.getDistanceToCamera() > 0.4) {
-                if (m.orientX.y > 0.2) {
-                    this.knob.change(m.velocity.length());
-                }
-                else if (m.orientX.y < -0.2) {
-                    this.knob.change(-m.velocity.length());
-                }
+        let c = KnobAction.blandColor;
+        const m = this.motion;
+        if (m.getDistanceToCamera() > 0.4) {
+            c = KnobAction.brightColor;
+            if (m.orientX.y > 0.2) {
+                this.knob.change(m.velocity.length());
+            }
+            else if (m.orientX.y < -0.2) {
+                this.knob.change(-m.velocity.length());
             }
         }
+        this.particles.AddParticle(m.p, m.orientX, c);
     }
     setKnob(knob) {
         this.knob = knob;
@@ -486,7 +490,7 @@ class Panel extends THREE.Object3D {
     knobsWide;
     instancedKnobs;
     highlights = [];
-    constructor(knobs, knobsHigh, motions, tactile) {
+    constructor(knobs, knobsHigh, motions, tactile, particles) {
         super();
         this.knobs = knobs;
         this.knobsHigh = knobsHigh;
@@ -496,7 +500,7 @@ class Panel extends THREE.Object3D {
         this.buildPanel();
         this.tactile.addSink(this);
         for (const c of Panel.pointColors) {
-            const highlight = new knobAction_1.KnobAction(motions, c);
+            const highlight = new knobAction_1.KnobAction(motions[this.highlights.length], c, particles);
             highlight.visible = false;
             this.add(highlight);
             this.highlights.push(highlight);
@@ -925,7 +929,7 @@ const sawSynth_1 = __webpack_require__(466);
 class ConduitStage extends THREE.Object3D {
     motions;
     synth;
-    constructor(audioCtx, motions, tactile) {
+    constructor(audioCtx, motions, tactile, particles) {
         super();
         this.motions = motions;
         const sky = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 1), new THREE.MeshBasicMaterial({ color: '#bbb', side: THREE.BackSide }));
@@ -938,7 +942,7 @@ class ConduitStage extends THREE.Object3D {
         this.add(light2);
         this.buildSynth(audioCtx);
         const knobs = this.synth.getKnobs();
-        const panel = new panel_1.Panel(knobs, 2, motions, tactile);
+        const panel = new panel_1.Panel(knobs, 2, motions, tactile, particles);
         panel.position.set(1, 2.0, 0);
         panel.rotateY(-Math.PI / 2);
         this.add(panel);
@@ -1244,6 +1248,7 @@ class Game {
     hands = [];
     headMotion;
     tactileProvider = new tactileProvider_1.TactileProvider();
+    particleSystem = new particleSystem_1.ParticleSystem();
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
         this.scene = new THREE.Scene();
@@ -1260,10 +1265,9 @@ class Game {
         this.scene.add(this.camera);
         this.setUpRenderer();
         this.setUpAnimation();
-        const particleSystem = new particleSystem_1.ParticleSystem();
-        this.scene.add(particleSystem);
-        this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.tactileProvider, particleSystem, this.camera));
-        this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.tactileProvider, particleSystem, this.camera));
+        this.scene.add(this.particleSystem);
+        this.hands.push(new hand_1.Hand('left', this.scene, this.renderer, this.tactileProvider, this.particleSystem, this.camera));
+        this.hands.push(new hand_1.Hand('right', this.scene, this.renderer, this.tactileProvider, this.particleSystem, this.camera));
         this.setUpKeyHandler();
         this.setUpTouchHandlers();
         switch (settings_1.S.float('sh')) {
@@ -1294,7 +1298,7 @@ class Game {
                 break;
             case 'conduit':
                 if (this.conduit === null) {
-                    this.conduit = new stage_1.ConduitStage(this.audioCtx, [this.hands[0].getMotion(), this.hands[1].getMotion()], this.tactileProvider);
+                    this.conduit = new stage_1.ConduitStage(this.audioCtx, [this.hands[0].getMotion(), this.hands[1].getMotion()], this.tactileProvider, this.particleSystem);
                     this.conduit.position.set(0, 0, 0);
                 }
                 nextWorld = this.conduit;

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { Matrix4 } from "three";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Motion } from "../motion";
+import { ParticleSystem } from "../particleSystem";
 import { TactileProvider, TactileSink } from "../tactileProvider";
 import { Util } from "../util";
 import { InstancedObject } from "./instancedObject";
@@ -16,13 +17,15 @@ export class Panel extends THREE.Object3D implements TactileSink {
   private instancedKnobs: InstancedObject;
   private highlights: KnobAction[] = [];
   constructor(private knobs: Knob[], private knobsHigh: number,
-    private motions: Motion[], private tactile: TactileProvider) {
+    private motions: Motion[], private tactile: TactileProvider,
+    particles: ParticleSystem) {
     super();
     this.name = 'Panel';
     this.buildPanel();
     this.tactile.addSink(this);
     for (const c of Panel.pointColors) {
-      const highlight = new KnobAction(motions, c);
+      const highlight = new KnobAction(
+        motions[this.highlights.length], c, particles);
       highlight.visible = false;
       this.add(highlight);
       this.highlights.push(highlight);
