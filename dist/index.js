@@ -2517,6 +2517,20 @@ class Motion extends THREE.Object3D {
     constructor(camera) {
         super();
         this.camera = camera;
+        { // X
+            const lineMaterial = new THREE.LineBasicMaterial({ color: '#f00' });
+            const lineGeometry = new THREE.BufferGeometry()
+                .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0.2, 0, 0)]);
+            const line = new THREE.Line(lineGeometry, lineMaterial);
+            this.add(line);
+        }
+        { // Y
+            const lineMaterial = new THREE.LineBasicMaterial({ color: '#0f0' });
+            const lineGeometry = new THREE.BufferGeometry()
+                .setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0.2, 0)]);
+            const line = new THREE.Line(lineGeometry, lineMaterial);
+            this.add(line);
+        }
     }
     tick(t) {
         this.updateMatrixWorld();
