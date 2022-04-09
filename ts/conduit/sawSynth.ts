@@ -1,39 +1,42 @@
 import { AR } from "./ar";
+import { AudioUtil } from "./audioUtil";
 import { Knob, KnobTarget } from "./knob";
-import { AttenuatedParam, MultiParam } from "./params";
+import { AttenuatedParam, MultiParam, VpoSum } from "./params";
 import { Synth } from "./synth";
 
 export class SawSynth implements Synth {
   readonly midiPitch = new Knob('MIDI', 0, 127, 43);
-
-  readonly envPitch = new Knob('Freq', 20, 2000, 200);
   public e2Attack: Knob;
   public e2Release: Knob;
-  readonly envFilter = new Knob('Freq', 0.0, 1.0, 0.0);
-  readonly resonance = new Knob('Res', 0, 5, 0);
+
+  readonly envFilter = new Knob('Freq', -5, 5, 0.0);
+  readonly resonance = new Knob('Res', 0, 50, 0);
   public e1Attack: Knob;
   public e1Release: Knob;
+
+  public envToOsc = new Knob('Env2Osc', 0, 1, 0.0);
+  public envToFilt = new Knob('Env2Filter', 0, 1, 1.0);
 
   private env1: AR;
   private env2: AR;
 
-  private frequency = 110;  // Hz
   constructor(private audioCtx: AudioContext) {
     const osc = this.makeOsc();
     const bpf = this.makeBpf();
 
-    const arBias = (x: number) => {
-      // One octave per volt.
-      return this.frequency * Math.pow(2, x);
-    };
-    const freqMult = new MultiParam([osc.frequency, bpf.frequency]);
-    this.env2 = new AR(this.audioCtx, osc.frequency, arBias, true);
+    const attToOsc = new VpoSum(osc.frequency);
+    this.envToOsc.addTarget(new KnobTarget((p, x) => {
+      attToOsc.setAttenuation(x);
+    }));
+    const attToFilter = new VpoSum(bpf.frequency);
+    this.envToFilt.addTarget(new KnobTarget((p, x) => {
+      attToFilter.setAttenuation(x);
+    }));
+
+    const env2Mult = new MultiParam([attToOsc, attToFilter]);
+    this.env2 = new AR(this.audioCtx, env2Mult);
     this.e2Attack = this.env2.attackKnob;
     this.e2Release = this.env2.releaseKnob;
-    this.envPitch.addTarget(new KnobTarget((p: number, x: number) => {
-      freqMult.exponentialRampToValueAtTime(
-        x, this.audioCtx.currentTime + 0.05);
-    }));
 
     const vca = this.makeVca();
     const volume = this.makeVca();
@@ -42,9 +45,14 @@ export class SawSynth implements Synth {
     this.e1Release = this.env1.releaseKnob;
 
     this.midiPitch.addTarget(new KnobTarget((p: number, x: number) => {
-      const hz = 440 * Math.pow(2, (x - 69) / 12);
-      this.frequency = hz;
+      attToOsc.setBias(AudioUtil.MidiToVolts(x));
     }));
+
+    this.envFilter.addTarget(new KnobTarget((p: number, x: number) => {
+      attToFilter.setBias(x);
+    }));
+    this.resonance.addTarget(
+      KnobTarget.fromAudioParam(bpf.Q, audioCtx, 0.05));
 
     osc.connect(bpf);
     bpf.connect(vca);
@@ -57,7 +65,7 @@ export class SawSynth implements Synth {
       this.e1Attack, this.e1Release,
       this.envFilter, this.resonance,
       this.e2Attack, this.e2Release,
-      this.envPitch,]
+      this.envToOsc, this.envToFilt, this.midiPitch]
   }
 
   trigger(): void {
@@ -68,15 +76,13 @@ export class SawSynth implements Synth {
   private makeOsc(): OscillatorNode {
     const osc = this.audioCtx.createOscillator();
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(this.frequency, this.audioCtx.currentTime);
     osc.start();
     return osc;
   }
 
   private makeBpf(): BiquadFilterNode {
     const bpf = this.audioCtx.createBiquadFilter();
-    bpf.type = 'bandpass';
-    bpf.frequency.setValueAtTime(this.frequency, this.audioCtx.currentTime);
+    bpf.type = 'lowpass';
     return bpf;
   }
 

@@ -1,5 +1,6 @@
+import { AudioUtil } from "./audioUtil";
 
-export type AnyParam = MultiParam | AudioParam | AttenuatedParam;
+export type AnyParam = MultiParam | AudioParam | AttenuatedParam | VpoSum;
 
 export class MultiParam {
   constructor(private params: AnyParam[]) { }
@@ -44,5 +45,35 @@ export class AttenuatedParam {
   }
   public exponentialRampToValueAtTime(value: number, t: number) {
     this.param.exponentialRampToValueAtTime(value * this.attenuation, t);
+  }
+}
+
+export class VpoSum {
+  private bias = 0;
+  private attenuation = 1;
+  constructor(private outputParam: AnyParam) {
+  }
+
+  public setAttenuation(x: number) {
+    this.attenuation = x;
+  }
+  public setBias(x: number) {
+    this.bias = x;
+  }
+
+  public cancelScheduledValues(t: number) {
+    this.outputParam.cancelScheduledValues(t);
+  }
+  public setValueAtTime(value: number, t: number) {
+    this.outputParam.setValueAtTime(
+      AudioUtil.VoltsToHz(value * this.attenuation + this.bias), t);
+  }
+  public linearRampToValueAtTime(value: number, t: number) {
+    this.outputParam.linearRampToValueAtTime(
+      AudioUtil.VoltsToHz(value * this.attenuation + this.bias), t);
+  }
+  public exponentialRampToValueAtTime(value: number, t: number) {
+    this.outputParam.exponentialRampToValueAtTime(
+      AudioUtil.VoltsToHz(value * this.attenuation + this.bias), t);
   }
 }
