@@ -74,10 +74,10 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     const zigOffset = beatOffset % this.beatsPerZig;
     if ((zigNumber & 0x1) === 0x0) {
       // Even case; going right
-      return (zigOffset - this.beatsPerZig / 2) * 2;
+      return (zigOffset - this.beatsPerZig / 2);
     } else {
       // Odd case; going left
-      return (this.beatsPerZig / 2 - zigOffset) * 2;
+      return (this.beatsPerZig / 2 - zigOffset);
     }
   }
 

@@ -37,7 +37,7 @@ export class ConduitStage extends THREE.Object3D implements World, Ticker {
     this.add(panel);
 
     const zigZag = new ZigZag(motions, this.synth, keySet);
-    zigZag.position.set(0, 0.8, -0.5);
+    zigZag.position.set(0, 1.2, -0.5);
     this.add(zigZag);
   }
 

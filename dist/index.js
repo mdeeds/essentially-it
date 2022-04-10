@@ -389,7 +389,7 @@ class Knob {
         return this.value;
     }
     setP(p) {
-        this.value = p;
+        this.value = Math.min(1.0, Math.max(0.0, p));
         for (const t of this.targets) {
             t.setValue(this.value, this.value * (this.high - this.low) + this.low);
         }
@@ -463,12 +463,13 @@ class KnobAction extends THREE.Object3D {
         let delta = 0.0;
         if (m.getDistanceToCamera() > 0.4) {
             c = KnobAction.brightColor;
-            if (m.orientX.y > 0.2) {
-                delta = m.velocity.length() * t.deltaS;
-            }
-            else if (m.orientX.y < -0.2) {
-                delta = -m.velocity.length() * t.deltaS;
-            }
+            // if (m.orientX.y > 0.2) {
+            //   delta = m.velocity.length() * t.deltaS;
+            // } else if (
+            //   m.orientX.y < -0.2) {
+            //   delta = -m.velocity.length() * t.deltaS;
+            // }
+            this.knob.setP(m.p.y - 1);
         }
         if (this.keySet.has('Equal')) {
             delta = t.deltaS * 0.1;
@@ -1089,7 +1090,7 @@ class ConduitStage extends THREE.Object3D {
         panel.rotateY(-Math.PI / 2);
         this.add(panel);
         const zigZag = new zigZag_1.ZigZag(motions, this.synth, keySet);
-        zigZag.position.set(0, 0.8, -0.5);
+        zigZag.position.set(0, 1.2, -0.5);
         this.add(zigZag);
     }
     buildSynth(audioCtx) {
@@ -1216,11 +1217,11 @@ class ZigZag extends THREE.Object3D {
         const zigOffset = beatOffset % this.beatsPerZig;
         if ((zigNumber & 0x1) === 0x0) {
             // Even case; going right
-            return (zigOffset - this.beatsPerZig / 2) * 2;
+            return (zigOffset - this.beatsPerZig / 2);
         }
         else {
             // Odd case; going left
-            return (this.beatsPerZig / 2 - zigOffset) * 2;
+            return (this.beatsPerZig / 2 - zigOffset);
         }
     }
     getZPositionForBeat(beatOffset, currentBeatNumber) {
