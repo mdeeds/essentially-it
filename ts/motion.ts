@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { Tick, Ticker } from "./ticker";
 
 export class Motion extends THREE.Object3D implements Ticker {
+  readonly prevP = new THREE.Vector3();
   private prevX = new THREE.Vector3();
   readonly velocity = new THREE.Vector3();
   readonly p = new THREE.Vector3();
@@ -38,6 +39,7 @@ export class Motion extends THREE.Object3D implements Ticker {
   }
 
   tick(t: Tick) {
+    this.prevP.copy(this.p);
     this.normalMatrix.getNormalMatrix(this.matrixWorld);
     this.updateMatrixWorld();
     this.p.set(1, 0, 0);

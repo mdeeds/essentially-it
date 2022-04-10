@@ -1,5 +1,7 @@
 import * as THREE from "three";
+import { Motion } from "../motion";
 import { Tick, Ticker } from "../ticker";
+import { Synth } from "./synth";
 
 class Particle {
   constructor(readonly beatOffset: number, public size: number) { }
@@ -13,7 +15,8 @@ export class ZigZag extends THREE.Object3D implements Ticker {
 
   private particles: Particle[];
   private geometry: THREE.BufferGeometry;
-  constructor() {
+  constructor(private motions: Motion[], private synth: Synth,
+    private keySet: Set<string>) {
     super();
     this.particles = this.makeParticles();
     const material = this.makeMaterial();
@@ -94,7 +97,6 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     return this.getZPositionForBeat(beatOffset, currentBeatNumber);
   }
 
-  private p = new THREE.Vector3();
   makeGeometry(particles: Particle[]): THREE.BufferGeometry {
     const geometry = new THREE.BufferGeometry();
 
@@ -127,6 +129,9 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     return geometry;
   }
 
+  private p1 = new THREE.Vector3();
+  private p2 = new THREE.Vector3();
+  private lastTriggerTime = 0;
   public tick(t: Tick) {
     const currentBeatNumber = this.getCurrentBeat(t.elapsedS);
 
@@ -137,5 +142,23 @@ export class ZigZag extends THREE.Object3D implements Ticker {
       positions.setZ(i, z);
     }
     positions.needsUpdate = true;
+
+    for (const m of this.motions) {
+      if (m.velocity.y < -1) {
+        this.p1.copy(m.prevP);
+        this.worldToLocal(this.p1);
+        this.p2.copy(m.p);
+        this.worldToLocal(this.p2);
+        if (this.p1.y > 0 && this.p2.y < 0) {
+          // Sliced through.
+          this.synth.trigger();
+        }
+      }
+    }
+    if (t.elapsedS - this.lastTriggerTime > 0.5 &&
+      this.keySet.has('Space')) {
+      this.synth.trigger();
+      this.lastTriggerTime = t.elapsedS;
+    }
   }
 }

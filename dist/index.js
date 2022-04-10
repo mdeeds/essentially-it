@@ -2,7 +2,7 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 530:
+/***/ 9530:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -57,8 +57,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Button = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const util_1 = __webpack_require__(891);
+const THREE = __importStar(__webpack_require__(5578));
+const util_1 = __webpack_require__(4891);
 class Button {
     model;
     callback;
@@ -91,20 +91,20 @@ exports.Button = Button;
 
 /***/ }),
 
-/***/ 245:
+/***/ 7245:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AR = void 0;
-const knob_1 = __webpack_require__(424);
+const knob_1 = __webpack_require__(2424);
 class AR {
     audioCtx;
     param;
     transferFunction;
     exponential;
     attackKnob = new knob_1.Knob('A', 0, 5, 0.05);
-    releaseKnob = new knob_1.Knob('R', 0, 5, 1.0);
+    releaseKnob = new knob_1.Knob('R', 0, 5, 0.2);
     attackS = 0.05;
     releaseS = 1;
     static Identity = function (x) { return x; };
@@ -113,25 +113,25 @@ class AR {
         this.param = param;
         this.transferFunction = transferFunction;
         this.exponential = exponential;
-        this.attackKnob.addTarget(new knob_1.KnobTarget((x) => { this.attackS = x; }));
-        this.releaseKnob.addTarget(new knob_1.KnobTarget((x) => { this.releaseS = x; }));
+        this.attackKnob.addTarget(new knob_1.KnobTarget((p, x) => { this.attackS = x; }));
+        this.releaseKnob.addTarget(new knob_1.KnobTarget((p, x) => { this.releaseS = x; }));
         this.param.setValueAtTime(this.transferFunction(0), audioCtx.currentTime);
     }
     linearTrigger() {
         let t = this.audioCtx.currentTime;
         this.param.cancelScheduledValues(t);
         t += this.attackS;
-        this.param.linearRampToValueAtTime(this.transferFunction(1.0), t);
+        this.param.setTargetAtTime(this.transferFunction(1.0), t, this.attackS / 2);
         t += this.releaseS;
         const releaseTime = t;
-        this.param.linearRampToValueAtTime(this.transferFunction(0), t);
+        this.param.setTargetAtTime(this.transferFunction(0), t, this.releaseS / 2);
         return releaseTime;
     }
     linearRelease() {
         let t = this.audioCtx.currentTime;
         this.param.cancelScheduledValues(t);
         t += this.releaseS;
-        this.param.linearRampToValueAtTime(this.transferFunction(0), t);
+        this.param.setTargetAtTime(this.transferFunction(0), t, this.releaseS / 2);
     }
     exponentialTrigger() {
         let t = this.audioCtx.currentTime;
@@ -172,6 +172,28 @@ exports.AR = AR;
 
 /***/ }),
 
+/***/ 7235:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AudioUtil = void 0;
+class AudioUtil {
+    static MidiToHz(midi) {
+        return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+    static VoltsToHz(v) {
+        return Math.pow(2, v) * AudioUtil.MidiToHz(60);
+    }
+    static MidiToVolts(midi) {
+        return (midi - 60) / 12;
+    }
+}
+exports.AudioUtil = AudioUtil;
+//# sourceMappingURL=audioUtil.js.map
+
+/***/ }),
+
 /***/ 425:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -197,8 +219,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.InstancedObject = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const three_1 = __webpack_require__(578);
+const THREE = __importStar(__webpack_require__(5578));
+const three_1 = __webpack_require__(5578);
 class InstancedObject extends THREE.Object3D {
     maxInstanceCount;
     meshes = [];
@@ -270,7 +292,7 @@ exports.InstancedObject = InstancedObject;
 
 /***/ }),
 
-/***/ 424:
+/***/ 2424:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -295,32 +317,32 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Knob = exports.KnobTarget = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class KnobTarget {
     set;
     constructor(set) {
         this.set = set;
     }
     static fromAudioParam(param, audioCtx, lagS) {
-        return new KnobTarget((x) => {
+        return new KnobTarget((p, x) => {
             param.linearRampToValueAtTime(x, audioCtx.currentTime + lagS);
         });
     }
     static fromAttenuator(att) {
-        return new KnobTarget((x) => {
+        return new KnobTarget((p, x) => {
             att.setAttenuation(x);
         });
     }
     static fromObjectRotation(object) {
-        return new KnobTarget((x) => {
-            const hour = 10 * (x - 0.5); // 0 = up
+        return new KnobTarget((p, x) => {
+            const hour = 10 * (p - 0.5); // 0 = up
             const theta = Math.PI * 2 / 12 * hour;
             object.rotation.z = theta;
         });
     }
     static fromInstancedObject(object, i) {
-        return new KnobTarget((x) => {
-            const hour = 10 * (x - 0.5); // 0 = up
+        return new KnobTarget((p, x) => {
+            const hour = 10 * (p - 0.5); // 0 = up
             const theta = Math.PI * 2 / 12 * hour;
             const m = new THREE.Matrix4();
             object.getMatrixAt(i, m);
@@ -335,17 +357,17 @@ class KnobTarget {
         });
     }
     static fromMatrixRotation(m) {
-        return new KnobTarget((x) => {
-            const hour = 10 * (x - 0.5); // 0 = up
+        return new KnobTarget((p, x) => {
+            const hour = 10 * (p - 0.5); // 0 = up
             const theta = Math.PI * 2 / 12 * hour;
-            const p = new THREE.Vector3(m.elements[12], m.elements[13], m.elements[14]);
-            p.multiplyScalar(1 / m.elements[15]);
+            const pp = new THREE.Vector3(m.elements[12], m.elements[13], m.elements[14]);
+            pp.multiplyScalar(1 / m.elements[15]);
             m.makeRotationY(theta);
-            m.setPosition(p);
+            m.setPosition(pp);
         });
     }
-    setValue(value) {
-        this.set(value);
+    setValue(p, x) {
+        this.set(p, x);
     }
 }
 exports.KnobTarget = KnobTarget;
@@ -360,19 +382,26 @@ class Knob {
         this.low = low;
         this.high = high;
         this.value = value;
-        this.value = Math.max(low, Math.min(high, value));
+        this.value = (value - low) / (high - low);
+        this.value = Math.min(1, Math.max(0, this.value));
+    }
+    getP() {
+        return this.value;
+    }
+    setP(p) {
+        this.value = p;
+        for (const t of this.targets) {
+            t.setValue(this.value, this.value * (this.high - this.low) + this.low);
+        }
     }
     change(relativeDelta) {
-        const absoluteDelta = relativeDelta * (this.high - this.low);
-        this.value += absoluteDelta;
-        this.value = Math.max(this.low, Math.min(this.high, this.value));
-        for (const t of this.targets) {
-            t.setValue(this.value);
-        }
+        this.value += relativeDelta;
+        this.value = Math.max(0, Math.min(1, this.value));
+        this.setP(this.value);
     }
     addTarget(target) {
         this.targets.push(target);
-        target.setValue(this.value);
+        target.setValue(this.value, this.value * (this.high - this.low) + this.low);
     }
 }
 exports.Knob = Knob;
@@ -380,7 +409,7 @@ exports.Knob = Knob;
 
 /***/ }),
 
-/***/ 63:
+/***/ 3063:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -405,19 +434,21 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.KnobAction = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const selectionSphere_1 = __webpack_require__(107);
+const THREE = __importStar(__webpack_require__(5578));
+const selectionSphere_1 = __webpack_require__(7107);
 class KnobAction extends THREE.Object3D {
     motion;
     particles;
+    keySet;
     static blandColor = new THREE.Color('#888');
     static brightColor = new THREE.Color('#f0f');
     highlight;
     knob = null;
-    constructor(motion, color, particles) {
+    constructor(motion, color, particles, keySet) {
         super();
         this.motion = motion;
         this.particles = particles;
+        this.keySet = keySet;
         this.highlight = new selectionSphere_1.SelectionSphere(1, color);
         this.add(this.highlight);
     }
@@ -429,14 +460,24 @@ class KnobAction extends THREE.Object3D {
         }
         let c = KnobAction.blandColor;
         const m = this.motion;
+        let delta = 0.0;
         if (m.getDistanceToCamera() > 0.4) {
             c = KnobAction.brightColor;
             if (m.orientX.y > 0.2) {
-                this.knob.change(m.velocity.length());
+                delta = m.velocity.length() * t.deltaS;
             }
             else if (m.orientX.y < -0.2) {
-                this.knob.change(-m.velocity.length());
+                delta = -m.velocity.length() * t.deltaS;
             }
+        }
+        if (this.keySet.has('Equal')) {
+            delta = t.deltaS * 0.1;
+        }
+        else if (this.keySet.has('Minus')) {
+            delta = -t.deltaS * 0.1;
+        }
+        if (delta != 0.0) {
+            this.knob.change(delta);
         }
         this.particles.AddParticle(m.p, m.orientX, c);
     }
@@ -449,7 +490,7 @@ exports.KnobAction = KnobAction;
 
 /***/ }),
 
-/***/ 705:
+/***/ 8705:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -474,33 +515,35 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Panel = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const three_1 = __webpack_require__(578);
-const GLTFLoader_js_1 = __webpack_require__(687);
-const util_1 = __webpack_require__(891);
+const THREE = __importStar(__webpack_require__(5578));
+const three_1 = __webpack_require__(5578);
+const GLTFLoader_js_1 = __webpack_require__(9687);
+const util_1 = __webpack_require__(4891);
 const instancedObject_1 = __webpack_require__(425);
-const knob_1 = __webpack_require__(424);
-const knobAction_1 = __webpack_require__(63);
+const knob_1 = __webpack_require__(2424);
+const knobAction_1 = __webpack_require__(3063);
 class Panel extends THREE.Object3D {
     knobs;
     knobsHigh;
     motions;
     tactile;
+    keySet;
     static kKnobSpacingM = 0.18;
     knobsWide;
     instancedKnobs;
     highlights = [];
-    constructor(knobs, knobsHigh, motions, tactile, particles) {
+    constructor(knobs, knobsHigh, motions, tactile, particles, keySet) {
         super();
         this.knobs = knobs;
         this.knobsHigh = knobsHigh;
         this.motions = motions;
         this.tactile = tactile;
+        this.keySet = keySet;
         this.name = 'Panel';
         this.buildPanel();
         this.tactile.addSink(this);
         for (const c of Panel.pointColors) {
-            const highlight = new knobAction_1.KnobAction(motions[this.highlights.length], c, particles);
+            const highlight = new knobAction_1.KnobAction(motions[this.highlights.length], c, particles, keySet);
             highlight.visible = false;
             this.add(highlight);
             this.highlights.push(highlight);
@@ -631,12 +674,13 @@ exports.Panel = Panel;
 
 /***/ }),
 
-/***/ 661:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ 9661:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.AttenuatedParam = exports.MultiParam = void 0;
+exports.VpoSum = exports.AttenuatedParam = exports.MultiParam = void 0;
+const audioUtil_1 = __webpack_require__(7235);
 class MultiParam {
     params;
     constructor(params) {
@@ -660,6 +704,11 @@ class MultiParam {
     exponentialRampToValueAtTime(value, t) {
         for (const p of this.params) {
             p.exponentialRampToValueAtTime(value, t);
+        }
+    }
+    setTargetAtTime(value, startTime, timeConstant) {
+        for (const p of this.params) {
+            p.setTargetAtTime(value, startTime, timeConstant);
         }
     }
 }
@@ -686,77 +735,168 @@ class AttenuatedParam {
     exponentialRampToValueAtTime(value, t) {
         this.param.exponentialRampToValueAtTime(value * this.attenuation, t);
     }
+    setTargetAtTime(value, startTime, timeConstant) {
+        this.param.setTargetAtTime(value * this.attenuation, startTime, timeConstant);
+    }
 }
 exports.AttenuatedParam = AttenuatedParam;
+class VpoSum {
+    outputParam;
+    bias = 0;
+    attenuation = 1;
+    constructor(outputParam) {
+        this.outputParam = outputParam;
+    }
+    setAttenuation(x) {
+        this.attenuation = x;
+    }
+    setBias(x) {
+        this.bias = x;
+    }
+    transform(value) {
+        return audioUtil_1.AudioUtil.VoltsToHz(value * this.attenuation + this.bias);
+    }
+    cancelScheduledValues(t) {
+        this.outputParam.cancelScheduledValues(t);
+    }
+    setValueAtTime(value, t) {
+        this.outputParam.setValueAtTime(this.transform(value), t);
+    }
+    linearRampToValueAtTime(value, t) {
+        this.outputParam.linearRampToValueAtTime(this.transform(value), t);
+    }
+    exponentialRampToValueAtTime(value, t) {
+        this.outputParam.exponentialRampToValueAtTime(this.transform(value), t);
+    }
+    setTargetAtTime(value, startTime, timeConstant) {
+        this.outputParam.setTargetAtTime(this.transform(value), startTime, timeConstant);
+    }
+}
+exports.VpoSum = VpoSum;
 //# sourceMappingURL=params.js.map
 
 /***/ }),
 
-/***/ 466:
+/***/ 3466:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SawSynth = void 0;
-const ar_1 = __webpack_require__(245);
-const knob_1 = __webpack_require__(424);
-const params_1 = __webpack_require__(661);
+const ar_1 = __webpack_require__(7245);
+const audioUtil_1 = __webpack_require__(7235);
+const knob_1 = __webpack_require__(2424);
+const params_1 = __webpack_require__(9661);
 class SawSynth {
     audioCtx;
+    static bassDrumPatch = {
+        "A1": 0.01, "R1": 0.04,
+        "Freq": 0.24324000000357635, "Res": 0.13009999999999997,
+        "A2": 0.011650000000000002, "R2": 0.1266200000017881,
+        "Env2Osc": 0.08011000000238418, "Env2Filter": 0.5380799999982115,
+        "MIDI": 0.2652026771641621, "Vol": 0.3850599999994041
+    };
+    static bassDrum2Patch = {
+        "A1": 0.0066599999994039535, "R1": 0.04066000000238415,
+        "Freq": 0.2565600000023844, "Res": 0.4568100000023841,
+        "A2": 0, "R2": 0.011540000000596122,
+        "Env2Osc": 0.3451800000011929, "Env2Filter": 0.7866899999976152,
+        "MIDI": 0.28330267716714197, "Vol": 0.6600899999976161
+    };
+    static roboBeepPatch = {
+        "A1": 0.008190000000596052, "R1": 0.027,
+        "Freq": 0.4858700000107309, "Res": 0.17142999999821204,
+        "A2": 0.05184000000059607, "R2": 0,
+        "Env2Osc": 0.5496299999982115, "Env2Filter": 0.8916699999988075,
+        "MIDI": 0.34936267715760555, "Vol": 0.358600000008941
+    };
     midiPitch = new knob_1.Knob('MIDI', 0, 127, 43);
-    envPitch = new knob_1.Knob('Freq', 0.0, 1.0, 0.0);
     e2Attack;
     e2Release;
-    envFilter = new knob_1.Knob('Freq', 0.0, 1.0, 0.0);
-    resonance = new knob_1.Knob('Res', 0, 5, 0);
+    envFilter = new knob_1.Knob('Freq', -5, 5, 0.0);
+    resonance = new knob_1.Knob('Res', 0, 50, 0);
     e1Attack;
     e1Release;
-    frequency = 110; // Hz
+    envToOsc = new knob_1.Knob('Env2Osc', 0, 1, 0.0);
+    envToFilt = new knob_1.Knob('Env2Filter', 0, 1, 0.0);
+    env1;
+    env2;
+    volumeKnob = new knob_1.Knob('Vol', 0, 8, 1.0);
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
         const osc = this.makeOsc();
         const bpf = this.makeBpf();
-        const arBias = (x) => {
-            // One octave per volt.
-            return this.frequency * Math.pow(2, x);
-        };
-        const freqMult = new params_1.MultiParam([osc.frequency, bpf.frequency]);
-        const env2 = new ar_1.AR(this.audioCtx, osc.frequency, arBias, true);
-        this.e2Attack = env2.attackKnob;
-        this.e2Release = env2.releaseKnob;
+        const attToOsc = new params_1.VpoSum(osc.frequency);
+        this.envToOsc.addTarget(new knob_1.KnobTarget((p, x) => {
+            attToOsc.setAttenuation(x);
+        }));
+        const attToFilter = new params_1.VpoSum(bpf.frequency);
+        this.envToFilt.addTarget(new knob_1.KnobTarget((p, x) => {
+            attToFilter.setAttenuation(x);
+        }));
+        const env2Mult = new params_1.MultiParam([attToOsc, attToFilter]);
+        this.env2 = new ar_1.AR(this.audioCtx, env2Mult);
+        this.e2Attack = this.env2.attackKnob;
+        this.e2Release = this.env2.releaseKnob;
+        this.e2Attack.name = 'A2';
+        this.e2Release.name = 'R2';
         const vca = this.makeVca();
         const volume = this.makeVca();
-        const env1 = new ar_1.AR(this.audioCtx, vca.gain);
-        this.e1Attack = env1.attackKnob;
-        this.e1Release = env1.releaseKnob;
-        this.midiPitch.addTarget(new knob_1.KnobTarget((x) => {
-            const hz = 440 * Math.pow(2, (x - 69) / 12);
-            this.frequency = hz;
+        this.volumeKnob.addTarget(knob_1.KnobTarget.fromAudioParam(volume.gain, audioCtx, 0.01));
+        this.env1 = new ar_1.AR(this.audioCtx, vca.gain);
+        this.e1Attack = this.env1.attackKnob;
+        this.e1Release = this.env1.releaseKnob;
+        this.e1Attack.name = 'A1';
+        this.e1Release.name = 'R1';
+        this.midiPitch.addTarget(new knob_1.KnobTarget((p, x) => {
+            attToOsc.setBias(audioUtil_1.AudioUtil.MidiToVolts(x));
         }));
+        this.envFilter.addTarget(new knob_1.KnobTarget((p, x) => {
+            attToFilter.setBias(x);
+        }));
+        this.resonance.addTarget(knob_1.KnobTarget.fromAudioParam(bpf.Q, audioCtx, 0.05));
         osc.connect(bpf);
         bpf.connect(vca);
         vca.connect(volume);
         volume.connect(audioCtx.destination);
+        this.loadPatch(SawSynth.bassDrumPatch);
     }
     getKnobs() {
         return [
             this.e1Attack, this.e1Release,
             this.envFilter, this.resonance,
             this.e2Attack, this.e2Release,
-            this.envPitch,
+            this.envToOsc, this.envToFilt, this.midiPitch,
+            this.volumeKnob
         ];
+    }
+    loadPatch(patch) {
+        const knobMap = new Map();
+        for (const k of this.getKnobs()) {
+            knobMap.set(k.name, k);
+        }
+        for (const name in patch) {
+            knobMap.get(name).setP(patch[name]);
+        }
+    }
+    trigger() {
+        let patch = {};
+        for (const k of this.getKnobs()) {
+            patch[k.name] = k.getP();
+        }
+        console.log(JSON.stringify(patch));
+        this.env1.trigger();
+        this.env2.trigger();
     }
     makeOsc() {
         const osc = this.audioCtx.createOscillator();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(this.frequency, this.audioCtx.currentTime);
         osc.start();
         return osc;
     }
     makeBpf() {
         const bpf = this.audioCtx.createBiquadFilter();
         bpf.type = 'bandpass';
-        bpf.frequency.setValueAtTime(this.frequency, this.audioCtx.currentTime);
         return bpf;
     }
     makeVca() {
@@ -770,7 +910,7 @@ exports.SawSynth = SawSynth;
 
 /***/ }),
 
-/***/ 107:
+/***/ 7107:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -795,7 +935,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SelectionSphere = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class SelectionSphere extends THREE.Object3D {
     color;
     material;
@@ -898,7 +1038,7 @@ exports.SelectionSphere = SelectionSphere;
 
 /***/ }),
 
-/***/ 765:
+/***/ 3765:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -923,14 +1063,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConduitStage = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const three_1 = __webpack_require__(578);
-const panel_1 = __webpack_require__(705);
-const sawSynth_1 = __webpack_require__(466);
+const THREE = __importStar(__webpack_require__(5578));
+const three_1 = __webpack_require__(5578);
+const panel_1 = __webpack_require__(8705);
+const sawSynth_1 = __webpack_require__(3466);
+const zigZag_1 = __webpack_require__(9000);
 class ConduitStage extends THREE.Object3D {
     motions;
     synth;
-    constructor(audioCtx, motions, tactile, particles) {
+    constructor(audioCtx, motions, tactile, particles, keySet) {
         super();
         this.motions = motions;
         const sky = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 1), new THREE.MeshBasicMaterial({ color: '#bbb', side: THREE.BackSide }));
@@ -943,10 +1084,13 @@ class ConduitStage extends THREE.Object3D {
         this.add(light2);
         this.buildSynth(audioCtx);
         const knobs = this.synth.getKnobs();
-        const panel = new panel_1.Panel(knobs, 2, motions, tactile, particles);
+        const panel = new panel_1.Panel(knobs, 2, motions, tactile, particles, keySet);
         panel.position.set(1, 2.0, 0);
         panel.rotateY(-Math.PI / 2);
         this.add(panel);
+        const zigZag = new zigZag_1.ZigZag(motions, this.synth, keySet);
+        zigZag.position.set(0, 0.8, -0.5);
+        this.add(zigZag);
     }
     buildSynth(audioCtx) {
         this.synth = new sawSynth_1.SawSynth(audioCtx);
@@ -956,13 +1100,197 @@ class ConduitStage extends THREE.Object3D {
             // TODO: wire up exit button...?
         });
     }
+    tick(t) {
+    }
 }
 exports.ConduitStage = ConduitStage;
 //# sourceMappingURL=stage.js.map
 
 /***/ }),
 
-/***/ 847:
+/***/ 9000:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ZigZag = void 0;
+const THREE = __importStar(__webpack_require__(5578));
+class Particle {
+    beatOffset;
+    size;
+    constructor(beatOffset, size) {
+        this.beatOffset = beatOffset;
+        this.size = size;
+    }
+}
+class ZigZag extends THREE.Object3D {
+    motions;
+    synth;
+    keySet;
+    bpm = 120;
+    particlesPerBeat = 32;
+    beatsPerLoop = 4 * 4;
+    beatsPerZig = 1;
+    particles;
+    geometry;
+    constructor(motions, synth, keySet) {
+        super();
+        this.motions = motions;
+        this.synth = synth;
+        this.keySet = keySet;
+        this.particles = this.makeParticles();
+        const material = this.makeMaterial();
+        this.geometry = this.makeGeometry(this.particles);
+        const points = new THREE.Points(this.geometry, material);
+        this.add(points);
+    }
+    makeParticles() {
+        const result = [];
+        for (let i = 0; i < this.beatsPerLoop * this.particlesPerBeat; ++i) {
+            let size = 0.02; // Default, smallest size
+            switch (i % this.particlesPerBeat) {
+                case 0:
+                    size = 0.15;
+                    break;
+                case 16:
+                    size = 0.1;
+                    break;
+                case 8:
+                case 24:
+                    size = 0.05;
+                    break;
+            }
+            result.push(new Particle(i / this.particlesPerBeat, size));
+        }
+        return result;
+    }
+    makeMaterial() {
+        const material = new THREE.ShaderMaterial({
+            vertexShader: `
+  attribute float size;
+  varying vec4 vColor;
+  void main() {
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
+    gl_PointSize = 800.0 * size / gl_Position.w;
+    vColor = color;
+  }
+      `,
+            fragmentShader: `
+  varying vec4 vColor;
+  void main() {
+    vec2 coords = gl_PointCoord;
+    float intensity = 5.0 * (0.5 - length(gl_PointCoord - 0.5));
+    gl_FragColor = vColor * intensity;
+  }
+      `,
+            blending: THREE.SubtractiveBlending,
+            depthTest: true,
+            depthWrite: false,
+            transparent: false,
+            vertexColors: true,
+        });
+        return material;
+    }
+    getXPosition(beatOffset) {
+        const zigNumber = Math.floor(beatOffset / this.beatsPerZig);
+        const zigOffset = beatOffset % this.beatsPerZig;
+        if ((zigNumber & 0x1) === 0x0) {
+            // Even case; going right
+            return (zigOffset - this.beatsPerZig / 2) * 2;
+        }
+        else {
+            // Odd case; going left
+            return (this.beatsPerZig / 2 - zigOffset) * 2;
+        }
+    }
+    getZPositionForBeat(beatOffset, currentBeatNumber) {
+        const beatsIntoFuture = (beatOffset - currentBeatNumber + this.beatsPerLoop) % this.beatsPerLoop;
+        return -beatsIntoFuture;
+    }
+    getCurrentBeat(timeS) {
+        const currentTimeBeats = timeS * (this.bpm / 60);
+        return currentTimeBeats % this.beatsPerLoop;
+    }
+    getZPositionForTime(beatOffset, timeS) {
+        const currentBeatNumber = this.getCurrentBeat(timeS);
+        return this.getZPositionForBeat(beatOffset, currentBeatNumber);
+    }
+    makeGeometry(particles) {
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const sizes = [];
+        const colors = [];
+        for (const p of particles) {
+            positions.push(this.getXPosition(p.beatOffset), 0, this.getZPositionForTime(p.beatOffset, 0));
+            sizes.push(p.size);
+            colors.push(0.8, 0.8, 0.8, 1.0);
+        }
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+        geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 50);
+        geometry.attributes.position.needsUpdate = true;
+        geometry.attributes.size.needsUpdate = true;
+        geometry.attributes.color.needsUpdate = true;
+        return geometry;
+    }
+    p1 = new THREE.Vector3();
+    p2 = new THREE.Vector3();
+    lastTriggerTime = 0;
+    tick(t) {
+        const currentBeatNumber = this.getCurrentBeat(t.elapsedS);
+        const positions = this.geometry.getAttribute('position');
+        for (let i = 0; i < positions.count; ++i) {
+            const p = this.particles[i];
+            const z = this.getZPositionForBeat(p.beatOffset, currentBeatNumber);
+            positions.setZ(i, z);
+        }
+        positions.needsUpdate = true;
+        for (const m of this.motions) {
+            if (m.velocity.y < -1) {
+                this.p1.copy(m.prevP);
+                this.worldToLocal(this.p1);
+                this.p2.copy(m.p);
+                this.worldToLocal(this.p2);
+                if (this.p1.y > 0 && this.p2.y < 0) {
+                    // Sliced through.
+                    this.synth.trigger();
+                }
+            }
+        }
+        if (t.elapsedS - this.lastTriggerTime > 0.5 &&
+            this.keySet.has('Space')) {
+            this.synth.trigger();
+            this.lastTriggerTime = t.elapsedS;
+        }
+    }
+}
+exports.ZigZag = ZigZag;
+//# sourceMappingURL=zigZag.js.map
+
+/***/ }),
+
+/***/ 1847:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -987,7 +1315,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.EraseTool = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class EraseTool {
     ctx;
     constructor(ctx) {
@@ -1042,7 +1370,7 @@ exports.EraseTool = EraseTool;
 
 /***/ }),
 
-/***/ 41:
+/***/ 3041:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -1067,8 +1395,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.FloorMaterial = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const settings_1 = __webpack_require__(451);
+const THREE = __importStar(__webpack_require__(5578));
+const settings_1 = __webpack_require__(6451);
 class FloorMaterial extends THREE.ShaderMaterial {
     constructor() {
         super({
@@ -1139,7 +1467,7 @@ exports.FloorMaterial = FloorMaterial;
 
 /***/ }),
 
-/***/ 927:
+/***/ 9927:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -1164,7 +1492,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.FogMaterial = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class FogMaterial extends THREE.ShaderMaterial {
     constructor() {
         super({
@@ -1204,7 +1532,7 @@ exports.FogMaterial = FogMaterial;
 
 /***/ }),
 
-/***/ 417:
+/***/ 1417:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -1229,17 +1557,17 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Game = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const VRButton_js_1 = __webpack_require__(652);
-const stage_1 = __webpack_require__(765);
-const hand_1 = __webpack_require__(673);
-const home_1 = __webpack_require__(722);
-const laboratory_1 = __webpack_require__(855);
+const THREE = __importStar(__webpack_require__(5578));
+const VRButton_js_1 = __webpack_require__(7652);
+const stage_1 = __webpack_require__(3765);
+const hand_1 = __webpack_require__(7673);
+const home_1 = __webpack_require__(1722);
+const laboratory_1 = __webpack_require__(2855);
 const motion_1 = __webpack_require__(341);
-const particleSystem_1 = __webpack_require__(564);
-const settings_1 = __webpack_require__(451);
-const tactileProvider_1 = __webpack_require__(873);
-const ticker_1 = __webpack_require__(841);
+const particleSystem_1 = __webpack_require__(3564);
+const settings_1 = __webpack_require__(6451);
+const tactileProvider_1 = __webpack_require__(7873);
+const ticker_1 = __webpack_require__(7841);
 class Game {
     audioCtx;
     scene;
@@ -1299,7 +1627,7 @@ class Game {
                 break;
             case 'conduit':
                 if (this.conduit === null) {
-                    this.conduit = new stage_1.ConduitStage(this.audioCtx, [this.hands[0].getMotion(), this.hands[1].getMotion()], this.tactileProvider, this.particleSystem);
+                    this.conduit = new stage_1.ConduitStage(this.audioCtx, [this.hands[0].getMotion(), this.hands[1].getMotion()], this.tactileProvider, this.particleSystem, this.keysDown);
                     this.conduit.position.set(0, 0, 0);
                 }
                 nextWorld = this.conduit;
@@ -1506,7 +1834,7 @@ exports.Game = Game;
 
 /***/ }),
 
-/***/ 890:
+/***/ 9245:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -1531,7 +1859,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Graphiti = exports.Stroke = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class Stroke {
     static kIdealSize = 16;
     d = [];
@@ -1756,7 +2084,7 @@ exports.Graphiti = Graphiti;
 
 /***/ }),
 
-/***/ 257:
+/***/ 5257:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -1781,8 +2109,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GraphitiTool = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const graphiti_1 = __webpack_require__(890);
+const THREE = __importStar(__webpack_require__(5578));
+const graphiti_1 = __webpack_require__(9245);
 class GraphitiTool {
     canvas;
     ctx;
@@ -1917,7 +2245,7 @@ exports.GraphitiTool = GraphitiTool;
 
 /***/ }),
 
-/***/ 673:
+/***/ 7673:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -1942,7 +2270,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Hand = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 const motion_1 = __webpack_require__(341);
 class Hand extends THREE.Object3D {
     side;
@@ -2031,7 +2359,7 @@ exports.Hand = Hand;
 
 /***/ }),
 
-/***/ 512:
+/***/ 9512:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2056,7 +2384,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HighlighterTool = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class HighlighterTool {
     ctx;
     color;
@@ -2109,7 +2437,7 @@ exports.HighlighterTool = HighlighterTool;
 
 /***/ }),
 
-/***/ 722:
+/***/ 1722:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2134,8 +2462,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Home = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const starField_1 = __webpack_require__(60);
+const THREE = __importStar(__webpack_require__(5578));
+const starField_1 = __webpack_require__(9060);
 class Home extends THREE.Object3D {
     nextWorld;
     constructor() {
@@ -2166,7 +2494,7 @@ exports.Home = Home;
 
 /***/ }),
 
-/***/ 60:
+/***/ 9060:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2191,8 +2519,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StarField = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const settings_1 = __webpack_require__(451);
+const THREE = __importStar(__webpack_require__(5578));
+const settings_1 = __webpack_require__(6451);
 class StarField extends THREE.Object3D {
     constructor() {
         super();
@@ -2297,7 +2625,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ImageTool = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class ImageTool {
     canvas;
     scale;
@@ -2355,7 +2683,7 @@ exports.ImageTool = ImageTool;
 
 /***/ }),
 
-/***/ 855:
+/***/ 2855:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2380,15 +2708,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Laboratory = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const GLTFLoader_js_1 = __webpack_require__(687);
+const THREE = __importStar(__webpack_require__(5578));
+const GLTFLoader_js_1 = __webpack_require__(9687);
 const button_1 = __webpack_require__(582);
-const floorMaterial_1 = __webpack_require__(41);
-const fogMaterial_1 = __webpack_require__(927);
-const paintCylinder_1 = __webpack_require__(183);
+const floorMaterial_1 = __webpack_require__(3041);
+const fogMaterial_1 = __webpack_require__(9927);
+const paintCylinder_1 = __webpack_require__(7183);
 // import { ParticleSystem } from "./particleSystem";
-const projectionCylinder_1 = __webpack_require__(233);
-const tactileInterface_1 = __webpack_require__(791);
+const projectionCylinder_1 = __webpack_require__(4233);
+const tactileInterface_1 = __webpack_require__(6791);
 class Laboratory extends THREE.Object3D {
     audioCtx;
     tactileProvider;
@@ -2523,9 +2851,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Motion = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class Motion extends THREE.Object3D {
     camera;
+    prevP = new THREE.Vector3();
     prevX = new THREE.Vector3();
     velocity = new THREE.Vector3();
     p = new THREE.Vector3();
@@ -2561,6 +2890,7 @@ class Motion extends THREE.Object3D {
         }
     }
     tick(t) {
+        this.prevP.copy(this.p);
         this.normalMatrix.getNormalMatrix(this.matrixWorld);
         this.updateMatrixWorld();
         this.p.set(1, 0, 0);
@@ -2596,7 +2926,7 @@ exports.Motion = Motion;
 
 /***/ }),
 
-/***/ 632:
+/***/ 5632:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2621,7 +2951,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.NiceLineMaterial = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class NiceLineMaterial extends THREE.ShaderMaterial {
     static uniformsLibLine = {
         worldUnits: { value: 1 },
@@ -2921,7 +3251,7 @@ exports.NiceLineMaterial = NiceLineMaterial;
 
 /***/ }),
 
-/***/ 183:
+/***/ 7183:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -2946,9 +3276,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PaintCylinder = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const settings_1 = __webpack_require__(451);
-const zoom_1 = __webpack_require__(950);
+const THREE = __importStar(__webpack_require__(5578));
+const settings_1 = __webpack_require__(6451);
+const zoom_1 = __webpack_require__(6950);
 class PaintCylinder extends THREE.Group {
     mesh;
     gridTexture;
@@ -3173,7 +3503,7 @@ exports.PaintCylinder = PaintCylinder;
 
 /***/ }),
 
-/***/ 564:
+/***/ 3564:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -3198,7 +3528,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ParticleSystem = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class Particle {
     position;
     velocity;
@@ -3335,7 +3665,7 @@ exports.ParticleSystem = ParticleSystem;
 
 /***/ }),
 
-/***/ 547:
+/***/ 3547:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -3360,8 +3690,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PenTool = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const settings_1 = __webpack_require__(451);
+const THREE = __importStar(__webpack_require__(5578));
+const settings_1 = __webpack_require__(6451);
 class PenTool {
     ctx;
     color;
@@ -3412,7 +3742,7 @@ exports.PenTool = PenTool;
 
 /***/ }),
 
-/***/ 344:
+/***/ 9344:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -3437,7 +3767,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PlayTool = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class PlayTool {
     audio = null;
     isPlaying = false;
@@ -3476,7 +3806,7 @@ exports.PlayTool = PlayTool;
 
 /***/ }),
 
-/***/ 233:
+/***/ 4233:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -3501,7 +3831,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ProjectionCylinder = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class ProjectionCylinder {
     reference;
     radius;
@@ -3552,7 +3882,7 @@ exports.ProjectionCylinder = ProjectionCylinder;
 
 /***/ }),
 
-/***/ 930:
+/***/ 7930:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -3594,7 +3924,7 @@ exports.SampleSource = SampleSource;
 
 /***/ }),
 
-/***/ 451:
+/***/ 6451:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -3654,7 +3984,7 @@ exports.S = S;
 
 /***/ }),
 
-/***/ 268:
+/***/ 2268:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -3679,8 +4009,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SpectrogramTool = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const sampleSource_1 = __webpack_require__(930);
+const THREE = __importStar(__webpack_require__(5578));
+const sampleSource_1 = __webpack_require__(7930);
 class SpectrogramTool {
     scene;
     sampleSource = null;
@@ -3873,7 +4203,7 @@ exports.SpectrogramTool = SpectrogramTool;
 
 /***/ }),
 
-/***/ 297:
+/***/ 4297:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -3898,7 +4228,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SpeechTool = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class SpeechTool {
     canvas;
     recognition;
@@ -3958,7 +4288,7 @@ exports.SpeechTool = SpeechTool;
 
 /***/ }),
 
-/***/ 11:
+/***/ 5011:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -3983,12 +4313,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StringSphere = exports.LineSphereTool = exports.ShaderSphereTool4 = exports.ShaderSphereTool3 = exports.ShaderSphereTool2 = exports.ShaderSphereTool1 = exports.StandardSphereTool = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const BufferGeometryUtils = __importStar(__webpack_require__(58));
-const Line2_js_1 = __webpack_require__(229);
-const LineGeometry_js_1 = __webpack_require__(482);
-const selectionSphere_1 = __webpack_require__(107);
-const niceLineMaterial_1 = __webpack_require__(632);
+const THREE = __importStar(__webpack_require__(5578));
+const BufferGeometryUtils = __importStar(__webpack_require__(5058));
+const Line2_js_1 = __webpack_require__(2229);
+const LineGeometry_js_1 = __webpack_require__(5482);
+const selectionSphere_1 = __webpack_require__(7107);
+const niceLineMaterial_1 = __webpack_require__(5632);
 class SphereTool {
     scene;
     objectFactory;
@@ -4156,14 +4486,14 @@ exports.StringSphere = StringSphere;
 
 /***/ }),
 
-/***/ 791:
+/***/ 6791:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TactileInterface = void 0;
-const settings_1 = __webpack_require__(451);
-const toolBelt_1 = __webpack_require__(22);
+const settings_1 = __webpack_require__(6451);
+const toolBelt_1 = __webpack_require__(9022);
 class TactileInterface {
     paint;
     projection;
@@ -4251,7 +4581,7 @@ exports.TactileInterface = TactileInterface;
 
 /***/ }),
 
-/***/ 873:
+/***/ 7873:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -4289,7 +4619,7 @@ exports.TactileProvider = TactileProvider;
 
 /***/ }),
 
-/***/ 841:
+/***/ 7841:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -4333,7 +4663,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SawtoothToneTool = exports.TriangleToneTool = exports.SquareToneTool = exports.SineToneTool = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class ShapeToneSource {
     audioCtx;
     oscillator;
@@ -4568,7 +4898,7 @@ exports.SawtoothToneTool = SawtoothToneTool;
 
 /***/ }),
 
-/***/ 22:
+/***/ 9022:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -4593,18 +4923,18 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ToolBelt = void 0;
-const THREE = __importStar(__webpack_require__(578));
-const audioHelper_1 = __webpack_require__(530);
-const eraseTool_1 = __webpack_require__(847);
-const graphitiTool_1 = __webpack_require__(257);
-const highlighterTool_1 = __webpack_require__(512);
+const THREE = __importStar(__webpack_require__(5578));
+const audioHelper_1 = __webpack_require__(9530);
+const eraseTool_1 = __webpack_require__(1847);
+const graphitiTool_1 = __webpack_require__(5257);
+const highlighterTool_1 = __webpack_require__(9512);
 const imageTool_1 = __webpack_require__(379);
-const penTool_1 = __webpack_require__(547);
-const playTool_1 = __webpack_require__(344);
-const settings_1 = __webpack_require__(451);
-const spectrogramTool_1 = __webpack_require__(268);
-const speechTool_1 = __webpack_require__(297);
-const sphereTool_1 = __webpack_require__(11);
+const penTool_1 = __webpack_require__(3547);
+const playTool_1 = __webpack_require__(9344);
+const settings_1 = __webpack_require__(6451);
+const spectrogramTool_1 = __webpack_require__(2268);
+const speechTool_1 = __webpack_require__(4297);
+const sphereTool_1 = __webpack_require__(5011);
 const toneTool_1 = __webpack_require__(88);
 class ToolBelt extends THREE.Group {
     tools = [];
@@ -4697,7 +5027,7 @@ exports.ToolBelt = ToolBelt;
 
 /***/ }),
 
-/***/ 891:
+/***/ 4891:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -4722,7 +5052,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Util = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class Util {
     static isModelVisible(o) {
         while (o !== null && o !== undefined) {
@@ -4742,7 +5072,7 @@ exports.Util = Util;
 
 /***/ }),
 
-/***/ 950:
+/***/ 6950:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -4767,7 +5097,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Zoom = void 0;
-const THREE = __importStar(__webpack_require__(578));
+const THREE = __importStar(__webpack_require__(5578));
 class Zoom {
     static makePerpendicular(l, r) {
         const dx = r.x - l.x;
@@ -4795,7 +5125,7 @@ exports.Zoom = Zoom;
 
 /***/ }),
 
-/***/ 578:
+/***/ 5578:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -54995,7 +55325,7 @@ if ( typeof window !== 'undefined' ) {
 
 /***/ }),
 
-/***/ 229:
+/***/ 2229:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 // ESM COMPAT FLAG
@@ -55007,9 +55337,9 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ../../../node_modules/three/build/three.module.js
-var three_module = __webpack_require__(578);
+var three_module = __webpack_require__(5578);
 // EXTERNAL MODULE: ../../../node_modules/three/examples/jsm/lines/LineSegmentsGeometry.js
-var LineSegmentsGeometry = __webpack_require__(739);
+var LineSegmentsGeometry = __webpack_require__(4739);
 ;// CONCATENATED MODULE: ../../../node_modules/three/examples/jsm/lines/LineMaterial.js
 /**
  * parameters = {
@@ -55983,7 +56313,7 @@ LineSegments2.prototype.LineSegments2 = true;
 
 
 // EXTERNAL MODULE: ../../../node_modules/three/examples/jsm/lines/LineGeometry.js
-var LineGeometry = __webpack_require__(482);
+var LineGeometry = __webpack_require__(5482);
 ;// CONCATENATED MODULE: ../../../node_modules/three/examples/jsm/lines/Line2.js
 
 
@@ -56008,14 +56338,14 @@ Line2.prototype.isLine2 = true;
 
 /***/ }),
 
-/***/ 482:
+/***/ 5482:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "LineGeometry": () => (/* binding */ LineGeometry)
 /* harmony export */ });
-/* harmony import */ var _lines_LineSegmentsGeometry_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(739);
+/* harmony import */ var _lines_LineSegmentsGeometry_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4739);
 
 
 class LineGeometry extends _lines_LineSegmentsGeometry_js__WEBPACK_IMPORTED_MODULE_0__/* .LineSegmentsGeometry */ .z {
@@ -56107,13 +56437,13 @@ LineGeometry.prototype.isLineGeometry = true;
 
 /***/ }),
 
-/***/ 739:
+/***/ 4739:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "z": () => (/* binding */ LineSegmentsGeometry)
 /* harmony export */ });
-/* harmony import */ var three__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(578);
+/* harmony import */ var three__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5578);
 
 
 const _box = new three__WEBPACK_IMPORTED_MODULE_0__.Box3();
@@ -56359,14 +56689,14 @@ LineSegmentsGeometry.prototype.isLineSegmentsGeometry = true;
 
 /***/ }),
 
-/***/ 687:
+/***/ 9687:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "GLTFLoader": () => (/* binding */ GLTFLoader)
 /* harmony export */ });
-/* harmony import */ var three__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(578);
+/* harmony import */ var three__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5578);
 
 
 class GLTFLoader extends three__WEBPACK_IMPORTED_MODULE_0__.Loader {
@@ -60645,7 +60975,7 @@ function toTrianglesDrawMode( geometry, drawMode ) {
 
 /***/ }),
 
-/***/ 58:
+/***/ 5058:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -60659,7 +60989,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "toTrianglesDrawMode": () => (/* binding */ toTrianglesDrawMode),
 /* harmony export */   "computeMorphedAttributes": () => (/* binding */ computeMorphedAttributes)
 /* harmony export */ });
-/* harmony import */ var three__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(578);
+/* harmony import */ var three__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5578);
 
 
 
@@ -61588,7 +61918,7 @@ function computeMorphedAttributes( object ) {
 
 /***/ }),
 
-/***/ 652:
+/***/ 7652:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -61831,8 +62161,8 @@ var exports = __webpack_exports__;
 var __webpack_unused_export__;
 
 __webpack_unused_export__ = ({ value: true });
-const game_1 = __webpack_require__(417);
-const settings_1 = __webpack_require__(451);
+const game_1 = __webpack_require__(1417);
+const settings_1 = __webpack_require__(6451);
 async function getAudioContext() {
     const c = document.createElement('div');
     const div = document.createElement('div');

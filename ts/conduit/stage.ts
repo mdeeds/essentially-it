@@ -36,7 +36,7 @@ export class ConduitStage extends THREE.Object3D implements World, Ticker {
     panel.rotateY(-Math.PI / 2);
     this.add(panel);
 
-    const zigZag = new ZigZag();
+    const zigZag = new ZigZag(motions, this.synth, keySet);
     zigZag.position.set(0, 0.8, -0.5);
     this.add(zigZag);
   }
@@ -51,11 +51,6 @@ export class ConduitStage extends THREE.Object3D implements World, Ticker {
     });
   }
 
-  private lastTick = 0;
   tick(t: Tick) {
-    if (t.elapsedS - this.lastTick > 1) {
-      this.lastTick = t.elapsedS;
-      this.synth.trigger();
-    }
   }
 }
