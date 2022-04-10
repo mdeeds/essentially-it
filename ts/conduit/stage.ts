@@ -9,6 +9,7 @@ import { Knob } from "./knob";
 import { Panel } from "./panel";
 import { SawSynth } from "./sawSynth";
 import { Synth } from "./synth";
+import { ZigZag } from "./zigZag";
 
 export class ConduitStage extends THREE.Object3D implements World, Ticker {
   private synth: Synth;
@@ -34,6 +35,10 @@ export class ConduitStage extends THREE.Object3D implements World, Ticker {
     panel.position.set(1, 2.0, 0);
     panel.rotateY(-Math.PI / 2);
     this.add(panel);
+
+    const zigZag = new ZigZag();
+    zigZag.position.set(0, 0.8, -0.5);
+    this.add(zigZag);
   }
 
   buildSynth(audioCtx: AudioContext) {
