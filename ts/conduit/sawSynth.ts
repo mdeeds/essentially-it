@@ -24,6 +24,15 @@ export class SawSynth implements Synth {
       "MIDI": 0.28330267716714197, "Vol": 0.6600899999976161
     }
 
+  static roboBeepPatch =
+    {
+      "A1": 0.008190000000596052, "R1": 0.027,
+      "Freq": 0.4858700000107309, "Res": 0.17142999999821204,
+      "A2": 0.05184000000059607, "R2": 0,
+      "Env2Osc": 0.5496299999982115, "Env2Filter": 0.8916699999988075,
+      "MIDI": 0.34936267715760555, "Vol": 0.358600000008941
+    };
+
   readonly midiPitch = new Knob('MIDI', 0, 127, 43);
   public e2Attack: Knob;
   public e2Release: Knob;
