@@ -5,7 +5,7 @@ export type TransferFunction = (x: number) => number;
 
 export class AR {
   readonly attackKnob: Knob = new Knob('A', 0, 5, 0.05);
-  readonly releaseKnob: Knob = new Knob('R', 0, 5, 1.0);
+  readonly releaseKnob: Knob = new Knob('R', 0, 5, 0.2);
 
   private attackS = 0.05;
   private releaseS = 1;
@@ -26,20 +26,20 @@ export class AR {
     let t = this.audioCtx.currentTime;
     this.param.cancelScheduledValues(t);
     t += this.attackS;
-    this.param.linearRampToValueAtTime(
-      this.transferFunction(1.0), t);
+    this.param.setTargetAtTime(
+      this.transferFunction(1.0), t, this.attackS / 2);
     t += this.releaseS;
     const releaseTime = t;
-    this.param.linearRampToValueAtTime(
-      this.transferFunction(0), t);
+    this.param.setTargetAtTime(
+      this.transferFunction(0), t, this.releaseS / 2);
     return releaseTime;
   }
   private linearRelease() {
     let t = this.audioCtx.currentTime;
     this.param.cancelScheduledValues(t);
     t += this.releaseS;
-    this.param.linearRampToValueAtTime(
-      this.transferFunction(0), t);
+    this.param.setTargetAtTime(
+      this.transferFunction(0), t, this.releaseS / 2);
   }
 
   private exponentialTrigger(): number {

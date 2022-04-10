@@ -8,7 +8,6 @@ export type ValueSetter = (p: number, x: number) => void;
 export class KnobTarget {
   public constructor(private set: ValueSetter) {
   }
-
   public static fromAudioParam(param: AudioParam, audioCtx: AudioContext, lagS: number) {
     return new KnobTarget((p, x) => {
       param.linearRampToValueAtTime(x, audioCtx.currentTime + lagS);
@@ -67,28 +66,32 @@ export class KnobTarget {
 export class Knob {
   private targets: KnobTarget[] = [];
   constructor(
-    readonly name: string,
+    public name: string,
     readonly low: number, readonly high: number, private value: number) {
     this.value = (value - low) / (high - low);
     this.value = Math.min(1, Math.max(0, this.value));
   }
 
-  change(relativeDelta: number) {
-    this.value += relativeDelta;
-    this.value = Math.max(0, Math.min(1, this.value));
+  public getP(): number {
+    return this.value;
+  }
+
+  public setP(p: number) {
+    this.value = p;
     for (const t of this.targets) {
       t.setValue(this.value,
         this.value * (this.high - this.low) + this.low);
     }
   }
 
-  addTarget(target: KnobTarget) {
-    this.targets.push(target);
-    target.setValue(this.value,
-      this.value * (this.high - this.low) + this.low);
+  change(relativeDelta: number) {
+    this.value += relativeDelta;
+    this.value = Math.max(0, Math.min(1, this.value));
+    this.setP(this.value);
   }
 
-  // getValue(): number {
-  //   return this.value;
-  // }
+  addTarget(target: KnobTarget) {
+    this.targets.push(target);
+    target.setValue(this.value, this.value * (this.high - this.low) + this.low);
+  }
 }

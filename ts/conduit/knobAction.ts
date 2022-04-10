@@ -37,9 +37,9 @@ export class KnobAction extends THREE.Object3D implements Ticker {
       }
     }
     if (this.keySet.has('Equal')) {
-      delta = t.deltaS;
+      delta = t.deltaS * 0.1;
     } else if (this.keySet.has('Minus')) {
-      delta = -t.deltaS;
+      delta = -t.deltaS * 0.1;
     }
     if (delta != 0.0) {
       this.knob.change(delta);
