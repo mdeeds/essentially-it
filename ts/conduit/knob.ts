@@ -76,6 +76,10 @@ export class Knob {
     return this.value;
   }
 
+  public getX(): number {
+    return this.value * (this.high - this.low) + this.low;
+  }
+
   public setP(p: number) {
     this.value = Math.min(1.0, Math.max(0.0, p));
     for (const t of this.targets) {

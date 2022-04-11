@@ -7,30 +7,29 @@ import { Synth } from "./synth";
 export class SawSynth implements Synth {
 
   static bassDrumPatch = {
-    "A1": 0.01, "R1": 0.04,
-    "Freq": 0.24324000000357635, "Res": 0.13009999999999997,
-    "A2": 0.011650000000000002, "R2": 0.1266200000017881,
-    "Env2Osc": 0.08011000000238418, "Env2Filter": 0.5380799999982115,
-    "MIDI": 0.2652026771641621, "Vol": 0.3850599999994041
+    "A1": 0.010009999999403954, "R1": 0.2238299999892707,
+    "Freq": 0.526690000003578, "Res": 0.15670000000596032,
+    "A2": 0, "R2": 0.037949999994039585,
+    "Env2Osc": 0.08599000000059606, "Env2Filter": 0.8099799999982119,
+    "MIDI": 0.14835000000000007, "Vol": 0.04305999999940392
   };
-
-  static bassDrum2Patch =
-    {
-      "A1": 0.0066599999994039535, "R1": 0.04066000000238415,
-      "Freq": 0.2565600000023844, "Res": 0.4568100000023841,
-      "A2": 0, "R2": 0.011540000000596122,
-      "Env2Osc": 0.3451800000011929, "Env2Filter": 0.7866899999976152,
-      "MIDI": 0.28330267716714197, "Vol": 0.6600899999976161
-    }
 
   static roboBeepPatch =
     {
       "A1": 0.008190000000596052, "R1": 0.027,
-      "Freq": 0.4858700000107309, "Res": 0.17142999999821204,
+      "Freq": 0.4858700000107309, "Res": 0.08503000000119205,
       "A2": 0.05184000000059607, "R2": 0,
       "Env2Osc": 0.5496299999982115, "Env2Filter": 0.8916699999988075,
-      "MIDI": 0.34936267715760555, "Vol": 0.358600000008941
+      "MIDI": 0.3894426771558174, "Vol": 0.09836000000834501
     };
+
+  static simplePatch = {
+    "A1": 0.001, "R1": 0.05,
+    "Freq": 0.5, "Res": 0.03,
+    "A2": 0, "R2": 0.025,
+    "Env2Osc": 0, "Env2Filter": 0,
+    "MIDI": 0.21506267716952615, "Vol": 0.125
+  };
 
   readonly midiPitch = new Knob('MIDI', 0, 127, 43);
   public e2Attack: Knob;
@@ -75,7 +74,7 @@ export class SawSynth implements Synth {
     this.volumeKnob.addTarget(
       KnobTarget.fromAudioParam(volume.gain, audioCtx, 0.01));
 
-    this.env1 = new AR(this.audioCtx, vca.gain);
+    this.env1 = new AR(this.audioCtx, vca.gain, AR.Identity, true);
     this.e1Attack = this.env1.attackKnob;
     this.e1Release = this.env1.releaseKnob;
     this.e1Attack.name = 'A1';
@@ -86,7 +85,7 @@ export class SawSynth implements Synth {
     }));
 
     this.envFilter.addTarget(new KnobTarget((p: number, x: number) => {
-      attToFilter.setBias(x);
+      attToFilter.setBias(x + AudioUtil.MidiToVolts(this.midiPitch.getX()));
     }));
     this.resonance.addTarget(
       KnobTarget.fromAudioParam(bpf.Q, audioCtx, 0.05));
@@ -96,7 +95,7 @@ export class SawSynth implements Synth {
     vca.connect(volume);
     volume.connect(audioCtx.destination);
 
-    this.loadPatch(SawSynth.bassDrum2Patch);
+    this.loadPatch(SawSynth.bassDrumPatch);
   }
 
   getKnobs(): Knob[] {
@@ -130,14 +129,19 @@ export class SawSynth implements Synth {
 
   private makeOsc(): OscillatorNode {
     const osc = this.audioCtx.createOscillator();
-    osc.type = 'sawtooth';
+
+    const wave = this.audioCtx.createPeriodicWave(
+      [0, 1, 1, 0, 0.1, 0, 0.04],  // Real == Sine
+      [0, 0, 0, 0, 0, 0, 0],  // Imag == Cosine
+      { disableNormalization: true });
+    osc.setPeriodicWave(wave);
     osc.start();
     return osc;
   }
 
   private makeBpf(): BiquadFilterNode {
     const bpf = this.audioCtx.createBiquadFilter();
-    bpf.type = 'bandpass';
+    bpf.type = 'lowpass';
     return bpf;
   }
 

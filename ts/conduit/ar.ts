@@ -10,7 +10,7 @@ export class AR {
   private attackS = 0.05;
   private releaseS = 1;
 
-  private static Identity: TransferFunction = function (x: number) { return x; };
+  static Identity: TransferFunction = function (x: number) { return x; };
 
   constructor(private audioCtx: AudioContext, private param: AnyParam,
     private transferFunction: TransferFunction = AR.Identity,
@@ -19,25 +19,29 @@ export class AR {
       (p: number, x: number) => { this.attackS = x; }))
     this.releaseKnob.addTarget(new KnobTarget(
       (p: number, x: number) => { this.releaseS = x; }))
-    this.param.setValueAtTime(this.transferFunction(0), audioCtx.currentTime);
+    let zero = this.transferFunction(0);
+    if (exponential) {
+      zero = Math.max(zero, 1e-4);
+    }
+    this.param.setValueAtTime(zero, audioCtx.currentTime);
   }
 
   private linearTrigger(): number {
     let t = this.audioCtx.currentTime;
     this.param.cancelScheduledValues(t);
-    t += this.attackS;
+    t += this.attackS + 0.001;
     this.param.linearRampToValueAtTime(
       this.transferFunction(1.0), t);
-    t += this.releaseS;
+    t += this.releaseS + 0.001;
     const releaseTime = t;
-    this.param.setTargetAtTime(
-      this.transferFunction(0), t, this.releaseS / 2);
+    this.param.linearRampToValueAtTime(
+      this.transferFunction(0), t);
     return releaseTime;
   }
   private linearRelease() {
     let t = this.audioCtx.currentTime;
     this.param.cancelScheduledValues(t);
-    t += this.releaseS;
+    t += this.releaseS + 0.001;
     this.param.setTargetAtTime(
       this.transferFunction(0), t, this.releaseS / 2);
   }
@@ -45,23 +49,29 @@ export class AR {
   private exponentialTrigger(): number {
     let t = this.audioCtx.currentTime;
     this.param.cancelScheduledValues(t);
-    this.param.setValueAtTime(t, this.transferFunction(0));
-    t += this.attackS;
-    this.param.exponentialRampToValueAtTime(
-      this.transferFunction(1.0), t);
-    t += this.releaseS;
+    t += 0.001;
+    const zero = Math.max(1e-4, this.transferFunction(0));
+    this.param.exponentialRampToValueAtTime(zero, t);
+    t += this.attackS + 0.001;
+    let one = this.transferFunction(1.0);
+    this.param.exponentialRampToValueAtTime(one, t);
+    console.log(`Ramping to ${one.toFixed(2)} over ${this.attackS.toFixed(2)} seconds.`);
+    console.log(`Target ${this.param['constructor'].name}`);
+    if (this.param instanceof AudioParam) {
+      console.log(this.param);
+    }
+    t += this.releaseS + 0.001;
     const releaseTime = t;
-    this.param.exponentialRampToValueAtTime(
-      this.transferFunction(0), t);
+    this.param.exponentialRampToValueAtTime(zero, t);
     return releaseTime;
   }
 
   private exponentialRelease() {
     let t = this.audioCtx.currentTime;
     this.param.cancelScheduledValues(t);
-    t += this.releaseS;
-    this.param.exponentialRampToValueAtTime(
-      this.transferFunction(0), t);
+    t += this.releaseS + 0.001;
+    const zero = Math.max(1e-4, this.transferFunction(0));
+    this.param.exponentialRampToValueAtTime(zero, t);
   }
 
   public trigger(): number {
