@@ -96,7 +96,7 @@ export class SawSynth implements Synth {
     vca.connect(volume);
     volume.connect(audioCtx.destination);
 
-    this.loadPatch(SawSynth.bassDrumPatch);
+    this.loadPatch(SawSynth.bassDrum2Patch);
   }
 
   getKnobs(): Knob[] {

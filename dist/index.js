@@ -121,7 +121,7 @@ class AR {
         let t = this.audioCtx.currentTime;
         this.param.cancelScheduledValues(t);
         t += this.attackS;
-        this.param.setTargetAtTime(this.transferFunction(1.0), t, this.attackS / 2);
+        this.param.linearRampToValueAtTime(this.transferFunction(1.0), t);
         t += this.releaseS;
         const releaseTime = t;
         this.param.setTargetAtTime(this.transferFunction(0), t, this.releaseS / 2);
@@ -452,8 +452,6 @@ class KnobAction extends THREE.Object3D {
         this.highlight = new selectionSphere_1.SelectionSphere(1, color);
         this.add(this.highlight);
     }
-    p = new THREE.Vector3();
-    p2 = new THREE.Vector3();
     tick(t) {
         if (!this.knob) {
             return;
@@ -463,13 +461,7 @@ class KnobAction extends THREE.Object3D {
         let delta = 0.0;
         if (m.getDistanceToCamera() > 0.4) {
             c = KnobAction.brightColor;
-            // if (m.orientX.y > 0.2) {
-            //   delta = m.velocity.length() * t.deltaS;
-            // } else if (
-            //   m.orientX.y < -0.2) {
-            //   delta = -m.velocity.length() * t.deltaS;
-            // }
-            this.knob.setP(m.p.y - 1);
+            this.knob.change(m.p.y - m.prevP.y);
         }
         if (this.keySet.has('Equal')) {
             delta = t.deltaS * 0.1;
@@ -860,7 +852,7 @@ class SawSynth {
         bpf.connect(vca);
         vca.connect(volume);
         volume.connect(audioCtx.destination);
-        this.loadPatch(SawSynth.bassDrumPatch);
+        this.loadPatch(SawSynth.bassDrum2Patch);
     }
     getKnobs() {
         return [
@@ -1066,6 +1058,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConduitStage = void 0;
 const THREE = __importStar(__webpack_require__(5578));
 const three_1 = __webpack_require__(5578);
+const settings_1 = __webpack_require__(6451);
 const panel_1 = __webpack_require__(8705);
 const sawSynth_1 = __webpack_require__(3466);
 const zigZag_1 = __webpack_require__(9000);
@@ -1090,7 +1083,7 @@ class ConduitStage extends THREE.Object3D {
         panel.rotateY(-Math.PI / 2);
         this.add(panel);
         const zigZag = new zigZag_1.ZigZag(motions, this.synth, keySet);
-        zigZag.position.set(0, 1.2, -0.5);
+        zigZag.position.set(0, settings_1.S.float('zy'), -0.5);
         this.add(zigZag);
     }
     buildSynth(audioCtx) {
@@ -3963,6 +3956,7 @@ class S {
         S.setDefault('sr', 10000, 'Radius of the starfield.');
         S.setDefault('mr', 2, 'Minimum star radius.');
         S.setDefault('si', 0.9, 'Star intensity');
+        S.setDefault('zy', 1.1, 'Zig-Zag height');
     }
     static float(name) {
         if (S.cache.has(name)) {

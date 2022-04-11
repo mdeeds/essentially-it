@@ -26,8 +26,8 @@ export class AR {
     let t = this.audioCtx.currentTime;
     this.param.cancelScheduledValues(t);
     t += this.attackS;
-    this.param.setTargetAtTime(
-      this.transferFunction(1.0), t, this.attackS / 2);
+    this.param.linearRampToValueAtTime(
+      this.transferFunction(1.0), t);
     t += this.releaseS;
     const releaseTime = t;
     this.param.setTargetAtTime(

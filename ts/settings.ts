@@ -33,7 +33,7 @@ export class S {
     S.setDefault('sr', 10000, 'Radius of the starfield.');
     S.setDefault('mr', 2, 'Minimum star radius.');
     S.setDefault('si', 0.9, 'Star intensity');
-    S.setDefault('sy', 1.1, 'Zig-Zag height');
+    S.setDefault('zy', 1.1, 'Zig-Zag height');
   }
 
   public static float(name: string): number {
