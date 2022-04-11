@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { DirectionalLight } from "three";
 import { Motion } from "../motion";
 import { ParticleSystem } from "../particleSystem";
+import { S } from "../settings";
 import { TactileProvider } from "../tactileProvider";
 import { Tick, Ticker } from "../ticker";
 import { World } from "../world";
@@ -37,7 +38,7 @@ export class ConduitStage extends THREE.Object3D implements World, Ticker {
     this.add(panel);
 
     const zigZag = new ZigZag(motions, this.synth, keySet);
-    zigZag.position.set(0, 1.2, -0.5);
+    zigZag.position.set(0, S.float('zy'), -0.5);
     this.add(zigZag);
   }
 
