@@ -18,8 +18,6 @@ export class KnobAction extends THREE.Object3D implements Ticker {
     this.add(this.highlight);
   }
 
-  private p = new THREE.Vector3();
-  private p2 = new THREE.Vector3();
   public tick(t: Tick) {
     if (!this.knob) {
       return;
@@ -29,13 +27,7 @@ export class KnobAction extends THREE.Object3D implements Ticker {
     let delta = 0.0;
     if (m.getDistanceToCamera() > 0.4) {
       c = KnobAction.brightColor;
-      // if (m.orientX.y > 0.2) {
-      //   delta = m.velocity.length() * t.deltaS;
-      // } else if (
-      //   m.orientX.y < -0.2) {
-      //   delta = -m.velocity.length() * t.deltaS;
-      // }
-      this.knob.setP(m.p.y - 1)
+      this.knob.change(m.p.y - m.prevP.y);
     }
     if (this.keySet.has('Equal')) {
       delta = t.deltaS * 0.1;
