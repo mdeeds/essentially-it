@@ -8,10 +8,10 @@ export class SawSynth implements Synth {
 
   static bassDrumPatch = {
     "A1": 0.010009999999403954, "R1": 0.2238299999892707,
-    "Freq": 0.526690000003578, "Res": 0.15670000000596032,
-    "A2": 0, "R2": 0.037949999994039585,
-    "Env2Osc": 0.08599000000059606, "Env2Filter": 0.8099799999982119,
-    "MIDI": 0.14835000000000007, "Vol": 0.04305999999940392
+    "Freq": 0.5998800000041749, "Res": 0.4216000000059603,
+    "A2": 0, "R2": 0.028180000001192078,
+    "Env2Osc": 0.08599000000059606, "Env2Filter": 0.8166599999964235,
+    "MIDI": 0.24346999999582783, "Vol": 0.02678999999463557
   };
 
   static roboBeepPatch =
@@ -131,7 +131,7 @@ export class SawSynth implements Synth {
     const osc = this.audioCtx.createOscillator();
 
     const wave = this.audioCtx.createPeriodicWave(
-      [0, 1, 1, 0, 0.1, 0, 0.04],  // Real == Sine
+      [0, 1, 1, 0, 0.33, 0, 0.2],  // Real == Sine
       [0, 0, 0, 0, 0, 0, 0],  // Imag == Cosine
       { disableNormalization: true });
     osc.setPeriodicWave(wave);
