@@ -55,11 +55,6 @@ export class AR {
     t += this.attackS + 0.001;
     let one = this.transferFunction(1.0);
     this.param.exponentialRampToValueAtTime(one, t);
-    console.log(`Ramping to ${one.toFixed(2)} over ${this.attackS.toFixed(2)} seconds.`);
-    console.log(`Target ${this.param['constructor'].name}`);
-    if (this.param instanceof AudioParam) {
-      console.log(this.param);
-    }
     t += this.releaseS + 0.001;
     const releaseTime = t;
     this.param.exponentialRampToValueAtTime(zero, t);

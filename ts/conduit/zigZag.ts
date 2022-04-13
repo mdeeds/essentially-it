@@ -13,6 +13,9 @@ class Particle {
     this.color.set('#a2a');
     this.trigger = true;
   }
+  hasTrigger() {
+    return this.trigger;
+  }
 }
 
 export class ZigZag extends THREE.Object3D implements Ticker {
@@ -165,11 +168,37 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     colorAtt.needsUpdate = true;
   }
 
+  // Executes all triggers in the range [fromTimeS, toTimeS)
+  executeTriggers(fromTimeS: number, toTimeS: number) {
+    let currentTime = fromTimeS;
+    const secondsPerBeat = 60 / this.bpm;
+    const timeStep = secondsPerBeat / this.particlesPerBeat;
+    const secondsPerParticle = secondsPerBeat / this.particlesPerBeat;
+    let i = Math.ceil(fromTimeS / secondsPerParticle)
+      % this.particles.length;
+    while (currentTime < toTimeS) {
+      if (this.particles[i].hasTrigger()) {
+        console.log(`Trigger @ ${i}`);
+        this.synth.trigger();
+      }
+      ++i;
+      if (i >= this.particles.length) {
+        i -= this.particles.length;
+      };
+      currentTime += timeStep;
+    }
+  }
+
   private p1 = new THREE.Vector3();
   private p2 = new THREE.Vector3();
   private lastTriggerTime = 0;
+  private playedThroughTime = 0;
   public tick(t: Tick) {
     const currentBeatNumber = this.getCurrentBeat(t.elapsedS);
+
+    const endPlayTime = t.elapsedS + 0.05;
+    this.executeTriggers(this.playedThroughTime, endPlayTime);
+    this.playedThroughTime = endPlayTime;
 
     const positions = this.geometry.getAttribute('position');
     for (let i = 0; i < positions.count; ++i) {

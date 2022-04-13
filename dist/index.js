@@ -146,11 +146,6 @@ class AR {
         t += this.attackS + 0.001;
         let one = this.transferFunction(1.0);
         this.param.exponentialRampToValueAtTime(one, t);
-        console.log(`Ramping to ${one.toFixed(2)} over ${this.attackS.toFixed(2)} seconds.`);
-        console.log(`Target ${this.param['constructor'].name}`);
-        if (this.param instanceof AudioParam) {
-            console.log(this.param);
-        }
         t += this.releaseS + 0.001;
         const releaseTime = t;
         this.param.exponentialRampToValueAtTime(zero, t);
@@ -1161,6 +1156,9 @@ class Particle {
         this.color.set('#a2a');
         this.trigger = true;
     }
+    hasTrigger() {
+        return this.trigger;
+    }
 }
 class ZigZag extends THREE.Object3D {
     motions;
@@ -1300,11 +1298,36 @@ class ZigZag extends THREE.Object3D {
         colorAtt.setXYZ(i, c.r, c.g, c.b);
         colorAtt.needsUpdate = true;
     }
+    // Executes all triggers in the range [fromTimeS, toTimeS)
+    executeTriggers(fromTimeS, toTimeS) {
+        let currentTime = fromTimeS;
+        const secondsPerBeat = 60 / this.bpm;
+        const timeStep = secondsPerBeat / this.particlesPerBeat;
+        const secondsPerParticle = secondsPerBeat / this.particlesPerBeat;
+        let i = Math.ceil(fromTimeS / secondsPerParticle)
+            % this.particles.length;
+        while (currentTime < toTimeS) {
+            if (this.particles[i].hasTrigger()) {
+                console.log(`Trigger @ ${i}`);
+                this.synth.trigger();
+            }
+            ++i;
+            if (i >= this.particles.length) {
+                i -= this.particles.length;
+            }
+            ;
+            currentTime += timeStep;
+        }
+    }
     p1 = new THREE.Vector3();
     p2 = new THREE.Vector3();
     lastTriggerTime = 0;
+    playedThroughTime = 0;
     tick(t) {
         const currentBeatNumber = this.getCurrentBeat(t.elapsedS);
+        const endPlayTime = t.elapsedS + 0.05;
+        this.executeTriggers(this.playedThroughTime, endPlayTime);
+        this.playedThroughTime = endPlayTime;
         const positions = this.geometry.getAttribute('position');
         for (let i = 0; i < positions.count; ++i) {
             const p = this.particles[i];
