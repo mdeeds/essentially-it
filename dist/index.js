@@ -115,40 +115,53 @@ class AR {
         this.exponential = exponential;
         this.attackKnob.addTarget(new knob_1.KnobTarget((p, x) => { this.attackS = x; }));
         this.releaseKnob.addTarget(new knob_1.KnobTarget((p, x) => { this.releaseS = x; }));
-        this.param.setValueAtTime(this.transferFunction(0), audioCtx.currentTime);
+        let zero = this.transferFunction(0);
+        if (exponential) {
+            zero = Math.max(zero, 1e-4);
+        }
+        this.param.setValueAtTime(zero, audioCtx.currentTime);
     }
     linearTrigger() {
         let t = this.audioCtx.currentTime;
         this.param.cancelScheduledValues(t);
-        t += this.attackS;
+        t += this.attackS + 0.001;
         this.param.linearRampToValueAtTime(this.transferFunction(1.0), t);
-        t += this.releaseS;
+        t += this.releaseS + 0.001;
         const releaseTime = t;
-        this.param.setTargetAtTime(this.transferFunction(0), t, this.releaseS / 2);
+        this.param.linearRampToValueAtTime(this.transferFunction(0), t);
         return releaseTime;
     }
     linearRelease() {
         let t = this.audioCtx.currentTime;
         this.param.cancelScheduledValues(t);
-        t += this.releaseS;
+        t += this.releaseS + 0.001;
         this.param.setTargetAtTime(this.transferFunction(0), t, this.releaseS / 2);
     }
     exponentialTrigger() {
         let t = this.audioCtx.currentTime;
         this.param.cancelScheduledValues(t);
-        this.param.setValueAtTime(t, this.transferFunction(0));
-        t += this.attackS;
-        this.param.exponentialRampToValueAtTime(this.transferFunction(1.0), t);
-        t += this.releaseS;
+        t += 0.001;
+        const zero = Math.max(1e-4, this.transferFunction(0));
+        this.param.exponentialRampToValueAtTime(zero, t);
+        t += this.attackS + 0.001;
+        let one = this.transferFunction(1.0);
+        this.param.exponentialRampToValueAtTime(one, t);
+        console.log(`Ramping to ${one.toFixed(2)} over ${this.attackS.toFixed(2)} seconds.`);
+        console.log(`Target ${this.param['constructor'].name}`);
+        if (this.param instanceof AudioParam) {
+            console.log(this.param);
+        }
+        t += this.releaseS + 0.001;
         const releaseTime = t;
-        this.param.exponentialRampToValueAtTime(this.transferFunction(0), t);
+        this.param.exponentialRampToValueAtTime(zero, t);
         return releaseTime;
     }
     exponentialRelease() {
         let t = this.audioCtx.currentTime;
         this.param.cancelScheduledValues(t);
-        t += this.releaseS;
-        this.param.exponentialRampToValueAtTime(this.transferFunction(0), t);
+        t += this.releaseS + 0.001;
+        const zero = Math.max(1e-4, this.transferFunction(0));
+        this.param.exponentialRampToValueAtTime(zero, t);
     }
     trigger() {
         if (this.exponential) {
@@ -387,6 +400,9 @@ class Knob {
     }
     getP() {
         return this.value;
+    }
+    getX() {
+        return this.value * (this.high - this.low) + this.low;
     }
     setP(p) {
         this.value = Math.min(1.0, Math.max(0.0, p));
@@ -783,25 +799,25 @@ const params_1 = __webpack_require__(9661);
 class SawSynth {
     audioCtx;
     static bassDrumPatch = {
-        "A1": 0.01, "R1": 0.04,
-        "Freq": 0.24324000000357635, "Res": 0.13009999999999997,
-        "A2": 0.011650000000000002, "R2": 0.1266200000017881,
-        "Env2Osc": 0.08011000000238418, "Env2Filter": 0.5380799999982115,
-        "MIDI": 0.2652026771641621, "Vol": 0.3850599999994041
-    };
-    static bassDrum2Patch = {
-        "A1": 0.0066599999994039535, "R1": 0.04066000000238415,
-        "Freq": 0.2565600000023844, "Res": 0.4568100000023841,
-        "A2": 0, "R2": 0.011540000000596122,
-        "Env2Osc": 0.3451800000011929, "Env2Filter": 0.7866899999976152,
-        "MIDI": 0.28330267716714197, "Vol": 0.6600899999976161
+        "A1": 0.010009999999403954, "R1": 0.2238299999892707,
+        "Freq": 0.5415600000083471, "Res": 0.2651200000017879,
+        "A2": 0, "R2": 0.028180000001192078,
+        "Env2Osc": 0.06454999999701978, "Env2Filter": 0.7248799999982111,
+        "MIDI": 0.20193000000119218, "Vol": 0.02678999999463557
     };
     static roboBeepPatch = {
         "A1": 0.008190000000596052, "R1": 0.027,
-        "Freq": 0.4858700000107309, "Res": 0.17142999999821204,
+        "Freq": 0.4858700000107309, "Res": 0.08503000000119205,
         "A2": 0.05184000000059607, "R2": 0,
         "Env2Osc": 0.5496299999982115, "Env2Filter": 0.8916699999988075,
-        "MIDI": 0.34936267715760555, "Vol": 0.358600000008941
+        "MIDI": 0.3894426771558174, "Vol": 0.09836000000834501
+    };
+    static simplePatch = {
+        "A1": 0.001, "R1": 0.05,
+        "Freq": 0.5, "Res": 0.03,
+        "A2": 0, "R2": 0.025,
+        "Env2Osc": 0, "Env2Filter": 0,
+        "MIDI": 0.21506267716952615, "Vol": 0.125
     };
     midiPitch = new knob_1.Knob('MIDI', 0, 127, 43);
     e2Attack;
@@ -836,7 +852,7 @@ class SawSynth {
         const vca = this.makeVca();
         const volume = this.makeVca();
         this.volumeKnob.addTarget(knob_1.KnobTarget.fromAudioParam(volume.gain, audioCtx, 0.01));
-        this.env1 = new ar_1.AR(this.audioCtx, vca.gain);
+        this.env1 = new ar_1.AR(this.audioCtx, vca.gain, ar_1.AR.Identity, true);
         this.e1Attack = this.env1.attackKnob;
         this.e1Release = this.env1.releaseKnob;
         this.e1Attack.name = 'A1';
@@ -845,14 +861,14 @@ class SawSynth {
             attToOsc.setBias(audioUtil_1.AudioUtil.MidiToVolts(x));
         }));
         this.envFilter.addTarget(new knob_1.KnobTarget((p, x) => {
-            attToFilter.setBias(x);
+            attToFilter.setBias(x + audioUtil_1.AudioUtil.MidiToVolts(this.midiPitch.getX()));
         }));
         this.resonance.addTarget(knob_1.KnobTarget.fromAudioParam(bpf.Q, audioCtx, 0.05));
         osc.connect(bpf);
         bpf.connect(vca);
         vca.connect(volume);
         volume.connect(audioCtx.destination);
-        this.loadPatch(SawSynth.bassDrum2Patch);
+        this.loadPatch(SawSynth.bassDrumPatch);
     }
     getKnobs() {
         return [
@@ -883,13 +899,16 @@ class SawSynth {
     }
     makeOsc() {
         const osc = this.audioCtx.createOscillator();
-        osc.type = 'sawtooth';
+        const wave = this.audioCtx.createPeriodicWave([0, 1, 1, 0, 0.33, 0, 0.2], // Real == Sine
+        [0, 0, 0, 0, 0, 0, 0], // Imag == Cosine
+        { disableNormalization: true });
+        osc.setPeriodicWave(wave);
         osc.start();
         return osc;
     }
     makeBpf() {
         const bpf = this.audioCtx.createBiquadFilter();
-        bpf.type = 'bandpass';
+        bpf.type = 'lowpass';
         return bpf;
     }
     makeVca() {
@@ -1131,9 +1150,16 @@ const THREE = __importStar(__webpack_require__(5578));
 class Particle {
     beatOffset;
     size;
+    trigger;
+    color = new THREE.Color;
     constructor(beatOffset, size) {
         this.beatOffset = beatOffset;
         this.size = size;
+        this.color.set('#888');
+    }
+    setTrigger() {
+        this.color.set('#a2a');
+        this.trigger = true;
     }
 }
 class ZigZag extends THREE.Object3D {
@@ -1217,6 +1243,20 @@ class ZigZag extends THREE.Object3D {
             return (this.beatsPerZig / 2 - zigOffset);
         }
     }
+    getBeatOffsetForX(currentBeatOffset, x) {
+        const zigNumber = Math.floor(currentBeatOffset / this.beatsPerZig);
+        let zigOffset = 0;
+        if ((zigNumber & 0x1) === 0x0) {
+            // Even case; going right
+            zigOffset = x + this.beatsPerZig / 2;
+        }
+        else {
+            // Odd case; going left
+            zigOffset = 1 - (x + this.beatsPerZig / 2);
+        }
+        const zigStartOffset = (Math.floor(currentBeatOffset / this.beatsPerZig) * this.beatsPerZig);
+        return (zigOffset + zigStartOffset) % this.beatsPerLoop;
+    }
     getZPositionForBeat(beatOffset, currentBeatNumber) {
         const beatsIntoFuture = (beatOffset - currentBeatNumber + this.beatsPerLoop) % this.beatsPerLoop;
         return -beatsIntoFuture;
@@ -1237,7 +1277,7 @@ class ZigZag extends THREE.Object3D {
         for (const p of particles) {
             positions.push(this.getXPosition(p.beatOffset), 0, this.getZPositionForTime(p.beatOffset, 0));
             sizes.push(p.size);
-            colors.push(0.8, 0.8, 0.8, 1.0);
+            colors.push(p.color.r, p.color.g, p.color.b, 1.0);
         }
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
         geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
@@ -1247,6 +1287,18 @@ class ZigZag extends THREE.Object3D {
         geometry.attributes.size.needsUpdate = true;
         geometry.attributes.color.needsUpdate = true;
         return geometry;
+    }
+    slice(x, currentBeatNumber) {
+        this.synth.trigger();
+        const selectedBeatOffset = this.getBeatOffsetForX(currentBeatNumber, x);
+        const i = Math.round(selectedBeatOffset * this.particlesPerBeat)
+            % this.particles.length;
+        console.log(`Index: ${i} for beat ${selectedBeatOffset}`);
+        this.particles[i].setTrigger();
+        const c = this.particles[i].color;
+        const colorAtt = this.geometry.attributes.color;
+        colorAtt.setXYZ(i, c.r, c.g, c.b);
+        colorAtt.needsUpdate = true;
     }
     p1 = new THREE.Vector3();
     p2 = new THREE.Vector3();
@@ -1267,16 +1319,23 @@ class ZigZag extends THREE.Object3D {
                 this.p2.copy(m.p);
                 this.worldToLocal(this.p2);
                 if (this.p1.y > 0 && this.p2.y < 0) {
-                    // Sliced through.
-                    this.synth.trigger();
+                    this.slice((this.p1.x + this.p2.x) / 2, currentBeatNumber);
                 }
             }
         }
-        if (t.elapsedS - this.lastTriggerTime > 0.5 &&
-            this.keySet.has('Space')) {
-            this.synth.trigger();
-            this.lastTriggerTime = t.elapsedS;
-        }
+        if (t.elapsedS - this.lastTriggerTime > 0.5)
+            if (this.keySet.has('Digit1')) {
+                this.slice(-0.5, currentBeatNumber);
+                this.lastTriggerTime = t.elapsedS;
+            }
+            else if (this.keySet.has('Digit2')) {
+                this.slice(0, currentBeatNumber);
+                this.lastTriggerTime = t.elapsedS;
+            }
+            else if (this.keySet.has('Digit3')) {
+                this.slice(0.5, currentBeatNumber);
+                this.lastTriggerTime = t.elapsedS;
+            }
     }
 }
 exports.ZigZag = ZigZag;

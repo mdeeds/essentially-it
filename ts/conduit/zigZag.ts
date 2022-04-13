@@ -4,7 +4,15 @@ import { Tick, Ticker } from "../ticker";
 import { Synth } from "./synth";
 
 class Particle {
-  constructor(readonly beatOffset: number, public size: number) { }
+  private trigger: boolean;
+  readonly color = new THREE.Color;
+  constructor(readonly beatOffset: number, public size: number) {
+    this.color.set('#888');
+  }
+  setTrigger() {
+    this.color.set('#a2a');
+    this.trigger = true;
+  }
 }
 
 export class ZigZag extends THREE.Object3D implements Ticker {
@@ -81,6 +89,21 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     }
   }
 
+  public getBeatOffsetForX(currentBeatOffset: number, x: number) {
+    const zigNumber = Math.floor(currentBeatOffset / this.beatsPerZig);
+    let zigOffset = 0;
+    if ((zigNumber & 0x1) === 0x0) {
+      // Even case; going right
+      zigOffset = x + this.beatsPerZig / 2;
+    } else {
+      // Odd case; going left
+      zigOffset = 1 - (x + this.beatsPerZig / 2);
+    }
+    const zigStartOffset =
+      (Math.floor(currentBeatOffset / this.beatsPerZig) * this.beatsPerZig)
+    return (zigOffset + zigStartOffset) % this.beatsPerLoop;
+  }
+
   private getZPositionForBeat(beatOffset: number, currentBeatNumber: number) {
     const beatsIntoFuture = (
       beatOffset - currentBeatNumber + this.beatsPerLoop) % this.beatsPerLoop;
@@ -111,7 +134,7 @@ export class ZigZag extends THREE.Object3D implements Ticker {
         this.getZPositionForTime(p.beatOffset, 0)
       );
       sizes.push(p.size);
-      colors.push(0.8, 0.8, 0.8, 1.0);
+      colors.push(p.color.r, p.color.g, p.color.b, 1.0);
     }
 
     geometry.setAttribute(
@@ -127,6 +150,19 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     geometry.attributes.color.needsUpdate = true;
 
     return geometry;
+  }
+
+  private slice(x: number, currentBeatNumber: number) {
+    this.synth.trigger();
+    const selectedBeatOffset = this.getBeatOffsetForX(currentBeatNumber, x);
+    const i = Math.round(selectedBeatOffset * this.particlesPerBeat)
+      % this.particles.length;
+    console.log(`Index: ${i} for beat ${selectedBeatOffset}`);
+    this.particles[i].setTrigger();
+    const c = this.particles[i].color;
+    const colorAtt = this.geometry.attributes.color;
+    colorAtt.setXYZ(i, c.r, c.g, c.b);
+    colorAtt.needsUpdate = true;
   }
 
   private p1 = new THREE.Vector3();
@@ -150,15 +186,20 @@ export class ZigZag extends THREE.Object3D implements Ticker {
         this.p2.copy(m.p);
         this.worldToLocal(this.p2);
         if (this.p1.y > 0 && this.p2.y < 0) {
-          // Sliced through.
-          this.synth.trigger();
+          this.slice((this.p1.x + this.p2.x) / 2, currentBeatNumber);
         }
       }
     }
-    if (t.elapsedS - this.lastTriggerTime > 0.5 &&
-      this.keySet.has('Space')) {
-      this.synth.trigger();
-      this.lastTriggerTime = t.elapsedS;
-    }
+    if (t.elapsedS - this.lastTriggerTime > 0.5)
+      if (this.keySet.has('Digit1')) {
+        this.slice(-0.5, currentBeatNumber);
+        this.lastTriggerTime = t.elapsedS;
+      } else if (this.keySet.has('Digit2')) {
+        this.slice(0, currentBeatNumber);
+        this.lastTriggerTime = t.elapsedS;
+      } else if (this.keySet.has('Digit3')) {
+        this.slice(0.5, currentBeatNumber);
+        this.lastTriggerTime = t.elapsedS;
+      }
   }
 }
