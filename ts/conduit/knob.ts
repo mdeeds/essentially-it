@@ -32,7 +32,7 @@ export class KnobTarget {
     i: number) {
     return new KnobTarget((p, x) => {
       const hour = 10 * (p - 0.5);  // 0 = up
-      const theta = Math.PI * 2 / 12 * hour;
+      const theta = -Math.PI * 2 / 12 * hour;
       const m = new THREE.Matrix4();
       object.getMatrixAt(i, m);
       const n = new THREE.Matrix4();
