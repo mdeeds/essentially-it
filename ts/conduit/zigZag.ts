@@ -68,7 +68,8 @@ export class ZigZag extends THREE.Object3D implements Ticker {
   varying vec4 vColor;
   void main() {
     vec2 coords = gl_PointCoord;
-    float intensity = 5.0 * (0.5 - length(gl_PointCoord - 0.5));
+    float intensity = 
+      clamp(5.0 * (0.5 - length(gl_PointCoord - 0.5)), 0.0, 1.0);
     gl_FragColor = vColor * intensity;
   }
       `,
