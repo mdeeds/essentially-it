@@ -29,6 +29,7 @@ export class ZigZag extends THREE.Object3D implements Ticker {
   constructor(private motions: Motion[], private synth: Synth,
     private keySet: Set<string>) {
     super();
+    this.name = 'ZigZag';
     this.particles = this.makeParticles();
     const material = this.makeMaterial();
     this.geometry = this.makeGeometry(this.particles);
@@ -174,11 +175,13 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     const secondsPerBeat = 60 / this.bpm;
     const timeStep = secondsPerBeat / this.particlesPerBeat;
     const secondsPerParticle = secondsPerBeat / this.particlesPerBeat;
+
     let i = Math.ceil(fromTimeS / secondsPerParticle)
       % this.particles.length;
-    while (currentTime < toTimeS) {
+    const j = Math.ceil(toTimeS / secondsPerParticle)
+      % this.particles.length;
+    while (i !== j) {
       if (this.particles[i].hasTrigger()) {
-        console.log(`Trigger @ ${i}`);
         this.synth.trigger();
       }
       ++i;

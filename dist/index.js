@@ -884,18 +884,18 @@ class SawSynth {
         }
     }
     trigger() {
-        let patch = {};
-        for (const k of this.getKnobs()) {
-            patch[k.name] = k.getP();
-        }
-        console.log(JSON.stringify(patch));
+        // let patch = {};
+        // for (const k of this.getKnobs()) {
+        //   patch[k.name] = k.getP();
+        // }
+        // console.log(JSON.stringify(patch));
         this.env1.trigger();
         this.env2.trigger();
     }
     makeOsc() {
         const osc = this.audioCtx.createOscillator();
-        const wave = this.audioCtx.createPeriodicWave([0, 1, 1, 0, 0.33, 0, 0.2], // Real == Sine
-        [0, 0, 0, 0, 0, 0, 0], // Imag == Cosine
+        const wave = this.audioCtx.createPeriodicWave([0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1], // Real == Sine
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Imag == Cosine
         { disableNormalization: true });
         osc.setPeriodicWave(wave);
         osc.start();
@@ -1175,6 +1175,7 @@ class ZigZag extends THREE.Object3D {
         this.motions = motions;
         this.synth = synth;
         this.keySet = keySet;
+        this.name = 'ZigZag';
         this.particles = this.makeParticles();
         const material = this.makeMaterial();
         this.geometry = this.makeGeometry(this.particles);
@@ -1306,9 +1307,10 @@ class ZigZag extends THREE.Object3D {
         const secondsPerParticle = secondsPerBeat / this.particlesPerBeat;
         let i = Math.ceil(fromTimeS / secondsPerParticle)
             % this.particles.length;
-        while (currentTime < toTimeS) {
+        const j = Math.ceil(toTimeS / secondsPerParticle)
+            % this.particles.length;
+        while (i !== j) {
             if (this.particles[i].hasTrigger()) {
-                console.log(`Trigger @ ${i}`);
                 this.synth.trigger();
             }
             ++i;

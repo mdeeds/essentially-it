@@ -118,11 +118,11 @@ export class SawSynth implements Synth {
   }
 
   trigger(): void {
-    let patch = {};
-    for (const k of this.getKnobs()) {
-      patch[k.name] = k.getP();
-    }
-    console.log(JSON.stringify(patch));
+    // let patch = {};
+    // for (const k of this.getKnobs()) {
+    //   patch[k.name] = k.getP();
+    // }
+    // console.log(JSON.stringify(patch));
     this.env1.trigger();
     this.env2.trigger();
   }
@@ -131,8 +131,8 @@ export class SawSynth implements Synth {
     const osc = this.audioCtx.createOscillator();
 
     const wave = this.audioCtx.createPeriodicWave(
-      [0, 1, 1, 0, 0.33, 0, 0.2],  // Real == Sine
-      [0, 0, 0, 0, 0, 0, 0],  // Imag == Cosine
+      [0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1],  // Real == Sine
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  // Imag == Cosine
       { disableNormalization: true });
     osc.setPeriodicWave(wave);
     osc.start();
