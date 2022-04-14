@@ -24,8 +24,8 @@ export class SawSynth implements Synth {
     };
 
   static simplePatch = {
-    "A1": 0.001, "R1": 0.05,
-    "Freq": 0.5, "Res": 0.03,
+    "A1": 0.001, "R1": 0.2,
+    "Freq": 1.0, "Res": 0.03,
     "A2": 0, "R2": 0.025,
     "Env2Osc": 0, "Env2Filter": 0,
     "MIDI": 0.21506267716952615, "Vol": 0.125
@@ -95,7 +95,7 @@ export class SawSynth implements Synth {
     vca.connect(volume);
     volume.connect(audioCtx.destination);
 
-    this.loadPatch(SawSynth.bassDrumPatch);
+    this.loadPatch(SawSynth.simplePatch);
   }
 
   getKnobs(): Knob[] {
@@ -131,9 +131,9 @@ export class SawSynth implements Synth {
     const osc = this.audioCtx.createOscillator();
 
     const wave = this.audioCtx.createPeriodicWave(
-      [0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1],  // Real == Sine
+      [0, 1, 1, 2 / 3, 0, 2 / 5, 0, 2 / 7, 0, 2 / 9, 0],  // Real == Sine
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  // Imag == Cosine
-      { disableNormalization: true });
+      { disableNormalization: false });
     osc.setPeriodicWave(wave);
     osc.start();
     return osc;

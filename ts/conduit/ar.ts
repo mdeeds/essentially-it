@@ -49,9 +49,7 @@ export class AR {
   private exponentialTrigger(): number {
     let t = this.audioCtx.currentTime;
     this.param.cancelScheduledValues(t);
-    t += 0.001;
     const zero = Math.max(1e-4, this.transferFunction(0));
-    this.param.exponentialRampToValueAtTime(zero, t);
     t += this.attackS + 0.001;
     let one = this.transferFunction(1.0);
     this.param.exponentialRampToValueAtTime(one, t);

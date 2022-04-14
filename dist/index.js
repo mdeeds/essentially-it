@@ -140,9 +140,7 @@ class AR {
     exponentialTrigger() {
         let t = this.audioCtx.currentTime;
         this.param.cancelScheduledValues(t);
-        t += 0.001;
         const zero = Math.max(1e-4, this.transferFunction(0));
-        this.param.exponentialRampToValueAtTime(zero, t);
         t += this.attackS + 0.001;
         let one = this.transferFunction(1.0);
         this.param.exponentialRampToValueAtTime(one, t);
@@ -808,8 +806,8 @@ class SawSynth {
         "MIDI": 0.3894426771558174, "Vol": 0.09836000000834501
     };
     static simplePatch = {
-        "A1": 0.001, "R1": 0.05,
-        "Freq": 0.5, "Res": 0.03,
+        "A1": 0.001, "R1": 0.2,
+        "Freq": 1.0, "Res": 0.03,
         "A2": 0, "R2": 0.025,
         "Env2Osc": 0, "Env2Filter": 0,
         "MIDI": 0.21506267716952615, "Vol": 0.125
@@ -863,7 +861,7 @@ class SawSynth {
         bpf.connect(vca);
         vca.connect(volume);
         volume.connect(audioCtx.destination);
-        this.loadPatch(SawSynth.bassDrumPatch);
+        this.loadPatch(SawSynth.simplePatch);
     }
     getKnobs() {
         return [
@@ -894,9 +892,9 @@ class SawSynth {
     }
     makeOsc() {
         const osc = this.audioCtx.createOscillator();
-        const wave = this.audioCtx.createPeriodicWave([0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1], // Real == Sine
+        const wave = this.audioCtx.createPeriodicWave([0, 1, 1, 2 / 3, 0, 2 / 5, 0, 2 / 7, 0, 2 / 9, 0], // Real == Sine
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Imag == Cosine
-        { disableNormalization: true });
+        { disableNormalization: false });
         osc.setPeriodicWave(wave);
         osc.start();
         return osc;
@@ -1292,7 +1290,6 @@ class ZigZag extends THREE.Object3D {
         const selectedBeatOffset = this.getBeatOffsetForX(currentBeatNumber, x);
         const i = Math.round(selectedBeatOffset * this.particlesPerBeat)
             % this.particles.length;
-        console.log(`Index: ${i} for beat ${selectedBeatOffset}`);
         this.particles[i].setTrigger();
         const c = this.particles[i].color;
         const colorAtt = this.geometry.attributes.color;
