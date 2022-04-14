@@ -349,7 +349,7 @@ class KnobTarget {
     static fromInstancedObject(object, i) {
         return new KnobTarget((p, x) => {
             const hour = 10 * (p - 0.5); // 0 = up
-            const theta = Math.PI * 2 / 12 * hour;
+            const theta = -Math.PI * 2 / 12 * hour;
             const m = new THREE.Matrix4();
             object.getMatrixAt(i, m);
             const n = new THREE.Matrix4();
@@ -823,7 +823,7 @@ class SawSynth {
     envToFilt = new knob_1.Knob('Env2Filter', 0, 1, 0.0);
     env1;
     env2;
-    volumeKnob = new knob_1.Knob('Vol', 0, 8, 1.0);
+    volumeKnob = new knob_1.Knob('Vol', 0, 1, 1.0);
     constructor(audioCtx) {
         this.audioCtx = audioCtx;
         const osc = this.makeOsc();
@@ -860,8 +860,35 @@ class SawSynth {
         osc.connect(bpf);
         bpf.connect(vca);
         vca.connect(volume);
-        volume.connect(audioCtx.destination);
+        const saturation = this.makeSaturation(audioCtx);
+        volume.connect(saturation);
+        saturation.connect(audioCtx.destination);
         this.loadPatch(SawSynth.simplePatch);
+    }
+    // This node helps remove digital distortion.  It is very linear around
+    // zero giving about an 8x gain.  The intention is that the input is
+    // scaled down by a factor of 8 so that outputs between ~-0.5 to 0.5 are
+    // roughly unmodified.  Saturation is a decrease in response for high
+    // volume signals.
+    makeSaturation(audioCtx) {
+        const saturation = audioCtx.createWaveShaper();
+        const numSamples = 1001;
+        const curve = new Float32Array(numSamples);
+        let x = -8;
+        let dx = 16 / (numSamples - 1);
+        // We have solved for alpha and k such that:
+        // y(x) = k * atan(alpha * x)
+        // y'(0) = 8
+        // y(0) = 1
+        // https://www.wolframalpha.com/input?i=a%2F8+%3D+atan%28a%29
+        const alpha = 11.8954;
+        const k = 8 / alpha;
+        for (let i = 0; i < numSamples; ++i) {
+            curve[i] = k * Math.atan(alpha * x);
+            x += dx;
+        }
+        saturation.curve = curve;
+        return saturation;
     }
     getKnobs() {
         return [
@@ -1216,7 +1243,8 @@ class ZigZag extends THREE.Object3D {
   varying vec4 vColor;
   void main() {
     vec2 coords = gl_PointCoord;
-    float intensity = 5.0 * (0.5 - length(gl_PointCoord - 0.5));
+    float intensity = 
+      clamp(5.0 * (0.5 - length(gl_PointCoord - 0.5)), 0.0, 1.0);
     gl_FragColor = vColor * intensity;
   }
       `,
@@ -1241,6 +1269,8 @@ class ZigZag extends THREE.Object3D {
         }
     }
     getBeatOffsetForX(currentBeatOffset, x) {
+        // Quantize to -0.5, -0.25, 0, 0.25, 0.5
+        x = Math.round((x * 4)) / 4;
         const zigNumber = Math.floor(currentBeatOffset / this.beatsPerZig);
         let zigOffset = 0;
         if ((zigNumber & 0x1) === 0x0) {
