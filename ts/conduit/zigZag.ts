@@ -95,6 +95,8 @@ export class ZigZag extends THREE.Object3D implements Ticker {
   }
 
   public getBeatOffsetForX(currentBeatOffset: number, x: number) {
+    // Quantize to -0.5, -0.25, 0, 0.25, 0.5
+    x = Math.round((x * 4)) / 4;
     const zigNumber = Math.floor(currentBeatOffset / this.beatsPerZig);
     let zigOffset = 0;
     if ((zigNumber & 0x1) === 0x0) {
