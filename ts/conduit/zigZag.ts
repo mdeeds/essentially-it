@@ -161,7 +161,6 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     const selectedBeatOffset = this.getBeatOffsetForX(currentBeatNumber, x);
     const i = Math.round(selectedBeatOffset * this.particlesPerBeat)
       % this.particles.length;
-    console.log(`Index: ${i} for beat ${selectedBeatOffset}`);
     this.particles[i].setTrigger();
     const c = this.particles[i].color;
     const colorAtt = this.geometry.attributes.color;
