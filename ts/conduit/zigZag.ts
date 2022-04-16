@@ -160,7 +160,8 @@ export class ZigZag extends THREE.Object3D implements Ticker {
   }
 
   private slice(x: number, currentBeatNumber: number) {
-    this.synth.trigger();
+    // TODO: trigger at zero latency if this is in the past
+    // this.synth.trigger();
     const selectedBeatOffset = this.getBeatOffsetForX(currentBeatNumber, x);
     const i = Math.round(selectedBeatOffset * this.particlesPerBeat)
       % this.particles.length;
@@ -172,7 +173,7 @@ export class ZigZag extends THREE.Object3D implements Ticker {
   }
 
   // Executes all triggers in the range [fromTimeS, toTimeS)
-  executeTriggers(fromTimeS: number, toTimeS: number) {
+  executeTriggers(fromTimeS: number, toTimeS: number, nowS: number) {
     let currentTime = fromTimeS;
     const secondsPerBeat = 60 / this.bpm;
     const timeStep = secondsPerBeat / this.particlesPerBeat;
@@ -184,7 +185,7 @@ export class ZigZag extends THREE.Object3D implements Ticker {
       % this.particles.length;
     while (i !== j) {
       if (this.particles[i].hasTrigger()) {
-        this.synth.trigger();
+        this.synth.trigger(currentTime - nowS);
       }
       ++i;
       if (i >= this.particles.length) {
@@ -202,7 +203,7 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     const currentBeatNumber = this.getCurrentBeat(t.elapsedS);
 
     const endPlayTime = t.elapsedS + 0.05;
-    this.executeTriggers(this.playedThroughTime, endPlayTime);
+    this.executeTriggers(this.playedThroughTime, endPlayTime, t.elapsedS);
     this.playedThroughTime = endPlayTime;
 
     const positions = this.geometry.getAttribute('position');

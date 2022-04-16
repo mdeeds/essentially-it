@@ -1,4 +1,4 @@
-import { AR } from "./ar";
+import { AD } from "./ar";
 import { AudioUtil } from "./audioUtil";
 import { Knob, KnobTarget } from "./knob";
 import { AttenuatedParam, MultiParam, VpoSum } from "./params";
@@ -24,7 +24,7 @@ export class SawSynth implements Synth {
     };
 
   static simplePatch = {
-    "A1": 0.001, "R1": 0.2,
+    "A1": 0.05, "R1": 0.2,
     "Freq": 1.0, "Res": 0.03,
     "A2": 0, "R2": 0.025,
     "Env2Osc": 0, "Env2Filter": 0,
@@ -33,18 +33,18 @@ export class SawSynth implements Synth {
 
   readonly midiPitch = new Knob('MIDI', 0, 127, 43);
   public e2Attack: Knob;
-  public e2Release: Knob;
+  public e2Decay: Knob;
 
   readonly envFilter = new Knob('Freq', -5, 5, 0.0);
   readonly resonance = new Knob('Res', 0, 50, 0);
   public e1Attack: Knob;
-  public e1Release: Knob;
+  public e1Decay: Knob;
 
   public envToOsc = new Knob('Env2Osc', 0, 1, 0.0);
   public envToFilt = new Knob('Env2Filter', 0, 1, 0.0);
 
-  private env1: AR;
-  private env2: AR;
+  private env1: AD;
+  private env2: AD;
 
   public volumeKnob = new Knob('Vol', 0, 1, 1.0);
 
@@ -62,11 +62,11 @@ export class SawSynth implements Synth {
     }));
 
     const env2Mult = new MultiParam([attToOsc, attToFilter]);
-    this.env2 = new AR(this.audioCtx, env2Mult);
+    this.env2 = new AD(this.audioCtx, env2Mult);
     this.e2Attack = this.env2.attackKnob;
-    this.e2Release = this.env2.releaseKnob;
+    this.e2Decay = this.env2.decayKnob;
     this.e2Attack.name = 'A2';
-    this.e2Release.name = 'R2';
+    this.e2Decay.name = 'R2';
 
     const vca = this.makeVca();
     const volume = this.makeVca();
@@ -74,18 +74,18 @@ export class SawSynth implements Synth {
     this.volumeKnob.addTarget(
       KnobTarget.fromAudioParam(volume.gain, audioCtx, 0.01));
 
-    this.env1 = new AR(this.audioCtx, vca.gain, AR.Identity, true);
+    this.env1 = new AD(this.audioCtx, vca.gain, AD.Identity, true);
     this.e1Attack = this.env1.attackKnob;
-    this.e1Release = this.env1.releaseKnob;
+    this.e1Decay = this.env1.decayKnob;
     this.e1Attack.name = 'A1';
-    this.e1Release.name = 'R1';
+    this.e1Decay.name = 'R1';
 
     this.midiPitch.addTarget(new KnobTarget((p: number, x: number) => {
-      attToOsc.setBias(AudioUtil.MidiToVolts(x));
+      attToOsc.setBias(AudioUtil.midiToVolts(x));
     }));
 
     this.envFilter.addTarget(new KnobTarget((p: number, x: number) => {
-      attToFilter.setBias(x + AudioUtil.MidiToVolts(this.midiPitch.getX()));
+      attToFilter.setBias(x + AudioUtil.midiToVolts(this.midiPitch.getX()));
     }));
     this.resonance.addTarget(
       KnobTarget.fromAudioParam(bpf.Q, audioCtx, 0.05));
@@ -131,9 +131,9 @@ export class SawSynth implements Synth {
 
   getKnobs(): Knob[] {
     return [
-      this.e1Attack, this.e1Release,
+      this.e1Attack, this.e1Decay,
       this.envFilter, this.resonance,
-      this.e2Attack, this.e2Release,
+      this.e2Attack, this.e2Decay,
       this.envToOsc, this.envToFilt, this.midiPitch,
       this.volumeKnob]
   }
@@ -148,14 +148,14 @@ export class SawSynth implements Synth {
     }
   }
 
-  trigger(): void {
+  trigger(latencyS: number): void {
     // let patch = {};
     // for (const k of this.getKnobs()) {
     //   patch[k.name] = k.getP();
     // }
     // console.log(JSON.stringify(patch));
-    this.env1.trigger();
-    this.env2.trigger();
+    this.env1.trigger(latencyS);
+    this.env2.trigger(latencyS);
   }
 
   private makeOsc(): OscillatorNode {

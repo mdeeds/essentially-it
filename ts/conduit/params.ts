@@ -79,7 +79,7 @@ export class VpoSum implements AnyParam {
   }
 
   private transform(value: number) {
-    return AudioUtil.VoltsToHz(value * this.attenuation + this.bias);
+    return AudioUtil.voltsToHz(value * this.attenuation + this.bias);
   }
 
   public cancelScheduledValues(t: number) {

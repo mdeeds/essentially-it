@@ -17,7 +17,8 @@ export class Panel extends THREE.Object3D implements TactileSink {
   private highlights: KnobAction[] = [];
   constructor(private knobs: Knob[], private knobsHigh: number,
     private motions: Motion[], private tactile: TactileProvider,
-    particles: ParticleSystem, private keySet: Set<string>) {
+    particles: ParticleSystem, private keySet: Set<string>,
+    private background: string) {
     super();
     this.name = 'Panel';
     this.buildPanel();
@@ -59,7 +60,6 @@ export class Panel extends THREE.Object3D implements TactileSink {
       this.highlights[id].visible = false;
       this.highlights[id].setKnob(null);
     }
-    console.log(this.normalMatrix.elements);
   }
   move(ray: THREE.Ray, id: number): void { }
   end(id: number): void { }
@@ -116,7 +116,7 @@ export class Panel extends THREE.Object3D implements TactileSink {
   private async renderPanel(panelCanvas: HTMLCanvasElement,
     panelTexture: THREE.CanvasTexture) {
     const ctx = panelCanvas.getContext('2d');
-    ctx.fillStyle = '#d14';
+    ctx.fillStyle = this.background;
     ctx.fillRect(0, 0, panelCanvas.width, panelCanvas.height);
     console.log('Panel filled');
     await this.loadFont();
