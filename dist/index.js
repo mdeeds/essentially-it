@@ -121,34 +121,34 @@ class AD {
         }
         this.param.setValueAtTime(zero, audioCtx.currentTime);
     }
-    linearTrigger(latencyS) {
+    linearTrigger(latencyS, velocity) {
         let t = this.audioCtx.currentTime + latencyS;
         this.param.cancelScheduledValues(t);
         t += this.attackS + 0.01;
-        this.param.linearRampToValueAtTime(this.transferFunction(1.0), t);
+        this.param.linearRampToValueAtTime(this.transferFunction(velocity), t);
         t += this.decayS + 0.001;
         const decayTime = t;
         this.param.linearRampToValueAtTime(this.transferFunction(0), t);
         return decayTime;
     }
-    exponentialTrigger(latencyS) {
+    exponentialTrigger(latencyS, velocity) {
         let t = this.audioCtx.currentTime + latencyS;
         this.param.cancelScheduledValues(t);
         const zero = Math.max(1e-4, this.transferFunction(0));
         t += this.attackS + 0.01;
-        let one = this.transferFunction(1.0);
+        let one = this.transferFunction(velocity);
         this.param.exponentialRampToValueAtTime(one, t);
         t += this.decayS + 0.001;
         const decayTime = t;
         this.param.exponentialRampToValueAtTime(zero, t);
         return decayTime;
     }
-    trigger(latencyS) {
+    trigger(latencyS, velocity) {
         if (this.exponential) {
-            return this.exponentialTrigger(latencyS);
+            return this.exponentialTrigger(latencyS, velocity);
         }
         else {
-            return this.linearTrigger(latencyS);
+            return this.linearTrigger(latencyS, velocity);
         }
     }
     release() {
@@ -285,14 +285,14 @@ class FuzzSynth {
             knobMap.get(name).setP(patch[name]);
         }
     }
-    trigger(latencyS) {
-        let patch = {};
-        for (const k of this.getKnobs()) {
-            patch[k.name] = k.getP();
-        }
-        console.log(JSON.stringify(patch));
-        this.env1.trigger(latencyS);
-        this.env2.trigger(latencyS);
+    trigger(latencyS, velocity) {
+        // let patch = {};
+        // for (const k of this.getKnobs()) {
+        //   patch[k.name] = k.getP();
+        // }
+        // console.log(JSON.stringify(patch));
+        this.env1.trigger(latencyS, velocity);
+        this.env2.trigger(latencyS, velocity);
     }
     makeOsc(audioCtx) {
         // Twelve-second monophonic buffer
@@ -1046,14 +1046,14 @@ class SawSynth {
             knobMap.get(name).setP(patch[name]);
         }
     }
-    trigger(latencyS) {
+    trigger(latencyS, velocity) {
         // let patch = {};
         // for (const k of this.getKnobs()) {
         //   patch[k.name] = k.getP();
         // }
         // console.log(JSON.stringify(patch));
-        this.env1.trigger(latencyS);
-        this.env2.trigger(latencyS);
+        this.env1.trigger(latencyS, velocity);
+        this.env2.trigger(latencyS, velocity);
     }
     makeOsc() {
         const osc = this.audioCtx.createOscillator();
@@ -1326,8 +1326,10 @@ exports.ZigZag = void 0;
 const THREE = __importStar(__webpack_require__(5578));
 class Trigger {
     synth;
-    constructor(synth) {
+    velocity;
+    constructor(synth, velocity) {
         this.synth = synth;
+        this.velocity = velocity;
         console.assert(!!synth);
     }
 }
@@ -1504,7 +1506,7 @@ class ZigZag extends THREE.Object3D {
         while (i !== j) {
             const trigger = this.particles[i].getTrigger();
             if (trigger) {
-                trigger.synth.trigger(currentTime - nowS);
+                trigger.synth.trigger(currentTime - nowS, trigger.velocity);
             }
             ++i;
             if (i >= this.particles.length) {
@@ -1539,33 +1541,34 @@ class ZigZag extends THREE.Object3D {
                 this.p2.copy(m.p);
                 this.worldToLocal(this.p2);
                 if (this.p1.y > 0 && this.p2.y < 0) {
-                    this.slice((this.p1.x + this.p2.x) / 2, currentBeatNumber, new Trigger(synth));
+                    const velocity = Math.max(0.1, Math.min(1.0, ((m.velocity.y + 1) * -2)));
+                    this.slice((this.p1.x + this.p2.x) / 2, currentBeatNumber, new Trigger(synth, velocity));
                 }
             }
         }
         if (t.elapsedS - this.lastTriggerTime > 0.2)
             if (this.keySet.has('Digit1')) {
-                this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[0]));
+                this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[0], 0.5));
                 this.lastTriggerTime = t.elapsedS;
             }
             else if (this.keySet.has('Digit2')) {
-                this.slice(0, currentBeatNumber, new Trigger(this.synths[0]));
+                this.slice(0, currentBeatNumber, new Trigger(this.synths[0], 0.5));
                 this.lastTriggerTime = t.elapsedS;
             }
             else if (this.keySet.has('Digit3')) {
-                this.slice(0.5, currentBeatNumber, new Trigger(this.synths[0]));
+                this.slice(0.5, currentBeatNumber, new Trigger(this.synths[0], 0.5));
                 this.lastTriggerTime = t.elapsedS;
             }
         if (this.keySet.has('KeyZ')) {
-            this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[1]));
+            this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[1], 0.5));
             this.lastTriggerTime = t.elapsedS;
         }
         else if (this.keySet.has('KeyX')) {
-            this.slice(0, currentBeatNumber, new Trigger(this.synths[1]));
+            this.slice(0, currentBeatNumber, new Trigger(this.synths[1], 0.5));
             this.lastTriggerTime = t.elapsedS;
         }
         else if (this.keySet.has('KeyC')) {
-            this.slice(0.5, currentBeatNumber, new Trigger(this.synths[1]));
+            this.slice(0.5, currentBeatNumber, new Trigger(this.synths[1], 0.5));
             this.lastTriggerTime = t.elapsedS;
         }
     }

@@ -26,12 +26,12 @@ export class AD {
     this.param.setValueAtTime(zero, audioCtx.currentTime);
   }
 
-  private linearTrigger(latencyS: number): number {
+  private linearTrigger(latencyS: number, velocity: number): number {
     let t = this.audioCtx.currentTime + latencyS;
     this.param.cancelScheduledValues(t);
     t += this.attackS + 0.01;
     this.param.linearRampToValueAtTime(
-      this.transferFunction(1.0), t);
+      this.transferFunction(velocity), t);
     t += this.decayS + 0.001;
     const decayTime = t;
     this.param.linearRampToValueAtTime(
@@ -39,12 +39,12 @@ export class AD {
     return decayTime;
   }
 
-  private exponentialTrigger(latencyS: number): number {
+  private exponentialTrigger(latencyS: number, velocity: number): number {
     let t = this.audioCtx.currentTime + latencyS;
     this.param.cancelScheduledValues(t);
     const zero = Math.max(1e-4, this.transferFunction(0));
     t += this.attackS + 0.01;
-    let one = this.transferFunction(1.0);
+    let one = this.transferFunction(velocity);
     this.param.exponentialRampToValueAtTime(one, t);
     t += this.decayS + 0.001;
     const decayTime = t;
@@ -52,11 +52,11 @@ export class AD {
     return decayTime;
   }
 
-  public trigger(latencyS: number): number {
+  public trigger(latencyS: number, velocity: number): number {
     if (this.exponential) {
-      return this.exponentialTrigger(latencyS);
+      return this.exponentialTrigger(latencyS, velocity);
     } else {
-      return this.linearTrigger(latencyS);
+      return this.linearTrigger(latencyS, velocity);
     }
   }
   public release() {

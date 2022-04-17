@@ -148,14 +148,14 @@ export class SawSynth implements Synth {
     }
   }
 
-  trigger(latencyS: number): void {
+  trigger(latencyS: number, velocity: number): void {
     // let patch = {};
     // for (const k of this.getKnobs()) {
     //   patch[k.name] = k.getP();
     // }
     // console.log(JSON.stringify(patch));
-    this.env1.trigger(latencyS);
-    this.env2.trigger(latencyS);
+    this.env1.trigger(latencyS, velocity);
+    this.env2.trigger(latencyS, velocity);
   }
 
   private makeOsc(): OscillatorNode {
