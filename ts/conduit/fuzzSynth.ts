@@ -1,15 +1,16 @@
+import { S } from "../settings";
 import { AD } from "./ar";
 import { AudioUtil } from "./audioUtil";
 import { Knob, KnobTarget } from "./knob";
-import { MultiParam, VpoSum } from "./params";
+import { VpoSum } from "./params";
 import { Synth } from "./synth";
 
 export class FuzzSynth implements Synth {
   static snarePatch = {
-    "A1": 0, "R1": 0.0750899999976158,
-    "Freq": 0.34792000000476814, "Res": 0.033350000000000005,
-    "A2": 0.11333999999761586, "R2": 0,
-    "Env2Filter": 0.831550000002981, "Vol": 0.09018000000119225
+    "A1": 0, "R1": 0.05333999999761583,
+    "Freq": 0.42922999999523154, "Res": 0.11750999999940366,
+    "A2": 0, "R2": 0.07186999999880792, "Env2Filter": 0.8099900000035754,
+    "Vol": 0.3180099999964238
   };
 
   public e2Attack: Knob;
@@ -110,7 +111,7 @@ export class FuzzSynth implements Synth {
     // noise so that it will never go outside the -1 to 1 range.
     const channelData = arrayBuffer.getChannelData(0);
     let previousValue = 0.0;
-    const noiseStep = 0.2;
+    const noiseStep = S.float('bh');
     for (let i = 0; i < arrayBuffer.length; i++) {
       // Clamp the previous value so we can't exceed -1 to 1.
       previousValue = Math.max(-1 + noiseStep,

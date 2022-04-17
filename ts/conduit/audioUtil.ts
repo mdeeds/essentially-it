@@ -38,5 +38,4 @@ export class AudioUtil {
     saturation.curve = curve;
     return saturation;
   }
-
 }

@@ -9,13 +9,14 @@ import { InstancedObject } from "./instancedObject";
 
 import { Knob, KnobTarget } from "./knob";
 import { KnobAction } from "./knobAction";
+import { Synth } from "./synth";
 
 export class Panel extends THREE.Object3D implements TactileSink {
   private static kKnobSpacingM = 0.18;
   private knobsWide: number;
   private instancedKnobs: InstancedObject;
   private highlights: KnobAction[] = [];
-  constructor(private knobs: Knob[], private knobsHigh: number,
+  constructor(private synth: Synth, private knobsHigh: number,
     private motions: Motion[], private tactile: TactileProvider,
     particles: ParticleSystem, private keySet: Set<string>,
     private background: string) {
@@ -40,6 +41,7 @@ export class Panel extends THREE.Object3D implements TactileSink {
   private p2 = new THREE.Vector3();
   start(ray: THREE.Ray, id: number): void {
     let successful = false;
+    const knobs: Knob[] = this.synth.getKnobs();
     for (let i = 0; i < this.instancedKnobs.getInstanceCount(); ++i) {
       this.p.set(0, 0, 0);
       this.instancedKnobs.getMatrixAt(i, this.m);
@@ -52,7 +54,7 @@ export class Panel extends THREE.Object3D implements TactileSink {
         this.instancedKnobs.getMatrixAt(i, this.m);
         this.highlights[id].position.set(0, 0, 0);
         this.highlights[id].position.applyMatrix4(this.m);
-        this.highlights[id].setKnob(this.knobs[i]);
+        this.highlights[id].setKnob(knobs[i]);
         successful = true;
       }
     }
@@ -69,7 +71,7 @@ export class Panel extends THREE.Object3D implements TactileSink {
   }
 
   private buildPanel() {
-    this.knobsWide = Math.ceil(this.knobs.length / this.knobsHigh);
+    this.knobsWide = Math.ceil(this.synth.getKnobs().length / this.knobsHigh);
     const panelCanvas = document.createElement('canvas');
     panelCanvas.width = this.knobsWide * 256;
     panelCanvas.height = this.knobsHigh * 256;
@@ -126,8 +128,9 @@ export class Panel extends THREE.Object3D implements TactileSink {
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 1.2;
     ctx.textAlign = 'center';
-    for (let i = 0; i < this.knobs.length; ++i) {
-      const knob = this.knobs[i];
+    const knobs = this.synth.getKnobs();
+    for (let i = 0; i < knobs.length; ++i) {
+      const knob = knobs[i];
       const uv = this.getKnobUV(i);
       const x = uv.x * panelCanvas.width;
       const y = uv.y * panelCanvas.height
@@ -142,9 +145,10 @@ export class Panel extends THREE.Object3D implements TactileSink {
   private async buildKnobs() {
     console.log('Build Knobs');
     const knobModel = await this.loadKnob();
-    this.instancedKnobs = new InstancedObject(knobModel, this.knobs.length);
+    const knobs: Knob[] = this.synth.getKnobs();
+    this.instancedKnobs = new InstancedObject(knobModel, knobs.length);
     this.add(this.instancedKnobs);
-    for (let i = 0; i < this.knobs.length; ++i) {
+    for (let i = 0; i < knobs.length; ++i) {
       const xy = this.getKnobXY(i);
       const translation = new Matrix4();
       translation.makeTranslation(xy.x, xy.y, 0);
@@ -152,7 +156,7 @@ export class Panel extends THREE.Object3D implements TactileSink {
       rotation.makeRotationX(Math.PI / 2);
       rotation.premultiply(translation);
       this.instancedKnobs.setMatrixAt(i, rotation);
-      const knob = this.knobs[i];
+      const knob = knobs[i];
       knob.addTarget(KnobTarget.fromInstancedObject(this.instancedKnobs, i));
     }
   }

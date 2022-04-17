@@ -13,7 +13,7 @@ import { Synth } from "./synth";
 import { ZigZag } from "./zigZag";
 
 export class ConduitStage extends THREE.Object3D implements World, Ticker {
-  private synth: Synth;
+  private synths: Synth[] = [];
   constructor(audioCtx: AudioContext, private motions: Motion[],
     private tactile: TactileProvider, private particles: ParticleSystem,
     private keySet: Set<string>) {
@@ -33,7 +33,7 @@ export class ConduitStage extends THREE.Object3D implements World, Ticker {
 
     this.buildSynth(audioCtx);
 
-    const zigZag = new ZigZag(motions, this.synth, keySet);
+    const zigZag = new ZigZag(motions, this.synths, keySet);
     zigZag.position.set(0, S.float('zy'), -0.5);
     this.add(zigZag);
   }
@@ -42,20 +42,22 @@ export class ConduitStage extends THREE.Object3D implements World, Ticker {
     {  // Saw Synth
       const synth = new SawSynth(audioCtx)
       const knobs = synth.getKnobs();
-      const panel = new Panel(knobs, 2, this.motions, this.tactile,
+      const panel = new Panel(synth, 2, this.motions, this.tactile,
         this.particles, this.keySet, '#d14');
       panel.position.set(1, 2.0, 0);
       panel.rotateY(-Math.PI / 2);
       this.add(panel);
+      this.synths.push(synth);
     }
     {  // Fuzz Synth
-      this.synth = new FuzzSynth(audioCtx)
-      const knobs = this.synth.getKnobs();
-      const panel = new Panel(knobs, 2, this.motions, this.tactile,
+      const synth = new FuzzSynth(audioCtx)
+      const knobs = synth.getKnobs();
+      const panel = new Panel(synth, 2, this.motions, this.tactile,
         this.particles, this.keySet, '#df4');
       panel.position.set(-1, 2.0, 0);
       panel.rotateY(Math.PI / 2);
       this.add(panel);
+      this.synths.push(synth);
     }
   }
 

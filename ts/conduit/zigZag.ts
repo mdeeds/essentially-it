@@ -3,17 +3,23 @@ import { Motion } from "../motion";
 import { Tick, Ticker } from "../ticker";
 import { Synth } from "./synth";
 
+class Trigger {
+  constructor(readonly synth: Synth) {
+    console.assert(!!synth);
+  }
+}
+
 class Particle {
-  private trigger: boolean;
+  private trigger: Trigger;
   readonly color = new THREE.Color;
   constructor(readonly beatOffset: number, public size: number) {
     this.color.set('#888');
   }
-  setTrigger() {
+  setTrigger(trigger: Trigger) {
     this.color.set('#a2a');
-    this.trigger = true;
+    this.trigger = trigger;
   }
-  hasTrigger() {
+  getTrigger() {
     return this.trigger;
   }
 }
@@ -26,7 +32,7 @@ export class ZigZag extends THREE.Object3D implements Ticker {
 
   private particles: Particle[];
   private geometry: THREE.BufferGeometry;
-  constructor(private motions: Motion[], private synth: Synth,
+  constructor(private motions: Motion[], private synths: Synth[],
     private keySet: Set<string>) {
     super();
     this.name = 'ZigZag';
@@ -39,7 +45,6 @@ export class ZigZag extends THREE.Object3D implements Ticker {
 
   makeParticles(): Particle[] {
     const result: Particle[] = [];
-
     for (let i = 0; i < this.beatsPerLoop * this.particlesPerBeat; ++i) {
       let size = 0.02;  // Default, smallest size
       switch (i % this.particlesPerBeat) {
@@ -159,13 +164,13 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     return geometry;
   }
 
-  private slice(x: number, currentBeatNumber: number) {
+  private slice(x: number, currentBeatNumber: number, trigger: Trigger) {
     // TODO: trigger at zero latency if this is in the past
     // this.synth.trigger();
     const selectedBeatOffset = this.getBeatOffsetForX(currentBeatNumber, x);
     const i = Math.round(selectedBeatOffset * this.particlesPerBeat)
       % this.particles.length;
-    this.particles[i].setTrigger();
+    this.particles[i].setTrigger(trigger);
     const c = this.particles[i].color;
     const colorAtt = this.geometry.attributes.color;
     colorAtt.setXYZ(i, c.r, c.g, c.b);
@@ -184,8 +189,9 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     const j = Math.ceil(toTimeS / secondsPerParticle)
       % this.particles.length;
     while (i !== j) {
-      if (this.particles[i].hasTrigger()) {
-        this.synth.trigger(currentTime - nowS);
+      const trigger = this.particles[i].getTrigger();
+      if (trigger) {
+        trigger.synth.trigger(currentTime - nowS);
       }
       ++i;
       if (i >= this.particles.length) {
@@ -214,27 +220,40 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     }
     positions.needsUpdate = true;
 
-    for (const m of this.motions) {
+    for (let i = 0; i < this.motions.length; ++i) {
+      const synth = this.synths[i];
+      const m = this.motions[i];
       if (m.velocity.y < -1) {
         this.p1.copy(m.prevP);
         this.worldToLocal(this.p1);
         this.p2.copy(m.p);
         this.worldToLocal(this.p2);
         if (this.p1.y > 0 && this.p2.y < 0) {
-          this.slice((this.p1.x + this.p2.x) / 2, currentBeatNumber);
+          this.slice((this.p1.x + this.p2.x) / 2, currentBeatNumber,
+            new Trigger(synth));
         }
       }
     }
-    if (t.elapsedS - this.lastTriggerTime > 0.5)
+    if (t.elapsedS - this.lastTriggerTime > 0.2)
       if (this.keySet.has('Digit1')) {
-        this.slice(-0.5, currentBeatNumber);
+        this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[0]));
         this.lastTriggerTime = t.elapsedS;
       } else if (this.keySet.has('Digit2')) {
-        this.slice(0, currentBeatNumber);
+        this.slice(0, currentBeatNumber, new Trigger(this.synths[0]));
         this.lastTriggerTime = t.elapsedS;
       } else if (this.keySet.has('Digit3')) {
-        this.slice(0.5, currentBeatNumber);
+        this.slice(0.5, currentBeatNumber, new Trigger(this.synths[0]));
         this.lastTriggerTime = t.elapsedS;
       }
+    if (this.keySet.has('KeyZ')) {
+      this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[1]));
+      this.lastTriggerTime = t.elapsedS;
+    } else if (this.keySet.has('KeyX')) {
+      this.slice(0, currentBeatNumber, new Trigger(this.synths[1]));
+      this.lastTriggerTime = t.elapsedS;
+    } else if (this.keySet.has('KeyC')) {
+      this.slice(0.5, currentBeatNumber, new Trigger(this.synths[1]));
+      this.lastTriggerTime = t.elapsedS;
+    }
   }
 }

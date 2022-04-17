@@ -34,6 +34,7 @@ export class S {
     S.setDefault('mr', 2, 'Minimum star radius.');
     S.setDefault('si', 0.9, 'Star intensity');
     S.setDefault('zy', 1.1, 'Zig-Zag height');
+    S.setDefault('bh', 0.1, 'Heat of brownian motion.  1.0 = white.');
   }
 
   public static float(name: string): number {
