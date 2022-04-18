@@ -1264,6 +1264,8 @@ class ConduitStage extends THREE.Object3D {
         const zigZag = new zigZag_1.ZigZag(motions, this.synths, keySet);
         zigZag.position.set(0, settings_1.S.float('zy'), -0.5);
         this.add(zigZag);
+        const tm = new THREE.Matrix4();
+        tm.makeTranslation(0, settings_1.S.float('zy'), -0.3);
     }
     buildSynth(audioCtx) {
         { // Saw Synth
@@ -1298,6 +1300,85 @@ exports.ConduitStage = ConduitStage;
 
 /***/ }),
 
+/***/ 1370:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ThresholdMaterial = void 0;
+const THREE = __importStar(__webpack_require__(5578));
+class ThresholdMaterial extends THREE.ShaderMaterial {
+    // Shader is red when the world position is in the -Y and +Z portion
+    // of the coordinate system defined by `thresholdMatrix`
+    constructor(thresholdMatrix) {
+        const inv = new THREE.Matrix4();
+        inv.copy(thresholdMatrix);
+        inv.invert();
+        super({
+            vertexShader: `
+  uniform mat4 thresholdMatrix;
+  varying vec4 thresholdPosition;
+  varying vec3 vNormal;
+  void main() {
+    thresholdPosition = thresholdMatrix * modelMatrix * vec4(position, 1.0);
+    thresholdPosition = thresholdPosition / thresholdPosition.w;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vNormal = normalMatrix * normal;
+  }
+      `,
+            fragmentShader: `
+  varying vec4 thresholdPosition;
+  uniform vec3 triggerColor;
+  uniform vec3 baseColor;
+  varying vec3 vNormal;
+  void main() {
+    float intensity = (0.2 + clamp(vNormal.y, 0.0, 1.0));
+    if ((thresholdPosition.y <= 0.0) && (thresholdPosition.z <= 0.0)) {
+      gl_FragColor = vec4(intensity * triggerColor.rgb, 1.0);
+    } else {
+      gl_FragColor = vec4(intensity * baseColor.rgb, 1.0);
+    }
+  }
+      `,
+            uniforms: {
+                thresholdMatrix: { value: inv },
+                triggerColor: { value: new THREE.Color('orange') },
+                baseColor: { value: new THREE.Color('#777') },
+            },
+            blending: THREE.NormalBlending,
+            depthTest: true,
+            depthWrite: true,
+            transparent: false,
+            vertexColors: false,
+            side: THREE.FrontSide,
+        });
+        this.uniformsNeedUpdate = true;
+    }
+}
+exports.ThresholdMaterial = ThresholdMaterial;
+//# sourceMappingURL=thresholdMaterial.js.map
+
+/***/ }),
+
 /***/ 9000:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -1324,6 +1405,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ZigZag = void 0;
 const THREE = __importStar(__webpack_require__(5578));
+const thresholdMaterial_1 = __webpack_require__(1370);
 class Trigger {
     synth;
     velocity;
@@ -1359,6 +1441,7 @@ class ZigZag extends THREE.Object3D {
     particlesPerBeat = 32;
     beatsPerLoop = 4 * 4;
     beatsPerZig = 1;
+    mallets = [];
     particles;
     geometry;
     constructor(motions, synths, keySet) {
@@ -1372,6 +1455,12 @@ class ZigZag extends THREE.Object3D {
         this.geometry = this.makeGeometry(this.particles);
         const points = new THREE.Points(this.geometry, material);
         this.add(points);
+        this.updateMatrixWorld();
+        for (let i = 0; i < motions.length; ++i) {
+            const tm = new thresholdMaterial_1.ThresholdMaterial(this.matrixWorld);
+            this.mallets.push(new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.06, 4), tm));
+            this.add(this.mallets[i]);
+        }
     }
     makeParticles() {
         const result = [];
@@ -1535,6 +1624,8 @@ class ZigZag extends THREE.Object3D {
         for (let i = 0; i < this.motions.length; ++i) {
             const synth = this.synths[i];
             const m = this.motions[i];
+            this.mallets[i].position.copy(m.p);
+            this.worldToLocal(this.mallets[i].position);
             if (m.velocity.y < -1) {
                 this.p1.copy(m.prevP);
                 this.worldToLocal(this.p1);
@@ -1546,7 +1637,7 @@ class ZigZag extends THREE.Object3D {
                 }
             }
         }
-        if (t.elapsedS - this.lastTriggerTime > 0.2)
+        if (t.elapsedS - this.lastTriggerTime > 0.2 && this.keySet.size > 0) {
             if (this.keySet.has('Digit1')) {
                 this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[0], 0.5));
                 this.lastTriggerTime = t.elapsedS;
@@ -1559,17 +1650,18 @@ class ZigZag extends THREE.Object3D {
                 this.slice(0.5, currentBeatNumber, new Trigger(this.synths[0], 0.5));
                 this.lastTriggerTime = t.elapsedS;
             }
-        if (this.keySet.has('KeyZ')) {
-            this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[1], 0.5));
-            this.lastTriggerTime = t.elapsedS;
-        }
-        else if (this.keySet.has('KeyX')) {
-            this.slice(0, currentBeatNumber, new Trigger(this.synths[1], 0.5));
-            this.lastTriggerTime = t.elapsedS;
-        }
-        else if (this.keySet.has('KeyC')) {
-            this.slice(0.5, currentBeatNumber, new Trigger(this.synths[1], 0.5));
-            this.lastTriggerTime = t.elapsedS;
+            if (this.keySet.has('KeyZ')) {
+                this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[1], 0.5));
+                this.lastTriggerTime = t.elapsedS;
+            }
+            else if (this.keySet.has('KeyX')) {
+                this.slice(0, currentBeatNumber, new Trigger(this.synths[1], 0.5));
+                this.lastTriggerTime = t.elapsedS;
+            }
+            else if (this.keySet.has('KeyC')) {
+                this.slice(0.5, currentBeatNumber, new Trigger(this.synths[1], 0.5));
+                this.lastTriggerTime = t.elapsedS;
+            }
         }
     }
 }

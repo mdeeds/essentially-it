@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { Motion } from "../motion";
 import { Tick, Ticker } from "../ticker";
 import { Synth } from "./synth";
+import { ThresholdMaterial } from "./thresholdMaterial";
 
 class Trigger {
   constructor(readonly synth: Synth, readonly velocity: number) {
@@ -30,6 +31,8 @@ export class ZigZag extends THREE.Object3D implements Ticker {
   private beatsPerLoop = 4 * 4;
   private beatsPerZig = 1;
 
+  private mallets: THREE.Object3D[] = [];
+
   private particles: Particle[];
   private geometry: THREE.BufferGeometry;
   constructor(private motions: Motion[], private synths: Synth[],
@@ -41,6 +44,15 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     this.geometry = this.makeGeometry(this.particles);
     const points = new THREE.Points(this.geometry, material);
     this.add(points);
+
+    this.updateMatrixWorld();
+    for (let i = 0; i < motions.length; ++i) {
+      const tm = new ThresholdMaterial(this.matrixWorld);
+      this.mallets.push(
+        new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.06, 4),
+          tm));
+      this.add(this.mallets[i]);
+    }
   }
 
   makeParticles(): Particle[] {
@@ -223,6 +235,8 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     for (let i = 0; i < this.motions.length; ++i) {
       const synth = this.synths[i];
       const m = this.motions[i];
+      this.mallets[i].position.copy(m.p);
+      this.worldToLocal(this.mallets[i].position);
       if (m.velocity.y < -1) {
         this.p1.copy(m.prevP);
         this.worldToLocal(this.p1);
@@ -236,7 +250,7 @@ export class ZigZag extends THREE.Object3D implements Ticker {
         }
       }
     }
-    if (t.elapsedS - this.lastTriggerTime > 0.2)
+    if (t.elapsedS - this.lastTriggerTime > 0.2 && this.keySet.size > 0) {
       if (this.keySet.has('Digit1')) {
         this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[0], 0.5));
         this.lastTriggerTime = t.elapsedS;
@@ -247,15 +261,16 @@ export class ZigZag extends THREE.Object3D implements Ticker {
         this.slice(0.5, currentBeatNumber, new Trigger(this.synths[0], 0.5));
         this.lastTriggerTime = t.elapsedS;
       }
-    if (this.keySet.has('KeyZ')) {
-      this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[1], 0.5));
-      this.lastTriggerTime = t.elapsedS;
-    } else if (this.keySet.has('KeyX')) {
-      this.slice(0, currentBeatNumber, new Trigger(this.synths[1], 0.5));
-      this.lastTriggerTime = t.elapsedS;
-    } else if (this.keySet.has('KeyC')) {
-      this.slice(0.5, currentBeatNumber, new Trigger(this.synths[1], 0.5));
-      this.lastTriggerTime = t.elapsedS;
+      if (this.keySet.has('KeyZ')) {
+        this.slice(-0.5, currentBeatNumber, new Trigger(this.synths[1], 0.5));
+        this.lastTriggerTime = t.elapsedS;
+      } else if (this.keySet.has('KeyX')) {
+        this.slice(0, currentBeatNumber, new Trigger(this.synths[1], 0.5));
+        this.lastTriggerTime = t.elapsedS;
+      } else if (this.keySet.has('KeyC')) {
+        this.slice(0.5, currentBeatNumber, new Trigger(this.synths[1], 0.5));
+        this.lastTriggerTime = t.elapsedS;
+      }
     }
   }
 }

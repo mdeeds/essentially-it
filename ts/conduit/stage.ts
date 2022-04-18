@@ -10,10 +10,12 @@ import { FuzzSynth } from "./fuzzSynth";
 import { Panel } from "./panel";
 import { SawSynth } from "./sawSynth";
 import { Synth } from "./synth";
+import { ThresholdMaterial } from "./thresholdMaterial";
 import { ZigZag } from "./zigZag";
 
 export class ConduitStage extends THREE.Object3D implements World, Ticker {
   private synths: Synth[] = [];
+
   constructor(audioCtx: AudioContext, private motions: Motion[],
     private tactile: TactileProvider, private particles: ParticleSystem,
     private keySet: Set<string>) {
@@ -36,6 +38,9 @@ export class ConduitStage extends THREE.Object3D implements World, Ticker {
     const zigZag = new ZigZag(motions, this.synths, keySet);
     zigZag.position.set(0, S.float('zy'), -0.5);
     this.add(zigZag);
+
+    const tm = new THREE.Matrix4();
+    tm.makeTranslation(0, S.float('zy'), -0.3);
   }
 
   buildSynth(audioCtx: AudioContext) {
