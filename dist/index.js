@@ -1239,6 +1239,7 @@ const settings_1 = __webpack_require__(6451);
 const fuzzSynth_1 = __webpack_require__(7761);
 const panel_1 = __webpack_require__(8705);
 const sawSynth_1 = __webpack_require__(3466);
+const thresholdMaterial_1 = __webpack_require__(1370);
 const zigZag_1 = __webpack_require__(9000);
 class ConduitStage extends THREE.Object3D {
     motions;
@@ -1246,6 +1247,7 @@ class ConduitStage extends THREE.Object3D {
     particles;
     keySet;
     synths = [];
+    junk;
     constructor(audioCtx, motions, tactile, particles, keySet) {
         super();
         this.motions = motions;
@@ -1266,6 +1268,9 @@ class ConduitStage extends THREE.Object3D {
         this.add(zigZag);
         const tm = new THREE.Matrix4();
         tm.makeTranslation(0, settings_1.S.float('zy'), -0.3);
+        const material = new thresholdMaterial_1.ThresholdMaterial(tm);
+        this.junk = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.1, 1), material);
+        this.add(this.junk);
     }
     buildSynth(audioCtx) {
         { // Saw Synth
@@ -1293,6 +1298,7 @@ class ConduitStage extends THREE.Object3D {
         });
     }
     tick(t) {
+        this.junk.position.set(0, Math.sin(t.elapsedS) + 1, Math.cos(t.elapsedS));
     }
 }
 exports.ConduitStage = ConduitStage;

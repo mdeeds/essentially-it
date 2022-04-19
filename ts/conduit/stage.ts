@@ -16,6 +16,8 @@ import { ZigZag } from "./zigZag";
 export class ConduitStage extends THREE.Object3D implements World, Ticker {
   private synths: Synth[] = [];
 
+  private junk: THREE.Object3D;
+
   constructor(audioCtx: AudioContext, private motions: Motion[],
     private tactile: TactileProvider, private particles: ParticleSystem,
     private keySet: Set<string>) {
@@ -41,6 +43,10 @@ export class ConduitStage extends THREE.Object3D implements World, Ticker {
 
     const tm = new THREE.Matrix4();
     tm.makeTranslation(0, S.float('zy'), -0.3);
+    const material = new ThresholdMaterial(tm);
+    this.junk = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.1, 1),
+      material);
+    this.add(this.junk);
   }
 
   buildSynth(audioCtx: AudioContext) {
@@ -73,5 +79,6 @@ export class ConduitStage extends THREE.Object3D implements World, Ticker {
   }
 
   tick(t: Tick) {
+    this.junk.position.set(0, Math.sin(t.elapsedS) + 1, Math.cos(t.elapsedS));
   }
 }
