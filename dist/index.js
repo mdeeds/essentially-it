@@ -1488,13 +1488,29 @@ class ZigZag extends THREE.Object3D {
         }
         return result;
     }
+    // p = -5/3 x + 4/3 abs(x+0.75) - 1 
+    // https://www.wolframalpha.com/input?i=y+%3D+-5%2F3+x+%2B+4%2F3+abs%28x%2B0.75%29+-+1+from+-1+to+0
+    // y = 2/3 * (cos(3t) - cos(t))
+    // z = 2/3 * (-sin(3t) - sin(t))
+    // 0 <= t <= 1 
+    // https://www.wolframalpha.com/input?i=y+%3D+cos%283t%29+-+cos%28t%29%3B+x+%3D+-sin%283t%29-sin%28t%29
     makeMaterial() {
         const material = new THREE.ShaderMaterial({
             vertexShader: `
+#define M_PI 3.1415926535897932384626433832795
   attribute float size;
   varying vec4 vColor;
   void main() {
-    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    float p = position.z / 3.0;
+    if (position.z > 3.0 / 4.0) {
+      p = 3.0 * position.z - 2.0;
+    } 
+    float theta = p * 0.5 * M_PI;
+    float y = 2.0/3.0 * (cos(3.0 * theta) - cos(theta));
+    float z = 2.0/3.0 * (-sin(3.0 * theta) - sin(theta));
+
+    vec3 pos = vec3(position.x, y, z * 5.0);
+    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mvPosition;
     gl_PointSize = 800.0 * size / gl_Position.w;
     vColor = color;
@@ -1547,7 +1563,7 @@ class ZigZag extends THREE.Object3D {
     }
     getZPositionForBeat(beatOffset, currentBeatNumber) {
         const beatsIntoFuture = (beatOffset - currentBeatNumber + this.beatsPerLoop) % this.beatsPerLoop;
-        return -beatsIntoFuture;
+        return (beatsIntoFuture / this.beatsPerLoop);
     }
     getCurrentBeat(timeS) {
         const currentTimeBeats = timeS * (this.bpm / 60);
