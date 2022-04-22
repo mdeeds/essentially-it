@@ -19,7 +19,7 @@ export class Hand extends THREE.Object3D implements Ticker {
     private particleSystem: ParticleSystem, camera: THREE.Object3D) {
     super();
     this.motion = new Motion(camera);
-    this.motion.position.set(0, 0, 0.35);
+    this.motion.position.set(0, -0.25, -0.15);
     const index = (side == 'left') ? 0 : 1;
     this.grip = renderer.xr.getControllerGrip(index);
     this.grip.add(this.motion);
