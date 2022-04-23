@@ -1234,7 +1234,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConduitStage = void 0;
 const THREE = __importStar(__webpack_require__(5578));
-const three_1 = __webpack_require__(5578);
 const settings_1 = __webpack_require__(6451);
 const fuzzSynth_1 = __webpack_require__(7761);
 const panel_1 = __webpack_require__(8705);
@@ -1256,10 +1255,10 @@ class ConduitStage extends THREE.Object3D {
         this.keySet = keySet;
         const sky = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 1), new THREE.MeshBasicMaterial({ color: '#bbb', side: THREE.BackSide }));
         this.add(sky);
-        const light1 = new three_1.DirectionalLight('white', 0.6);
+        const light1 = new THREE.DirectionalLight('white', 0.6);
         light1.position.set(20, 20, 0);
         this.add(light1);
-        const light2 = new three_1.DirectionalLight('white', 0.6);
+        const light2 = new THREE.DirectionalLight('white', 0.6);
         light2.position.set(-20, 20, 0);
         this.add(light2);
         this.buildSynth(audioCtx);
@@ -1962,6 +1961,7 @@ exports.Game = void 0;
 const THREE = __importStar(__webpack_require__(5578));
 const VRButton_js_1 = __webpack_require__(7652);
 const stage_1 = __webpack_require__(3765);
+const gymnasium_1 = __webpack_require__(8336);
 const hand_1 = __webpack_require__(7673);
 const home_1 = __webpack_require__(1722);
 const laboratory_1 = __webpack_require__(2855);
@@ -2012,8 +2012,12 @@ class Game {
             case 2:
                 this.run('conduit');
                 break;
+            case 3:
+                this.run('gym');
+                break;
         }
     }
+    gym = null;
     lab = null;
     conduit = null;
     home = null;
@@ -2033,6 +2037,12 @@ class Game {
                     this.conduit.position.set(0, 0, 0);
                 }
                 nextWorld = this.conduit;
+                break;
+            case 'gym':
+                if (this.gym === null) {
+                    this.gym = new gymnasium_1.Gymnasium(this.camera);
+                }
+                nextWorld = this.gym;
                 break;
             case 'home':
             default:
@@ -2647,6 +2657,74 @@ exports.GraphitiTool = GraphitiTool;
 
 /***/ }),
 
+/***/ 8336:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Gymnasium = void 0;
+const THREE = __importStar(__webpack_require__(5578));
+class Gymnasium extends THREE.Object3D {
+    camera;
+    universe = new THREE.Object3D();
+    constructor(camera) {
+        super();
+        this.camera = camera;
+        this.add(this.universe);
+        this.previousZ = camera.position.z;
+        const sky = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 1), new THREE.MeshBasicMaterial({ color: '#bbb', side: THREE.BackSide }));
+        this.universe.add(sky);
+        const light1 = new THREE.DirectionalLight('white', 0.6);
+        light1.position.set(20, 2, 5);
+        this.add(light1);
+        const light2 = new THREE.DirectionalLight('white', 0.6);
+        light2.position.set(-20, 2, 5);
+        this.add(light2);
+        for (let i = 0; i < 20; ++i) {
+            const theta = Math.random() * Math.PI * 2;
+            const x = Math.cos(theta) * 5;
+            const z = Math.sin(theta) * 5;
+            const pillar = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.08, 0.10, 2), new THREE.MeshStandardMaterial({ color: '#333' }));
+            pillar.position.set(x, 1, z);
+            this.universe.add(pillar);
+        }
+    }
+    run() {
+        return new Promise((resolve) => {
+            // TODO: wire up exit button...?
+        });
+    }
+    previousZ = 0;
+    tick(t) {
+        const deltaZ = Math.abs(this.camera.position.z - this.previousZ);
+        this.previousZ = this.camera.position.z;
+        this.universe.position.z += deltaZ;
+    }
+}
+exports.Gymnasium = Gymnasium;
+//# sourceMappingURL=gymnasium.js.map
+
+/***/ }),
+
 /***/ 7673:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -2691,7 +2769,7 @@ class Hand extends THREE.Object3D {
         this.tactile = tactile;
         this.particleSystem = particleSystem;
         this.motion = new motion_1.Motion(camera);
-        this.motion.position.set(0, 0.15, -0.25);
+        this.motion.position.set(0, -0.25, -0.15);
         const index = (side == 'left') ? 0 : 1;
         this.grip = renderer.xr.getControllerGrip(index);
         this.grip.add(this.motion);

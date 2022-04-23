@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { DirectionalLight } from "three";
 import { Motion } from "../motion";
 import { ParticleSystem } from "../particleSystem";
 import { S } from "../settings";
@@ -28,10 +27,10 @@ export class ConduitStage extends THREE.Object3D implements World, Ticker {
     );
     this.add(sky);
 
-    const light1 = new DirectionalLight('white', 0.6);
+    const light1 = new THREE.DirectionalLight('white', 0.6);
     light1.position.set(20, 20, 0);
     this.add(light1);
-    const light2 = new DirectionalLight('white', 0.6);
+    const light2 = new THREE.DirectionalLight('white', 0.6);
     light2.position.set(-20, 20, 0);
     this.add(light2);
 

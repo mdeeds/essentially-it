@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import { ConduitStage } from "./conduit/stage";
+import { Gymnasium } from "./gym/gymnasium";
 
 import { Hand } from "./hand";
 import { Home } from "./home/home";
@@ -56,9 +57,11 @@ export class Game {
       case 0: this.run('lab'); break;
       case 1: this.run('home'); break;
       case 2: this.run('conduit'); break;
+      case 3: this.run('gym'); break;
     }
   }
 
+  private gym: Gymnasium = null;
   private lab: Laboratory = null;
   private conduit: ConduitStage = null;
   private home: Home = null;
@@ -84,6 +87,12 @@ export class Game {
           this.conduit.position.set(0, 0, 0);
         }
         nextWorld = this.conduit;
+        break;
+      case 'gym':
+        if (this.gym === null) {
+          this.gym = new Gymnasium(this.camera);
+        }
+        nextWorld = this.gym;
         break;
       case 'home': default:
         if (this.home === null) {
