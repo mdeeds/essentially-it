@@ -7,7 +7,7 @@ export class Gymnasium extends THREE.Object3D implements World, Ticker {
   constructor(private camera: THREE.Object3D) {
     super();
     this.add(this.universe);
-    this.previousZ = camera.position.z;
+    this.previousY = camera.position.y;
     const sky = new THREE.Mesh(
       new THREE.IcosahedronBufferGeometry(20, 1),
       new THREE.MeshBasicMaterial({ color: '#bbb', side: THREE.BackSide })
@@ -40,12 +40,18 @@ export class Gymnasium extends THREE.Object3D implements World, Ticker {
     });
   }
 
-  private previousZ = 0;
+  private cameraNormalMatrix = new THREE.Matrix3();
+  private previousY = 0;
   tick(t: Tick) {
-    const deltaZ = Math.abs(this.camera.position.z - this.previousZ);
-    this.previousZ = this.camera.position.z;
+    const deltaY = Math.abs(this.camera.position.y - this.previousY);
+    this.previousY = this.camera.position.y;
 
-    this.universe.position.z += deltaZ;
+    this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
+    const forward = new THREE.Vector3(0, 0, -1);
+    forward.applyMatrix3(this.cameraNormalMatrix);
+    forward.multiplyScalar(deltaY);
+
+    this.universe.position.sub(forward);;
   }
 
 

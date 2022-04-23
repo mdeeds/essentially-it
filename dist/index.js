@@ -2690,7 +2690,7 @@ class Gymnasium extends THREE.Object3D {
         super();
         this.camera = camera;
         this.add(this.universe);
-        this.previousZ = camera.position.z;
+        this.previousY = camera.position.y;
         const sky = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 1), new THREE.MeshBasicMaterial({ color: '#bbb', side: THREE.BackSide }));
         this.universe.add(sky);
         const light1 = new THREE.DirectionalLight('white', 0.6);
@@ -2713,11 +2713,17 @@ class Gymnasium extends THREE.Object3D {
             // TODO: wire up exit button...?
         });
     }
-    previousZ = 0;
+    cameraNormalMatrix = new THREE.Matrix3();
+    previousY = 0;
     tick(t) {
-        const deltaZ = Math.abs(this.camera.position.z - this.previousZ);
-        this.previousZ = this.camera.position.z;
-        this.universe.position.z += deltaZ;
+        const deltaY = Math.abs(this.camera.position.y - this.previousY);
+        this.previousY = this.camera.position.y;
+        this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
+        const forward = new THREE.Vector3(0, 0, -1);
+        forward.applyMatrix3(this.cameraNormalMatrix);
+        forward.multiplyScalar(deltaY);
+        this.universe.position.sub(forward);
+        ;
     }
 }
 exports.Gymnasium = Gymnasium;
@@ -4431,6 +4437,7 @@ class S {
         container.appendChild(helpText);
     }
     static {
+        S.setDefault('last change', 2, 'Bounce to move test.');
         S.setDefault('ep', 4, 'Episode number');
         S.setDefault('mi', 6, 'Mandelbrot iterations.');
         S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');

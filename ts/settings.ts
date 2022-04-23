@@ -21,6 +21,7 @@ export class S {
   }
 
   static {
+    S.setDefault('last change', 2, 'Bounce to move test.');
     S.setDefault('ep', 4, 'Episode number');
     S.setDefault('mi', 6, 'Mandelbrot iterations.');
     S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
