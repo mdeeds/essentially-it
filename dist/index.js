@@ -2715,14 +2715,31 @@ class Gymnasium extends THREE.Object3D {
     }
     cameraNormalMatrix = new THREE.Matrix3();
     previousY = 0;
+    velocity = new THREE.Vector3();
+    targetVelocity = new THREE.Vector3();
+    velocityDelta = new THREE.Vector3();
+    maxAcceleration = 5; // m/s/s
     tick(t) {
         const deltaY = Math.abs(this.camera.position.y - this.previousY);
+        if (deltaY > 0) {
+            this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
+            this.targetVelocity.set(0, 0, -1);
+            this.targetVelocity.applyMatrix3(this.cameraNormalMatrix);
+            this.targetVelocity.y = 0;
+            this.targetVelocity.setLength(3 * deltaY / t.deltaS);
+            this.velocityDelta.copy(this.targetVelocity);
+            this.velocityDelta.sub(this.velocity);
+            this.velocityDelta.multiplyScalar(1 / t.deltaS);
+            const maxVelocityDelta = this.maxAcceleration * t.deltaS;
+            if (this.velocityDelta.length() > maxVelocityDelta) {
+                this.velocityDelta.setLength(maxVelocityDelta);
+            }
+            this.velocity.add(this.velocityDelta);
+        }
         this.previousY = this.camera.position.y;
-        this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
-        const forward = new THREE.Vector3(0, 0, -1);
-        forward.applyMatrix3(this.cameraNormalMatrix);
-        forward.multiplyScalar(deltaY);
-        this.universe.position.sub(forward);
+        this.velocityDelta.copy(this.velocity);
+        this.velocityDelta.multiplyScalar(t.deltaS);
+        this.universe.position.sub(this.velocityDelta);
         ;
     }
 }
