@@ -2917,6 +2917,7 @@ class Player extends physicsObject_1.PhysicsObject {
     }
     cameraNormalMatrix = new THREE.Matrix3();
     previousY = 0;
+    previousV = 0;
     velocity = new THREE.Vector3();
     targetVelocity = new THREE.Vector3();
     velocityDelta = new THREE.Vector3();
@@ -2924,7 +2925,10 @@ class Player extends physicsObject_1.PhysicsObject {
     maxAcceleration = settings_1.S.float('ma'); // m/s/s
     accelerationAngle = settings_1.S.float('aa'); // radians from up
     tick(t) {
-        const deltaY = Math.abs(this.camera.position.y - this.previousY);
+        const deltaY = this.camera.position.y - this.previousY;
+        const velocityY = deltaY / t.deltaS;
+        const accelerationY = (velocityY - this.previousV) / t.deltaS;
+        // if (deltaY > 0 && accelerationY > 0) {
         if (deltaY > 0) {
             this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
             this.targetVelocity.set(0, 0, -1);
@@ -2942,12 +2946,23 @@ class Player extends physicsObject_1.PhysicsObject {
             this.velocityDelta.sub(this.velocity);
             this.acceleration.copy(this.velocityDelta);
             this.acceleration.multiplyScalar(1 / t.deltaS);
+            // Super-human factor 2x
+            const acceleration = Math.min(accelerationY * 2, this.maxAcceleration);
+            this.acceleration.setLength(acceleration);
             if (this.acceleration.length() > this.maxAcceleration) {
                 this.acceleration.setLength(this.maxAcceleration);
+            }
+            if (this.position.y < 0.5) {
+                //   // We are still on the ground, but we are moving up, so remove gravity
+                //   // TODO: raycast down to see if we are on something solid.
+                this.acceleration.y += 9.8;
+                console.log(`Jumping: ${acceleration.toFixed(3)} ` +
+                    `${this.acceleration.x.toFixed(3)} ${this.acceleration.y.toFixed(3)} ${this.acceleration.z.toFixed(3)}`);
             }
             this.applyAcceleration(this.acceleration);
         }
         this.previousY = this.camera.position.y;
+        this.previousV = velocityY;
     }
     static makeRigidBody(object, ammo, shape, mass) {
         const btTx = new ammo.btTransform();
@@ -4877,7 +4892,7 @@ class S {
         container.appendChild(helpText);
     }
     static {
-        S.setDefault('last change', 3, 'Acceleration angle.');
+        S.setDefault('last change', 3, 'Camera acceleration.');
         S.setDefault('ep', 4, 'Episode number');
         S.setDefault('mi', 6, 'Mandelbrot iterations.');
         S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
@@ -4892,9 +4907,9 @@ class S {
         S.setDefault('si', 0.9, 'Star intensity');
         S.setDefault('zy', 1.1, 'Zig-Zag height');
         S.setDefault('bh', 0.1, 'Heat of brownian motion.  1.0 = white.');
-        S.setDefault('dr', 0.3, 'Drift rate.');
-        S.setDefault('ma', 1.0, 'Max player acceleration.');
-        S.setDefault('aa', 0.4, 'Acceleration angle.');
+        S.setDefault('dr', 0.3, 'Rotation if you are off center.');
+        S.setDefault('ma', 2.0, 'Max player acceleration.');
+        S.setDefault('aa', 0.1, 'Acceleration angle.');
     }
     static float(name) {
         if (S.cache.has(name)) {
