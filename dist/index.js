@@ -2928,8 +2928,8 @@ class Player extends physicsObject_1.PhysicsObject {
         const deltaY = this.camera.position.y - this.previousY;
         const velocityY = deltaY / t.deltaS;
         const accelerationY = (velocityY - this.previousV) / t.deltaS;
-        // if (deltaY > 0 && accelerationY > 0) {
-        if (deltaY > 0) {
+        // if (deltaY > 0) {
+        if (deltaY > 0 && accelerationY > 0) {
             this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
             this.targetVelocity.set(0, 0, -1);
             this.targetVelocity.applyMatrix3(this.cameraNormalMatrix);
@@ -2952,12 +2952,10 @@ class Player extends physicsObject_1.PhysicsObject {
             if (this.acceleration.length() > this.maxAcceleration) {
                 this.acceleration.setLength(this.maxAcceleration);
             }
-            if (this.position.y < 0.5) {
-                //   // We are still on the ground, but we are moving up, so remove gravity
-                //   // TODO: raycast down to see if we are on something solid.
+            if (accelerationY > settings_1.S.float('yae')) {
+                // Real-world vertical acceleration is positive, and player is moving
+                // up.  The player must have their feet planted on the ground.
                 this.acceleration.y += 9.8;
-                console.log(`Jumping: ${acceleration.toFixed(3)} ` +
-                    `${this.acceleration.x.toFixed(3)} ${this.acceleration.y.toFixed(3)} ${this.acceleration.z.toFixed(3)}`);
             }
             this.applyAcceleration(this.acceleration);
         }
@@ -4910,6 +4908,7 @@ class S {
         S.setDefault('dr', 0.3, 'Rotation if you are off center.');
         S.setDefault('ma', 2.0, 'Max player acceleration.');
         S.setDefault('aa', 0.1, 'Acceleration angle.');
+        S.setDefault('yae', 0.05, 'Y-acceleration epsilon. Min real-world acceleration to jump.');
     }
     static float(name) {
         if (S.cache.has(name)) {
