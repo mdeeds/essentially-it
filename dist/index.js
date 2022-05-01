@@ -2722,6 +2722,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Gymnasium = void 0;
 const THREE = __importStar(__webpack_require__(5578));
 const player_1 = __webpack_require__(6023);
+const shaders_1 = __webpack_require__(9814);
+const settings_1 = __webpack_require__(6451);
 class Gymnasium extends THREE.Object3D {
     camera;
     ammo;
@@ -2734,7 +2736,7 @@ class Gymnasium extends THREE.Object3D {
         this.physicsWorld = physicsWorld;
         this.add(this.universe);
         this.previousY = camera.position.y;
-        const sky = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 1), new THREE.MeshBasicMaterial({ color: '#bbb', side: THREE.BackSide }));
+        const sky = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 1), shaders_1.Shaders.makeSkyMaterial());
         this.universe.add(sky);
         const light1 = new THREE.DirectionalLight('white', 0.6);
         light1.position.set(20, 2, 5);
@@ -2750,17 +2752,25 @@ class Gymnasium extends THREE.Object3D {
             pillar.position.set(x, 1, z);
             this.universe.add(pillar);
         }
-        const groundPlane = new this.ammo.btStaticPlaneShape(new this.ammo.btVector3(0, 1, 0), 0);
-        groundPlane.setMargin(0.01);
-        const btTx = new ammo.btTransform();
-        btTx.setIdentity();
-        const btPosition = new ammo.btVector3(0, 0, 0);
-        const motionState = new ammo.btDefaultMotionState(btTx);
-        const body = new ammo.btRigidBody(new ammo.btRigidBodyConstructionInfo(
-        /*mass=*/ 0, motionState, groundPlane, btPosition));
-        this.physicsWorld.addRigidBody(body);
+        this.setUpGround();
         const player = new player_1.Player(ammo, physicsWorld);
         this.universe.add(player);
+    }
+    setUpGround() {
+        const groundPlane = new this.ammo.btStaticPlaneShape(new this.ammo.btVector3(0, 1, 0), 0);
+        groundPlane.setMargin(0.01);
+        const btTx = new this.ammo.btTransform();
+        btTx.setIdentity();
+        const btPosition = new this.ammo.btVector3(0, 0, 0);
+        const motionState = new this.ammo.btDefaultMotionState(btTx);
+        const body = new this.ammo.btRigidBody(new this.ammo.btRigidBodyConstructionInfo(
+        /*mass=*/ 0, motionState, groundPlane, btPosition));
+        this.physicsWorld.addRigidBody(body);
+        const colorMatrix = new THREE.Matrix3();
+        colorMatrix.set(0.8, 0.3, 0.1, 0.8, 0.4, 0.1, 0.8, 0.3, 0.2);
+        const box = new THREE.Mesh(new THREE.PlaneBufferGeometry(10, 10), shaders_1.Shaders.makeSimplexShader(colorMatrix));
+        box.rotateX(-Math.PI / 2);
+        this.universe.add(box);
     }
     run() {
         return new Promise((resolve) => {
@@ -2794,7 +2804,9 @@ class Gymnasium extends THREE.Object3D {
         this.velocityDelta.copy(this.velocity);
         this.velocityDelta.multiplyScalar(t.deltaS);
         this.universe.position.sub(this.velocityDelta);
-        ;
+        this.universe.quaternion.identity();
+        this.universe.rotateX(this.camera.position.z * settings_1.S.float('dr'));
+        this.universe.rotateZ(this.camera.position.x * settings_1.S.float('dr'));
     }
 }
 exports.Gymnasium = Gymnasium;
@@ -2932,6 +2944,144 @@ class Player extends physicsObject_1.PhysicsObject {
 }
 exports.Player = Player;
 //# sourceMappingURL=player.js.map
+
+/***/ }),
+
+/***/ 9814:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Shaders = void 0;
+const THREE = __importStar(__webpack_require__(5578));
+class Shaders {
+    static simplexCode() {
+        return `
+    // Simplex Fragment Shader Code
+    // https://github.com/KdotJPG/OpenSimplex2/blob/master/glsl/OpenSimplex2.glsl
+    
+    vec4 permute(vec4 t) {
+      return t * (t * 34.0 + 133.0);
+    }
+    vec3 grad(float hash) {
+      vec3 cube = mod(floor(hash / vec3(1.0, 2.0, 4.0)), 2.0) * 2.0 - 1.0;
+      vec3 cuboct = cube;
+      cuboct[int(hash / 16.0)] = 0.0;
+      float type = mod(floor(hash / 8.0), 2.0);
+      vec3 rhomb = (1.0 - type) * cube + type * (cuboct + cross(cube, cuboct));
+      vec3 grad = cuboct * 1.22474487139 + rhomb;
+      grad *= (1.0 - 0.042942436724648037 * type) * 32.80201376986577;
+      return grad;
+    }
+    
+    vec4 openSimplex2Base(vec3 X) {
+      vec3 v1 = round(X);
+      vec3 d1 = X - v1;
+      vec3 score1 = abs(d1);
+      vec3 dir1 = step(max(score1.yzx, score1.zxy), score1);
+      vec3 v2 = v1 + dir1 * sign(d1);
+      vec3 d2 = X - v2;
+      vec3 X2 = X + 144.5;
+      vec3 v3 = round(X2);
+      vec3 d3 = X2 - v3;
+      vec3 score2 = abs(d3);
+      vec3 dir2 = step(max(score2.yzx, score2.zxy), score2);
+      vec3 v4 = v3 + dir2 * sign(d3);
+      vec3 d4 = X2 - v4;
+      
+      vec4 hashes = permute(mod(vec4(v1.x, v2.x, v3.x, v4.x), 289.0));
+      hashes = permute(mod(hashes + vec4(v1.y, v2.y, v3.y, v4.y), 289.0));
+      hashes = mod(permute(mod(hashes + vec4(v1.z, v2.z, v3.z, v4.z), 289.0)), 48.0);
+      
+      vec4 a = max(0.5 - vec4(dot(d1, d1), dot(d2, d2), dot(d3, d3), dot(d4, d4)), 0.0);
+      vec4 aa = a * a; vec4 aaaa = aa * aa;
+      vec3 g1 = grad(hashes.x); vec3 g2 = grad(hashes.y);
+      vec3 g3 = grad(hashes.z); vec3 g4 = grad(hashes.w);
+      vec4 extrapolations = vec4(dot(d1, g1), dot(d2, g2), dot(d3, g3), dot(d4, g4));
+      
+      vec3 derivative = -8.0 * mat4x3(d1, d2, d3, d4) * (aa * a * extrapolations)
+          + mat4x3(g1, g2, g3, g4) * aaaa;
+      
+      return vec4(derivative, dot(aaaa, extrapolations));
+    }
+    
+    vec4 openSimplex2_Conventional(vec3 X) {
+      vec4 result = openSimplex2Base(dot(X, vec3(2.0/3.0)) - X);
+      return vec4(dot(result.xyz, vec3(2.0/3.0)) - result.xyz, result.w);
+    }    
+    `;
+    }
+    static makeSimplexShader(colorMatrix) {
+        const material = new THREE.ShaderMaterial({
+            vertexShader: `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPosition.xyz;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+          }`,
+            fragmentShader: `
+          uniform mat3 colorMatrix;
+          varying vec3 vWorldPosition;
+
+          ${Shaders.simplexCode()}
+          void main() {
+            vec4 c1 = openSimplex2_Conventional(vWorldPosition * 0.7);           
+            vec3 crgb = colorMatrix * ((c1.rgb * 0.5) + 0.5);
+            gl_FragColor = vec4(crgb, 1.0);
+          }
+          `,
+            uniforms: {
+                colorMatrix: { value: colorMatrix }
+            }
+        });
+        return material;
+    }
+    static makeSkyMaterial() {
+        const material = new THREE.ShaderMaterial({
+            vertexShader: `
+          varying vec3 vModelPosition;
+          void main() {
+            vModelPosition = position;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+          }`,
+            fragmentShader: `
+      varying vec3 vModelPosition;
+          void main() {
+            float intensity = clamp(vModelPosition.y, 0.0, 1.0); 
+            vec3 c = vec3(0.5, 0.9, 1.0) * intensity;
+            gl_FragColor = vec4(c, 1.0);
+          }
+          `,
+            side: THREE.BackSide,
+        });
+        return material;
+    }
+}
+exports.Shaders = Shaders;
+//# sourceMappingURL=shaders.js.map
 
 /***/ }),
 
@@ -4715,6 +4865,7 @@ class S {
         S.setDefault('si', 0.9, 'Star intensity');
         S.setDefault('zy', 1.1, 'Zig-Zag height');
         S.setDefault('bh', 0.1, 'Heat of brownian motion.  1.0 = white.');
+        S.setDefault('dr', -0.5, 'Drift rate.');
     }
     static float(name) {
         if (S.cache.has(name)) {
