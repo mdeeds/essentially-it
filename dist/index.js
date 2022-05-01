@@ -2767,7 +2767,7 @@ class Gymnasium extends THREE.Object3D {
         body.setFriction(0.5);
         this.physicsWorld.addRigidBody(body);
         const colorMatrix = new THREE.Matrix3();
-        colorMatrix.set(0.8, 0.3, 0.1, 0.8, 0.4, 0.1, 0.8, 0.3, 0.2);
+        colorMatrix.set(0.8, 0.8, 0.8, 0.3, 0.4, 0.3, 0.1, 0.1, 0.2);
         const box = new THREE.Mesh(new THREE.PlaneBufferGeometry(10, 10), shaders_1.Shaders.makeSimplexShader(colorMatrix));
         box.rotateX(-Math.PI / 2);
         this.universe.add(box);
@@ -2892,6 +2892,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Player = void 0;
 const THREE = __importStar(__webpack_require__(5578));
 const physicsObject_1 = __webpack_require__(1945);
+const settings_1 = __webpack_require__(6451);
 class Player extends physicsObject_1.PhysicsObject {
     ammo;
     physicsWorld;
@@ -2920,14 +2921,22 @@ class Player extends physicsObject_1.PhysicsObject {
     targetVelocity = new THREE.Vector3();
     velocityDelta = new THREE.Vector3();
     acceleration = new THREE.Vector3();
-    maxAcceleration = 5; // m/s/s
+    maxAcceleration = settings_1.S.float('ma'); // m/s/s
+    accelerationAngle = settings_1.S.float('aa'); // radians from up
     tick(t) {
         const deltaY = Math.abs(this.camera.position.y - this.previousY);
         if (deltaY > 0) {
             this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
-            this.targetVelocity.set(0, 3 / 5, -4 / 5);
+            this.targetVelocity.set(0, 0, -1);
             this.targetVelocity.applyMatrix3(this.cameraNormalMatrix);
+            // Point targetVelocity in the XZ plane
             this.targetVelocity.y = 0;
+            this.targetVelocity.setLength(1);
+            // Scale down XZ portion by desired angle of incline
+            this.targetVelocity.z *= Math.sin(this.accelerationAngle);
+            this.targetVelocity.x *= Math.sin(this.accelerationAngle);
+            // Set Y potion to remaining part of angle.
+            this.targetVelocity.y = Math.cos(this.accelerationAngle);
             this.targetVelocity.setLength(3 * deltaY / t.deltaS);
             this.velocityDelta.copy(this.targetVelocity);
             this.velocityDelta.sub(this.velocity);
@@ -2938,6 +2947,7 @@ class Player extends physicsObject_1.PhysicsObject {
             }
             this.applyAcceleration(this.acceleration);
         }
+        this.previousY = this.camera.position.y;
     }
     static makeRigidBody(object, ammo, shape, mass) {
         const btTx = new ammo.btTransform();
@@ -3065,7 +3075,7 @@ class Shaders {
           ${Shaders.simplexCode()}
           void main() {
             vec4 c1 = openSimplex2_Conventional(vWorldPosition * 0.7);           
-            vec3 crgb = colorMatrix * ((c1.rgb * 0.5) + 0.5);
+            vec3 crgb = colorMatrix * ((c1.rgb * 0.2) + 0.5);
             gl_FragColor = vec4(crgb, 1.0);
           }
           `,
@@ -4883,6 +4893,8 @@ class S {
         S.setDefault('zy', 1.1, 'Zig-Zag height');
         S.setDefault('bh', 0.1, 'Heat of brownian motion.  1.0 = white.');
         S.setDefault('dr', -0.5, 'Drift rate.');
+        S.setDefault('ma', 1.0, 'Max player acceleration.');
+        S.setDefault('ma', 0.4, 'Max player acceleration.');
     }
     static float(name) {
         if (S.cache.has(name)) {
