@@ -2832,10 +2832,12 @@ const THREE = __importStar(__webpack_require__(5578));
 class PhysicsObject extends THREE.Object3D {
     btWorldTransform;
     btOrigin;
+    btRotation;
     constructor(ammo) {
         super();
         this.btWorldTransform = new ammo.btTransform();
         this.btOrigin = new ammo.btVector3();
+        this.btRotation = new ammo.btQuaternion(0, 0, 0, 0);
     }
     setPhysicsPosition() {
         console.assert(!!this.userData['physicsObject'], "No physics object!");
@@ -2844,6 +2846,8 @@ class PhysicsObject extends THREE.Object3D {
         motionState.getWorldTransform(this.btWorldTransform);
         this.btOrigin.setValue(this.position.x, this.position.y, this.position.z);
         this.btWorldTransform.setOrigin(this.btOrigin);
+        this.btRotation.setValue(this.quaternion.x, this.quaternion.y, this.quaternion.z, this.quaternion.w);
+        this.btWorldTransform.setRotation(this.btRotation);
         motionState.setWorldTransform(this.btWorldTransform);
     }
     updatePositionFromPhysics() {
