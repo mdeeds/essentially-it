@@ -2735,7 +2735,6 @@ class Gymnasium extends THREE.Object3D {
         this.ammo = ammo;
         this.physicsWorld = physicsWorld;
         this.add(this.universe);
-        this.previousY = camera.position.y;
         const sky = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(20, 1), shaders_1.Shaders.makeSkyMaterial());
         this.universe.add(sky);
         const light1 = new THREE.DirectionalLight('white', 0.6);
@@ -2753,7 +2752,7 @@ class Gymnasium extends THREE.Object3D {
             this.universe.add(pillar);
         }
         this.setUpGround();
-        const player = new player_1.Player(ammo, physicsWorld);
+        const player = new player_1.Player(ammo, physicsWorld, this.camera);
         this.universe.add(player);
     }
     setUpGround() {
@@ -2765,6 +2764,7 @@ class Gymnasium extends THREE.Object3D {
         const motionState = new this.ammo.btDefaultMotionState(btTx);
         const body = new this.ammo.btRigidBody(new this.ammo.btRigidBodyConstructionInfo(
         /*mass=*/ 0, motionState, groundPlane, btPosition));
+        body.setFriction(0.5);
         this.physicsWorld.addRigidBody(body);
         const colorMatrix = new THREE.Matrix3();
         colorMatrix.set(0.8, 0.3, 0.1, 0.8, 0.4, 0.1, 0.8, 0.3, 0.2);
@@ -2777,33 +2777,7 @@ class Gymnasium extends THREE.Object3D {
             // TODO: wire up exit button...?
         });
     }
-    cameraNormalMatrix = new THREE.Matrix3();
-    previousY = 0;
-    velocity = new THREE.Vector3();
-    targetVelocity = new THREE.Vector3();
-    velocityDelta = new THREE.Vector3();
-    maxAcceleration = 5; // m/s/s
     tick(t) {
-        const deltaY = Math.abs(this.camera.position.y - this.previousY);
-        if (deltaY > 0) {
-            this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
-            this.targetVelocity.set(0, 0, -1);
-            this.targetVelocity.applyMatrix3(this.cameraNormalMatrix);
-            this.targetVelocity.y = 0;
-            this.targetVelocity.setLength(3 * deltaY / t.deltaS);
-            this.velocityDelta.copy(this.targetVelocity);
-            this.velocityDelta.sub(this.velocity);
-            this.velocityDelta.multiplyScalar(1 / t.deltaS);
-            const maxVelocityDelta = this.maxAcceleration * t.deltaS;
-            if (this.velocityDelta.length() > maxVelocityDelta) {
-                this.velocityDelta.setLength(maxVelocityDelta);
-            }
-            this.velocity.add(this.velocityDelta);
-        }
-        this.previousY = this.camera.position.y;
-        this.velocityDelta.copy(this.velocity);
-        this.velocityDelta.multiplyScalar(t.deltaS);
-        this.universe.position.sub(this.velocityDelta);
         this.universe.quaternion.identity();
         this.universe.rotateX(this.camera.position.z * settings_1.S.float('dr'));
         this.universe.rotateZ(this.camera.position.x * settings_1.S.float('dr'));
@@ -2842,14 +2816,18 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PhysicsObject = void 0;
 const THREE = __importStar(__webpack_require__(5578));
 class PhysicsObject extends THREE.Object3D {
+    mass;
     btWorldTransform;
     btOrigin;
     btRotation;
-    constructor(ammo) {
+    btForce;
+    constructor(ammo, mass) {
         super();
+        this.mass = mass;
         this.btWorldTransform = new ammo.btTransform();
         this.btOrigin = new ammo.btVector3();
         this.btRotation = new ammo.btQuaternion(0, 0, 0, 0);
+        this.btForce = new ammo.btVector3();
     }
     setPhysicsPosition() {
         console.assert(!!this.userData['physicsObject'], "No physics object!");
@@ -2871,6 +2849,14 @@ class PhysicsObject extends THREE.Object3D {
         this.position.set(btOrigin.x(), btOrigin.y(), btOrigin.z());
         const btQuaternion = this.btWorldTransform.getRotation();
         this.quaternion.set(btQuaternion.x(), btQuaternion.y(), btQuaternion.z(), btQuaternion.w());
+    }
+    applyAcceleration(a) {
+        console.assert(!!this.userData['physicsObject'], "No physics object!");
+        const body = this.userData['physicsObject'];
+        // F = ma
+        this.btForce.setValue(a.x, a.y, a.z);
+        this.btForce.op_mul(this.mass);
+        body.applyCentralForce(this.btForce);
     }
 }
 exports.PhysicsObject = PhysicsObject;
@@ -2909,18 +2895,49 @@ const physicsObject_1 = __webpack_require__(1945);
 class Player extends physicsObject_1.PhysicsObject {
     ammo;
     physicsWorld;
-    constructor(ammo, physicsWorld) {
-        super(ammo);
+    camera;
+    static mass = 100; // kg
+    constructor(ammo, physicsWorld, camera) {
+        super(ammo, Player.mass);
         this.ammo = ammo;
         this.physicsWorld = physicsWorld;
+        this.camera = camera;
         console.assert(!!physicsWorld, "Physics not initialized!");
         const mesh = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.25, 0.25, 0.10), new THREE.MeshStandardMaterial({ color: '#33a' }));
         this.add(mesh);
-        const shape = new this.ammo.btCylinderShape(new this.ammo.btVector3(0.25, 0.25, 0.10));
+        const shape = new this.ammo.btCylinderShape(new this.ammo.btVector3(0.25, 0.10, 0.25));
         shape.setMargin(0.01);
-        const body = Player.makeRigidBody(this, this.ammo, shape, 100 /*kg*/);
+        const body = Player.makeRigidBody(this, this.ammo, shape, Player.mass);
         this.physicsWorld.addRigidBody(body);
         this.userData['physicsObject'] = body;
+        this.previousY = camera.position.y;
+        this.position.set(0, 1, 0);
+        this.setPhysicsPosition();
+    }
+    cameraNormalMatrix = new THREE.Matrix3();
+    previousY = 0;
+    velocity = new THREE.Vector3();
+    targetVelocity = new THREE.Vector3();
+    velocityDelta = new THREE.Vector3();
+    acceleration = new THREE.Vector3();
+    maxAcceleration = 5; // m/s/s
+    tick(t) {
+        const deltaY = Math.abs(this.camera.position.y - this.previousY);
+        if (deltaY > 0) {
+            this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
+            this.targetVelocity.set(0, 3 / 5, -4 / 5);
+            this.targetVelocity.applyMatrix3(this.cameraNormalMatrix);
+            this.targetVelocity.y = 0;
+            this.targetVelocity.setLength(3 * deltaY / t.deltaS);
+            this.velocityDelta.copy(this.targetVelocity);
+            this.velocityDelta.sub(this.velocity);
+            this.acceleration.copy(this.velocityDelta);
+            this.acceleration.multiplyScalar(1 / t.deltaS);
+            if (this.acceleration.length() > this.maxAcceleration) {
+                this.acceleration.setLength(this.maxAcceleration);
+            }
+            this.applyAcceleration(this.acceleration);
+        }
     }
     static makeRigidBody(object, ammo, shape, mass) {
         const btTx = new ammo.btTransform();
