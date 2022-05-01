@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import Ammo from "ammojs-typed";
+
 import { ConduitStage } from "./conduit/stage";
 import { Gymnasium } from "./gym/gymnasium";
-
 import { Hand } from "./hand";
 import { Home } from "./home/home";
 import { Laboratory } from "./laboratory";
@@ -12,6 +13,7 @@ import { S } from "./settings";
 import { TactileProvider } from "./tactileProvider";
 import { Tick, Ticker } from "./ticker";
 import { World } from "./world";
+import { PhysicsObject } from "./gym/physicsObject";
 
 export class Game {
   private scene: THREE.Scene;
@@ -20,11 +22,12 @@ export class Game {
   private keysDown = new Set<string>();
   private hands: Hand[] = [];
   private headMotion: Motion;
+  private physicsWorld: Ammo.btDiscreteDynamicsWorld;
 
   private tactileProvider = new TactileProvider();
   private particleSystem = new ParticleSystem();
 
-  constructor(private audioCtx: AudioContext) {
+  constructor(private audioCtx: AudioContext, private ammo: typeof Ammo) {
     this.scene = new THREE.Scene();
     this.scene.name = 'The Scene';
 
@@ -40,9 +43,10 @@ export class Game {
     this.scene.add(this.camera);
 
     this.setUpRenderer();
-
     this.setUpAnimation();
     this.scene.add(this.particleSystem);
+
+    this.setUpPhysics();
 
     this.hands.push(
       new Hand('left', this.scene, this.renderer,
@@ -59,6 +63,20 @@ export class Game {
       case 2: this.run('conduit'); break;
       case 3: this.run('gym'); break;
     }
+  }
+
+  private setUpPhysics() {
+    // Physics configuration
+    const collisionConfiguration =
+      new this.ammo.btDefaultCollisionConfiguration();
+    const dispatcher = new this.ammo.btCollisionDispatcher(
+      collisionConfiguration);
+    const broadphase = new this.ammo.btDbvtBroadphase();
+    const solver = new this.ammo.btSequentialImpulseConstraintSolver();
+    this.physicsWorld = new this.ammo.btDiscreteDynamicsWorld(
+      dispatcher, broadphase,
+      solver, collisionConfiguration);
+    this.physicsWorld.setGravity(new this.ammo.btVector3(0, -9.8, 0));
   }
 
   private gym: Gymnasium = null;
@@ -90,7 +108,7 @@ export class Game {
         break;
       case 'gym':
         if (this.gym === null) {
-          this.gym = new Gymnasium(this.camera);
+          this.gym = new Gymnasium(this.camera, this.ammo, this.physicsWorld);
         }
         nextWorld = this.gym;
         break;
@@ -240,6 +258,9 @@ export class Game {
     if (o['tick']) {
       (o as any as Ticker).tick(t);
     }
+    if (o['updatePositionFromPhysics']) {
+      (o as any as PhysicsObject).updatePositionFromPhysics();
+    }
     for (const child of o.children) {
       this.doTick(child, t);
     }
@@ -253,6 +274,7 @@ export class Game {
     this.handleKeys();
     this.handleHeadMotion();
     this.doTick(this.scene, new Tick(this.clock.elapsedTime, deltaS));
+    this.physicsWorld.stepSimulation(deltaS, /*substeps=*/10);
   }
 
   private setUpAnimation() {

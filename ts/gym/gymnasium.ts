@@ -1,10 +1,14 @@
 import * as THREE from "three";
 import { Tick, Ticker } from "../ticker";
 import { World } from "../world";
+import Ammo from "ammojs-typed";
+import { Player } from "./player";
 
 export class Gymnasium extends THREE.Object3D implements World, Ticker {
   private universe = new THREE.Object3D();
-  constructor(private camera: THREE.Object3D) {
+  constructor(private camera: THREE.Object3D,
+    private ammo: typeof Ammo,
+    private physicsWorld: Ammo.btDiscreteDynamicsWorld) {
     super();
     this.add(this.universe);
     this.previousY = camera.position.y;
@@ -32,6 +36,19 @@ export class Gymnasium extends THREE.Object3D implements World, Ticker {
       pillar.position.set(x, 1, z);
       this.universe.add(pillar);
     }
+
+    const groundPlane = new this.ammo.btStaticPlaneShape(new this.ammo.btVector3(0, 1, 0), 0);
+    groundPlane.setMargin(0.01);
+    const btTx = new ammo.btTransform();
+    btTx.setIdentity();
+    const btPosition = new ammo.btVector3(0, 0, 0);
+    const motionState = new ammo.btDefaultMotionState(btTx);
+    const body = new ammo.btRigidBody(new ammo.btRigidBodyConstructionInfo(
+      /*mass=*/0, motionState, groundPlane, btPosition));
+    this.physicsWorld.addRigidBody(body);
+
+    const player = new Player(ammo, physicsWorld);
+    this.universe.add(player);
   }
 
   run(): Promise<string> {

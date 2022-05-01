@@ -1,3 +1,4 @@
+import Ammo from "ammojs-typed";
 import { Game } from "./game";
 import { S } from "./settings";
 
@@ -17,8 +18,18 @@ async function getAudioContext(): Promise<AudioContext> {
   });
 }
 
+async function getAmmo(): Promise<typeof Ammo> {
+  return new Promise<typeof Ammo>((resolve) => {
+    Ammo().then((lib) => {
+      console.log('Ammo loaded: ' + lib.name);
+      resolve(lib);
+    });
+  })
+}
+
 async function go() {
-  new Game(await getAudioContext());
+  const ammo = await getAmmo();
+  new Game(await getAudioContext(), ammo);
 }
 
 go();
