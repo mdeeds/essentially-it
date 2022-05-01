@@ -3075,7 +3075,7 @@ class Shaders {
           ${Shaders.simplexCode()}
           void main() {
             vec4 c1 = openSimplex2_Conventional(vWorldPosition * 0.7);           
-            vec3 crgb = colorMatrix * ((c1.rgb * 0.2) + 0.5);
+            vec3 crgb = colorMatrix * ((c1.rgb * 0.1) + 0.5);
             gl_FragColor = vec4(crgb, 1.0);
           }
           `,
@@ -4877,7 +4877,7 @@ class S {
         container.appendChild(helpText);
     }
     static {
-        S.setDefault('last change', 2, 'Bounce to move test.');
+        S.setDefault('last change', 3, 'Acceleration angle.');
         S.setDefault('ep', 4, 'Episode number');
         S.setDefault('mi', 6, 'Mandelbrot iterations.');
         S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
@@ -4892,9 +4892,9 @@ class S {
         S.setDefault('si', 0.9, 'Star intensity');
         S.setDefault('zy', 1.1, 'Zig-Zag height');
         S.setDefault('bh', 0.1, 'Heat of brownian motion.  1.0 = white.');
-        S.setDefault('dr', -0.5, 'Drift rate.');
+        S.setDefault('dr', 0.3, 'Drift rate.');
         S.setDefault('ma', 1.0, 'Max player acceleration.');
-        S.setDefault('ma', 0.4, 'Max player acceleration.');
+        S.setDefault('aa', 0.4, 'Acceleration angle.');
     }
     static float(name) {
         if (S.cache.has(name)) {
