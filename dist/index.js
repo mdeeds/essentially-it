@@ -2694,6 +2694,52 @@ exports.GraphitiTool = GraphitiTool;
 
 /***/ }),
 
+/***/ 539:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Column = void 0;
+const THREE = __importStar(__webpack_require__(5578));
+const physicsObject_1 = __webpack_require__(1945);
+class Column extends physicsObject_1.PhysicsObject {
+    constructor(ammo, physicsWorld, radius, height) {
+        super(ammo, /*mass=*/ 0);
+        console.assert(!!physicsWorld, "Physics not initialized!");
+        const mesh = new THREE.Mesh(new THREE.CylinderBufferGeometry(radius * 0.8, radius, height), new THREE.MeshStandardMaterial({ color: '#f98' }));
+        this.add(mesh);
+        const shape = new ammo.btCylinderShape(new ammo.btVector3(radius, height, radius));
+        shape.setMargin(0.01);
+        const body = physicsObject_1.PhysicsObject.makeRigidBody(this, ammo, shape, /*mass=*/ 0);
+        physicsWorld.addRigidBody(body);
+        this.userData['physicsObject'] = body;
+    }
+}
+exports.Column = Column;
+//# sourceMappingURL=column.js.map
+
+/***/ }),
+
 /***/ 8336:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -2724,6 +2770,7 @@ const THREE = __importStar(__webpack_require__(5578));
 const player_1 = __webpack_require__(6023);
 const shaders_1 = __webpack_require__(9814);
 const settings_1 = __webpack_require__(6451);
+const column_1 = __webpack_require__(539);
 class Gymnasium extends THREE.Object3D {
     camera;
     ammo;
@@ -2747,17 +2794,18 @@ class Gymnasium extends THREE.Object3D {
             const theta = Math.random() * Math.PI * 2;
             const x = Math.cos(theta) * 5;
             const z = Math.sin(theta) * 5;
-            const pillar = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.08, 0.10, 2), new THREE.MeshStandardMaterial({ color: '#333' }));
+            const pillar = new column_1.Column(ammo, physicsWorld, 0.10, 2);
             pillar.position.set(x, 1, z);
             this.universe.add(pillar);
+            pillar.setPhysicsPosition();
         }
         this.setUpGround();
         const player = new player_1.Player(ammo, physicsWorld, this.camera);
         this.universe.add(player);
-        if (!!speechSynthesis) {
-            let utterance = new SpeechSynthesisUtterance("Ready to go.");
-            speechSynthesis.speak(utterance);
-        }
+        // if (!!speechSynthesis) {
+        //   let utterance = new SpeechSynthesisUtterance("Ready to go.");
+        //   speechSynthesis.speak(utterance);
+        // }
     }
     setUpGround() {
         const groundPlane = new this.ammo.btStaticPlaneShape(new this.ammo.btVector3(0, 1, 0), 0);
@@ -2862,6 +2910,25 @@ class PhysicsObject extends THREE.Object3D {
         this.btForce.op_mul(this.mass);
         body.applyCentralForce(this.btForce);
     }
+    static makeRigidBody(object, ammo, shape, mass) {
+        const btTx = new ammo.btTransform();
+        const btQ = new ammo.btQuaternion(0, 0, 0, 0);
+        const btV1 = new ammo.btVector3();
+        btTx.setIdentity();
+        btV1.setValue(object.position.x, object.position.y, object.position.z);
+        btTx.setOrigin(btV1);
+        btQ.setValue(object.quaternion.x, object.quaternion.y, object.quaternion.z, object.quaternion.w);
+        btTx.setRotation(btQ);
+        const motionState = new ammo.btDefaultMotionState(btTx);
+        btV1.setValue(0, 0, 0);
+        shape.calculateLocalInertia(mass, btV1);
+        const body = new ammo.btRigidBody(new ammo.btRigidBodyConstructionInfo(mass, motionState, shape, btV1));
+        body.setActivationState(4); // Disable deactivation
+        body.activate(true);
+        body.setFriction(0.3);
+        body.setRestitution(0.1);
+        return body;
+    }
 }
 exports.PhysicsObject = PhysicsObject;
 //# sourceMappingURL=physicsObject.js.map
@@ -2912,7 +2979,7 @@ class Player extends physicsObject_1.PhysicsObject {
         this.add(mesh);
         const shape = new this.ammo.btCylinderShape(new this.ammo.btVector3(0.25, 0.10, 0.25));
         shape.setMargin(0.01);
-        const body = Player.makeRigidBody(this, this.ammo, shape, Player.mass);
+        const body = physicsObject_1.PhysicsObject.makeRigidBody(this, this.ammo, shape, Player.mass);
         this.physicsWorld.addRigidBody(body);
         this.userData['physicsObject'] = body;
         this.previousY = camera.position.y;
@@ -2965,25 +3032,6 @@ class Player extends physicsObject_1.PhysicsObject {
         }
         this.previousY = this.camera.position.y;
         this.previousV = velocityY;
-    }
-    static makeRigidBody(object, ammo, shape, mass) {
-        const btTx = new ammo.btTransform();
-        const btQ = new ammo.btQuaternion(0, 0, 0, 0);
-        const btV1 = new ammo.btVector3();
-        btTx.setIdentity();
-        btV1.setValue(object.position.x, object.position.y, object.position.z);
-        btTx.setOrigin(btV1);
-        btQ.setValue(object.quaternion.x, object.quaternion.y, object.quaternion.z, object.quaternion.w);
-        btTx.setRotation(btQ);
-        const motionState = new ammo.btDefaultMotionState(btTx);
-        btV1.setValue(0, 0, 0);
-        shape.calculateLocalInertia(mass, btV1);
-        const body = new ammo.btRigidBody(new ammo.btRigidBodyConstructionInfo(mass, motionState, shape, btV1));
-        body.setActivationState(4); // Disable deactivation
-        body.activate(true);
-        body.setFriction(0.3);
-        body.setRestitution(0.1);
-        return body;
     }
 }
 exports.Player = Player;
