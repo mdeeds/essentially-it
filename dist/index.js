@@ -2998,9 +2998,8 @@ class Player extends physicsObject_1.PhysicsObject {
     tick(t) {
         const deltaY = this.camera.position.y - this.previousY;
         const velocityY = deltaY / t.deltaS;
-        const accelerationY = (velocityY - this.previousV) / t.deltaS;
         // if (deltaY > 0) {
-        if (deltaY > 0 && accelerationY > 0) {
+        if (deltaY > 0) {
             this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
             this.targetVelocity.set(0, 0, -1);
             this.targetVelocity.applyMatrix3(this.cameraNormalMatrix);
@@ -3012,20 +3011,17 @@ class Player extends physicsObject_1.PhysicsObject {
             this.targetVelocity.x *= Math.sin(this.accelerationAngle);
             // Set Y potion to remaining part of angle.
             this.targetVelocity.y = Math.cos(this.accelerationAngle);
-            this.targetVelocity.setLength(3 * deltaY / t.deltaS);
+            this.targetVelocity.setLength(settings_1.S.float('shf') * deltaY / t.deltaS);
             this.velocityDelta.copy(this.targetVelocity);
             this.velocityDelta.sub(this.velocity);
             this.acceleration.copy(this.velocityDelta);
             this.acceleration.multiplyScalar(1 / t.deltaS);
-            // Super-human factor 10x (shf)
-            const acceleration = Math.min(accelerationY * settings_1.S.float('shf'), this.maxAcceleration);
-            this.acceleration.setLength(acceleration);
+            // Super-human factor 10x (shf
             if (this.acceleration.length() > this.maxAcceleration) {
                 this.acceleration.setLength(this.maxAcceleration);
             }
-            if (accelerationY > settings_1.S.float('yae')) {
-                // Real-world vertical acceleration is positive, and player is moving
-                // up.  The player must have their feet planted on the ground.
+            if (this.position.y < 0.5) {
+                // TODO: Raycast to see if player is on the ground.
                 this.acceleration.y += 9.8;
             }
             this.applyAcceleration(this.acceleration);
@@ -4957,10 +4953,9 @@ class S {
         S.setDefault('si', 0.9, 'Star intensity');
         S.setDefault('zy', 1.1, 'Zig-Zag height');
         S.setDefault('bh', 0.1, 'Heat of brownian motion.  1.0 = white.');
-        S.setDefault('dr', 0.3, 'Rotation if you are off center.');
-        S.setDefault('ma', 2.0, 'Max player acceleration.');
-        S.setDefault('aa', 0.1, 'Acceleration angle.');
-        S.setDefault('yae', 0.05, 'Y-acceleration epsilon. Min real-world acceleration to jump.');
+        S.setDefault('dr', -0.3, 'Rotation if you are off center.');
+        S.setDefault('ma', 20.0, 'Max player acceleration.');
+        S.setDefault('aa', Math.PI / 4, 'Acceleration angle.');
         S.setDefault('shf', 10.0, 'Super-human jump factor.');
     }
     static float(name) {
