@@ -5,11 +5,13 @@ export class PhysicsObject extends THREE.Object3D {
   private btWorldTransform: Ammo.btTransform;
   private btOrigin: Ammo.btVector3;
   private btRotation: Ammo.btQuaternion;
-  constructor(ammo: typeof Ammo) {
+  private btForce: Ammo.btVector3;
+  constructor(ammo: typeof Ammo, private mass: number) {
     super();
     this.btWorldTransform = new ammo.btTransform();
     this.btOrigin = new ammo.btVector3();
     this.btRotation = new ammo.btQuaternion(0, 0, 0, 0);
+    this.btForce = new ammo.btVector3();
   }
 
   setPhysicsPosition(): void {
@@ -37,5 +39,15 @@ export class PhysicsObject extends THREE.Object3D {
     const btQuaternion = this.btWorldTransform.getRotation();
     this.quaternion.set(btQuaternion.x(), btQuaternion.y(),
       btQuaternion.z(), btQuaternion.w());
+  }
+
+  applyAcceleration(a: THREE.Vector3): void {
+    console.assert(!!this.userData['physicsObject'],
+      "No physics object!");
+    const body = this.userData['physicsObject'] as Ammo.btRigidBody;
+    // F = ma
+    this.btForce.setValue(a.x, a.y, a.z);
+    this.btForce.op_mul(this.mass);
+    body.applyCentralForce(this.btForce);
   }
 }

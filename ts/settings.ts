@@ -21,7 +21,7 @@ export class S {
   }
 
   static {
-    S.setDefault('last change', 2, 'Bounce to move test.');
+    S.setDefault('last change', 3, 'Camera acceleration.');
     S.setDefault('ep', 4, 'Episode number');
     S.setDefault('mi', 6, 'Mandelbrot iterations.');
     S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
@@ -36,6 +36,11 @@ export class S {
     S.setDefault('si', 0.9, 'Star intensity');
     S.setDefault('zy', 1.1, 'Zig-Zag height');
     S.setDefault('bh', 0.1, 'Heat of brownian motion.  1.0 = white.');
+    S.setDefault('dr', 0.3, 'Rotation if you are off center.');
+    S.setDefault('ma', 2.0, 'Max player acceleration.');
+    S.setDefault('aa', 0.1, 'Acceleration angle.');
+    S.setDefault('yae', 0.05, 'Y-acceleration epsilon. Min real-world acceleration to jump.')
+    S.setDefault('shf', 10.0, 'Super-human jump factor.');
   }
 
   public static float(name: string): number {

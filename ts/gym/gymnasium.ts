@@ -3,6 +3,9 @@ import { Tick, Ticker } from "../ticker";
 import { World } from "../world";
 import Ammo from "ammojs-typed";
 import { Player } from "./player";
+import { Shaders } from "./shaders";
+import { S } from "../settings";
+import { Place } from "./place";
 
 export class Gymnasium extends THREE.Object3D implements World, Ticker {
   private universe = new THREE.Object3D();
@@ -11,11 +14,9 @@ export class Gymnasium extends THREE.Object3D implements World, Ticker {
     private physicsWorld: Ammo.btDiscreteDynamicsWorld) {
     super();
     this.add(this.universe);
-    this.previousY = camera.position.y;
     const sky = new THREE.Mesh(
       new THREE.IcosahedronBufferGeometry(20, 1),
-      new THREE.MeshBasicMaterial({ color: '#bbb', side: THREE.BackSide })
-    );
+      Shaders.makeSkyMaterial());
     this.universe.add(sky);
 
     const light1 = new THREE.DirectionalLight('white', 0.6);
@@ -37,18 +38,38 @@ export class Gymnasium extends THREE.Object3D implements World, Ticker {
       this.universe.add(pillar);
     }
 
+    this.setUpGround();
+
+    const player = new Player(ammo, physicsWorld, this.camera);
+    this.universe.add(player);
+
+    let utterance = new SpeechSynthesisUtterance("Ready to go.");
+    speechSynthesis.speak(utterance);
+  }
+
+  private setUpGround() {
     const groundPlane = new this.ammo.btStaticPlaneShape(new this.ammo.btVector3(0, 1, 0), 0);
     groundPlane.setMargin(0.01);
-    const btTx = new ammo.btTransform();
+    const btTx = new this.ammo.btTransform();
     btTx.setIdentity();
-    const btPosition = new ammo.btVector3(0, 0, 0);
-    const motionState = new ammo.btDefaultMotionState(btTx);
-    const body = new ammo.btRigidBody(new ammo.btRigidBodyConstructionInfo(
+    const btPosition = new this.ammo.btVector3(0, 0, 0);
+    const motionState = new this.ammo.btDefaultMotionState(btTx);
+    const body = new this.ammo.btRigidBody(new this.ammo.btRigidBodyConstructionInfo(
       /*mass=*/0, motionState, groundPlane, btPosition));
+    body.setFriction(0.5);
     this.physicsWorld.addRigidBody(body);
 
-    const player = new Player(ammo, physicsWorld);
-    this.universe.add(player);
+    const colorMatrix = new THREE.Matrix3();
+    colorMatrix.set(
+      0.8, 0.8, 0.8,
+      0.3, 0.4, 0.3,
+      0.1, 0.1, 0.2);
+    const box = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(10, 10),
+      Shaders.makeSimplexShader(colorMatrix));
+
+    box.rotateX(-Math.PI / 2);
+    this.universe.add(box);
   }
 
   run(): Promise<string> {
@@ -57,34 +78,10 @@ export class Gymnasium extends THREE.Object3D implements World, Ticker {
     });
   }
 
-  private cameraNormalMatrix = new THREE.Matrix3();
-  private previousY = 0;
-  private velocity = new THREE.Vector3();
-  private targetVelocity = new THREE.Vector3();
-  private velocityDelta = new THREE.Vector3();
-  private maxAcceleration = 5;  // m/s/s
   tick(t: Tick) {
-    const deltaY = Math.abs(this.camera.position.y - this.previousY);
-    if (deltaY > 0) {
-      this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
-      this.targetVelocity.set(0, 0, -1);
-      this.targetVelocity.applyMatrix3(this.cameraNormalMatrix);
-      this.targetVelocity.y = 0;
-      this.targetVelocity.setLength(3 * deltaY / t.deltaS);
-
-      this.velocityDelta.copy(this.targetVelocity);
-      this.velocityDelta.sub(this.velocity);
-      this.velocityDelta.multiplyScalar(1 / t.deltaS);
-      const maxVelocityDelta = this.maxAcceleration * t.deltaS;
-      if (this.velocityDelta.length() > maxVelocityDelta) {
-        this.velocityDelta.setLength(maxVelocityDelta);
-      }
-      this.velocity.add(this.velocityDelta);
-    }
-
-    this.previousY = this.camera.position.y;
-    this.velocityDelta.copy(this.velocity);
-    this.velocityDelta.multiplyScalar(t.deltaS);
-    this.universe.position.sub(this.velocityDelta);;
+    this.universe.quaternion.identity();
+    this.universe.rotateX(this.camera.position.z * S.float('dr'));
+    this.universe.rotateZ(this.camera.position.x * S.float('dr'));
   }
+
 }
