@@ -2754,8 +2754,10 @@ class Gymnasium extends THREE.Object3D {
         this.setUpGround();
         const player = new player_1.Player(ammo, physicsWorld, this.camera);
         this.universe.add(player);
-        let utterance = new SpeechSynthesisUtterance("Ready to go.");
-        speechSynthesis.speak(utterance);
+        if (!!speechSynthesis) {
+            let utterance = new SpeechSynthesisUtterance("Ready to go.");
+            speechSynthesis.speak(utterance);
+        }
     }
     setUpGround() {
         const groundPlane = new this.ammo.btStaticPlaneShape(new this.ammo.btVector3(0, 1, 0), 0);
