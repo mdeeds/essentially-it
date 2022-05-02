@@ -2754,6 +2754,8 @@ class Gymnasium extends THREE.Object3D {
         this.setUpGround();
         const player = new player_1.Player(ammo, physicsWorld, this.camera);
         this.universe.add(player);
+        let utterance = new SpeechSynthesisUtterance("Ready to go.");
+        speechSynthesis.speak(utterance);
     }
     setUpGround() {
         const groundPlane = new this.ammo.btStaticPlaneShape(new this.ammo.btVector3(0, 1, 0), 0);
@@ -2946,8 +2948,8 @@ class Player extends physicsObject_1.PhysicsObject {
             this.velocityDelta.sub(this.velocity);
             this.acceleration.copy(this.velocityDelta);
             this.acceleration.multiplyScalar(1 / t.deltaS);
-            // Super-human factor 2x
-            const acceleration = Math.min(accelerationY * 2, this.maxAcceleration);
+            // Super-human factor 10x (shf)
+            const acceleration = Math.min(accelerationY * settings_1.S.float('shf'), this.maxAcceleration);
             this.acceleration.setLength(acceleration);
             if (this.acceleration.length() > this.maxAcceleration) {
                 this.acceleration.setLength(this.maxAcceleration);
@@ -4909,6 +4911,7 @@ class S {
         S.setDefault('ma', 2.0, 'Max player acceleration.');
         S.setDefault('aa', 0.1, 'Acceleration angle.');
         S.setDefault('yae', 0.05, 'Y-acceleration epsilon. Min real-world acceleration to jump.');
+        S.setDefault('shf', 10.0, 'Super-human jump factor.');
     }
     static float(name) {
         if (S.cache.has(name)) {
