@@ -1,52 +1,115 @@
+import { DepthFormat } from "three";
+
+export type Variable = number;
 
 export class Domain {
-  private possibilities = new Uint8Array(6);
-  static anything(): Domain {
+  private possibilities: Uint8Array;
+  private assignedValue: number;
+  private remainingCount: number;
+
+  private constructor() {
+  }
+
+  *remainingValues(): Iterable<number> {
+    for (let i = 0; i < this.possibilities.length; ++i) {
+      if (this.possibilities[i]) {
+        yield i;
+      }
+    }
+  }
+
+  remove(v: number) {
+    if (!this.possibilities[v]) {
+      throw new Error("Tried to remove something twice!?");
+    }
+    --this.remainingCount;
+    this.possibilities[v] = 0;
+    if (this.remainingCount === 1) {
+      for (let i = 0; i < this.possibilities.length; ++i) {
+        if (this.possibilities[i] > 0) {
+          this.assignedValue = i;
+          break;
+        }
+      }
+    }
+  }
+
+  remainingSize(): number {
+    return this.remainingCount;
+  }
+
+  getAssignedValue(): number {
+    if (this.remainingCount != 1) {
+      throw new Error("Value is not known!");
+    }
+    return this.assignedValue;
+  }
+
+  static anything(size: number): Domain {
+    if (size <= 1) {
+      throw new Error("Domains must have at least two values.");
+    }
     const result = new Domain();
+    result.possibilities = new Uint8Array(size);
+    result.remainingCount = size;
+    result.assignedValue = undefined;
     for (let i = 0; i < result.possibilities.length; ++i) {
       result.possibilities[i] = 1;
     }
     return result;
   }
-  static nothing(): Domain {
+
+  static assigned(value: number): Domain {
     const result = new Domain();
-    for (let i = 0; i < result.possibilities.length; ++i) {
-      result.possibilities[i] = 0;
-    }
+    result.possibilities = null;
+    result.remainingCount = 1;
+    result.assignedValue = value;
     return result;
   }
 }
 
+export interface Constraint {
+  readonly variables: Variable[];
+  isSatisfied(p: PartialAssignment): boolean;
+}
 
-export class C {
-  static count(a: number[]): number {
-    let c = 0;
-    for (const f of a) {
-      if (f > 0) {
-        ++c;
-      }
-    }
-    return c;
+export class ConstraintOnArray {
+  constructor(readonly variables: Variable[],
+    private constraintFunction: ((values: number[]) => boolean)) {
   }
 
-  static xor(a: number[], b: number[], out: number[]) {
-    if (a.length != b.length || a.length != out.length) {
-      throw new Error('Mismatched lengths');
+  isSatisfied(p: PartialAssignment) {
+    const values = [];
+    for (const v of this.variables) {
+      values.push(p.getValue(v));
     }
-    for (let i = 0; i < a.length; ++i) {
-      out[i] = (a[i] > 0) !== (b[i] > 0) ? 1.0 : 0.0;
-    }
+    return this.constraintFunction(values);
   }
 }
 
 export class PartialAssignment {
   private parent: PartialAssignment = null;
-  private overwriteIndex: number = null;
-  private overwriteValue: number = null;
-  constructor(private size: number) {
+  private overwriteIndex: Variable = null;
+  private overwriteValue: Domain = null;
+  constructor(readonly size: number) {
   }
-  // Returns the value of X_i, or null if it is not assigned.
-  get(i: number): number {
+  // Returns the value of X_i, or undefined if it is not assigned.
+  getValue(i: number): number {
+    let cursor: PartialAssignment = this;
+    while (cursor !== null) {
+      if (cursor.overwriteIndex == i) {
+        if (cursor.overwriteValue.remainingSize() === 1) {
+          return cursor.overwriteValue.getAssignedValue();
+        } else {
+          return undefined;
+        }
+      }
+      cursor = cursor.parent;
+    }
+    return undefined;
+  }
+
+  getDomain(i: number): Domain {
     let cursor: PartialAssignment = this;
     while (cursor !== null) {
       if (cursor.overwriteIndex == i) {
@@ -54,28 +117,33 @@ export class PartialAssignment {
       }
       cursor = cursor.parent;
     }
-    return null;
+    return undefined;
   }
 
-  overwrite(i: number, v: number): PartialAssignment {
+  overwrite(i: Variable, v: number): PartialAssignment {
     const result = new PartialAssignment(this.size);
     result.parent = this;
     result.overwriteIndex = i;
-    result.overwriteValue = v;
+    result.overwriteValue = Domain.assigned(v);
     return result;
   }
 
-  toArray(out: Uint8Array) {
+  toArray(out: number[]) {
     if (out.length != this.size) {
       throw new Error("Wrong size!");
     }
     for (let i = 0; i < this.size; ++i) {
-      out[i] = this.get(i);
+      out[i] = this.getValue(i);
     }
   }
-}
 
-export type Constraint = (p: PartialAssignment) => boolean;
+  toString() {
+    const a = [];
+    a.length = this.size;
+    this.toArray(a);
+    return `${JSON.stringify(a)}`;
+  }
+}
 
 export class BackProp {
   private constraints: Constraint[] = [];
@@ -87,16 +155,40 @@ export class BackProp {
     this.constraints.push(c);
   }
 
-  private sweep(i: number, assignedSoFar: PartialAssignment) {
-    if (i >= this.variables.length) {
+  getDomain(i: Variable, pa: PartialAssignment) {
+    const assignment = pa.getDomain(i);
+    if (assignment === undefined) {
+      return this.variables[i];
+    } else {
+      return assignment;
+    }
+  }
+
+  private sweep(i: Variable, assignedSoFar: PartialAssignment) {
+    if (i === this.variables.length) {
+      console.log(`${assignedSoFar.toString()} SOLUTION!`);
       this.solutions.push(assignedSoFar);
       return;
     }
-    for (let v = 0; v <= 5; ++v) {
+    for (const v of this.variables[i].remainingValues()) {
       const newAssignment = assignedSoFar.overwrite(i, v);
       let satisfied = true;
       for (const c of this.constraints) {
-        satisfied &&= c(newAssignment);
+        let finishedThisConstraint = false;
+        for (const dependant of c.variables) {
+          if (this.getDomain(dependant, newAssignment).remainingSize() > 1) {
+            // One of the dependent variables is unknown
+            // so we can't evaluate this constraint.
+            finishedThisConstraint = true;
+            break;
+          }
+        }
+        if (finishedThisConstraint) {
+          continue;
+        }
+        // All dependent variables are assigned.
+        const satisfaction = c.isSatisfied(newAssignment);
+        satisfied &&= satisfaction;
         if (!satisfied) break;
       }
       if (satisfied) {
