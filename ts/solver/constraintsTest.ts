@@ -5,31 +5,27 @@ function test1() {
   const b = Domain.anything(3);
   const c = Domain.anything(3);
 
-  const c1 = new ConstraintOnArray(
-    [0, 1],
-    ((values: number[]) => {
-      return values[0] !== values[1];
-    }));
-
-  const c2 = new ConstraintOnArray(
-    [0, 1, 2],
-    ((values: number[]) => {
-      return values[0] + values[1] >= values[2];
-    }));;
-
-
   const bp = new BackProp([a, b, c]);
-  bp.addConstraint(c1);
-  bp.addConstraint(c2);
 
-  bp.run();
+  for (let i = 0; i < 3; ++i) {
+    for (let j = i + 1; j < 3; ++j) {
+      const c1 = new ConstraintOnArray(
+        [i, j],
+        ((values: number[]) => {
+          return values[0] < values[1];
+        }));
+      bp.addConstraint(c1);
+    }
+  }
+
+  bp.runBTFS();
 }
-console.time('test1');
-test1();
-console.timeEnd('test1');
+// console.time('test1');
+// test1();
+// console.timeEnd('test1');
 
-function testQueens() {
-  const numQueens = 8;
+function testQueens(numQueens: number) {
+  let evalCount = 0;
   const variables: Domain[] = [];
   for (let i = 0; i < numQueens; ++i) {
     const v = Domain.anything(numQueens);
@@ -41,6 +37,7 @@ function testQueens() {
     for (let j = i + 1; j < numQueens; ++j) {
       bp.addConstraint(new ConstraintOnArray([i, j],
         (values: number[]) => {
+          ++evalCount;
           if (values[0] === values[1]) {
             // Same row case.
             return false;
@@ -54,9 +51,26 @@ function testQueens() {
       ));
     }
   }
-  bp.run();
+  evalCount = 0;
+  console.time(`testQueens(${numQueens}) BTFS`);
+  bp.runBTFS();
+  console.timeEnd(`testQueens(${numQueens}) BTFS`);
+  console.log(`Evaluations: ${evalCount}`);
+
+  evalCount = 0;
+  console.time(`testQueens(${numQueens}) Backtrack`);
+  bp.runBacktrack();
+  console.timeEnd(`testQueens(${numQueens}) Backtrack`);
+  console.log(`Evaluations: ${evalCount}`);
+
+  evalCount = 0;
+  console.time(`testQueens(${numQueens}) BTFSVS`);
+  bp.runBTFSVS();
+  console.timeEnd(`testQueens(${numQueens}) BTFSVS`);
+  console.log(`Evaluations: ${evalCount}`);
 }
 
-console.time('testQueens');
-testQueens();
-console.timeEnd('testQueens');
+for (let n = 5; n <= 8; ++n) {
+  testQueens(n);
+}
+// testQueens(8);
