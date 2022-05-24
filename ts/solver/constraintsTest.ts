@@ -5,7 +5,7 @@ function test1() {
   const b = Domain.anything(3);
   const c = Domain.anything(3);
 
-  const bp = new BackProp([a, b, c]);
+  const bp = new BackProp([a, b, c], 1e12);
 
   for (let i = 0; i < 3; ++i) {
     for (let j = i + 1; j < 3; ++j) {
@@ -32,7 +32,7 @@ function testQueens(numQueens: number) {
     variables.push(v);
   }
 
-  const bp = new BackProp(variables);
+  const bp = new BackProp(variables, 1);
   for (let i = 0; i < numQueens; ++i) {
     for (let j = i + 1; j < numQueens; ++j) {
       bp.addConstraint(new ConstraintOnArray([i, j],

@@ -170,7 +170,7 @@ export class BackProp {
   private constraints: Constraint[] = [];
   private solutions: PartialAssignment[] = [];
 
-  constructor(private variables: Domain[]) { }
+  constructor(private variables: Domain[], private maxSolutions: number) { }
 
   addConstraint(c: Constraint) {
     this.constraints.push(c);
@@ -211,6 +211,9 @@ export class BackProp {
   }
 
   private backtrack(i: Variable, assignedSoFar: PartialAssignment) {
+    if (this.solutions.length >= this.maxSolutions) {
+      return;
+    }
     if (i === this.variables.length) {
       this.solutions.push(assignedSoFar);
       // console.log(`SOLUTION: ${assignedSoFar.toString()}`);
@@ -245,6 +248,9 @@ export class BackProp {
   }
 
   private btfs(i: Variable, assignedSoFar: PartialAssignment) {
+    if (this.solutions.length >= this.maxSolutions) {
+      return;
+    }
     // console.log(`BT: ${assignedSoFar.toString()}`);
     if (i === this.variables.length) {
       this.solutions.push(assignedSoFar);
@@ -264,6 +270,9 @@ export class BackProp {
   }
 
   private btfsvs(i: Variable, assignedSoFar: PartialAssignment) {
+    if (this.solutions.length >= this.maxSolutions) {
+      return;
+    }
     // console.log(`BT: ${assignedSoFar.toString()}`);
     for (const v of this.variables[i].remainingValues()) {
       let newAssignment = assignedSoFar.overwrite(i, v);
