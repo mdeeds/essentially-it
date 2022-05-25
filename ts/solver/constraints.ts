@@ -170,10 +170,19 @@ export class BackProp {
   private constraints: Constraint[] = [];
   private solutions: PartialAssignment[] = [];
 
-  constructor(private variables: Domain[], private maxSolutions: number) { }
+  private variableToConstraint = new Map<Variable, Constraint[]>();
+
+  constructor(private variables: Domain[], private maxSolutions: number) {
+    for (let v = 0; v < variables.length; ++v) {
+      this.variableToConstraint.set(v, []);
+    }
+  }
 
   addConstraint(c: Constraint) {
     this.constraints.push(c);
+    for (const v of c.variables) {
+      this.variableToConstraint.get(v).push(c);
+    }
   }
 
   getDomain(i: Variable, pa: PartialAssignment, size: number) {
@@ -184,6 +193,9 @@ export class BackProp {
       return assignment;
     }
   }
+
+  // TODO: require a list of newly set variables.  I.e. the ones
+  // that have been set since last successful check.
 
   // Returns true if none of the constraints fail.
   private checkConstraints(pa: PartialAssignment): boolean {
@@ -219,7 +231,12 @@ export class BackProp {
       // console.log(`SOLUTION: ${assignedSoFar.toString()}`);
       return;
     }
+    const possibilities: number[] = [];
     for (const v of this.variables[i].remainingValues()) {
+      possibilities.push(v);
+    }
+    possibilities.sort((a, b) => Math.random() - 0.5);
+    for (const v of possibilities) {
       const newAssignment = assignedSoFar.overwrite(i, v);
       if (this.checkConstraints(newAssignment)) {
         this.backtrack(i + 1, newAssignment);
@@ -281,12 +298,12 @@ export class BackProp {
       newAssignment = this.forwardStep(newAssignment);
 
       if (this.checkConstraints(newAssignment)) {
-        let bestSize = 1e12;
+        let bestSize = 0;
         let besti = undefined;
         for (let nexti = 0; nexti < this.variables.length; ++nexti) {
           const dom = this.getDomain(
             nexti, newAssignment, this.variables[nexti].size());
-          if (dom.remainingSize() > 1 && dom.remainingSize() < bestSize) {
+          if (dom.remainingSize() > 1 && dom.remainingSize() > bestSize) {
             bestSize = dom.remainingSize();
             besti = nexti;
           }

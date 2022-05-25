@@ -32,7 +32,7 @@ function testQueens(numQueens: number) {
     variables.push(v);
   }
 
-  const bp = new BackProp(variables, 1);
+  const bp = new BackProp(variables, 1e12);
   for (let i = 0; i < numQueens; ++i) {
     for (let j = i + 1; j < numQueens; ++j) {
       bp.addConstraint(new ConstraintOnArray([i, j],
@@ -70,7 +70,7 @@ function testQueens(numQueens: number) {
   console.log(`Evaluations: ${evalCount}`);
 }
 
-for (let n = 5; n <= 8; ++n) {
+for (let n = 5; n <= 10; ++n) {
   testQueens(n);
 }
 // testQueens(8);
