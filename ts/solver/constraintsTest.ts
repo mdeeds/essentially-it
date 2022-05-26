@@ -32,7 +32,7 @@ function testQueens(numQueens: number) {
     variables.push(v);
   }
 
-  const bp = new BackProp(variables, 1e12);
+  const bp = new BackProp(variables, 32);
   for (let i = 0; i < numQueens; ++i) {
     for (let j = i + 1; j < numQueens; ++j) {
       bp.addConstraint(new ConstraintOnArray([i, j],
@@ -51,26 +51,31 @@ function testQueens(numQueens: number) {
       ));
     }
   }
-  evalCount = 0;
-  console.time(`testQueens(${numQueens}) BTFS`);
-  bp.runBTFS();
-  console.timeEnd(`testQueens(${numQueens}) BTFS`);
-  console.log(`Evaluations: ${evalCount}`);
 
   evalCount = 0;
   console.time(`testQueens(${numQueens}) Backtrack`);
   bp.runBacktrack();
   console.timeEnd(`testQueens(${numQueens}) Backtrack`);
-  console.log(`Evaluations: ${evalCount}`);
+  console.log(`Backtrack evaluations: ${evalCount}`);
 
   evalCount = 0;
-  console.time(`testQueens(${numQueens}) BTFSVS`);
-  bp.runBTFSVS();
-  console.timeEnd(`testQueens(${numQueens}) BTFSVS`);
-  console.log(`Evaluations: ${evalCount}`);
+  console.time(`testQueens(${numQueens}) BTFS`);
+  bp.runBTFS();
+  console.timeEnd(`testQueens(${numQueens}) BTFS`);
+  console.log(`BTFS evaluations: ${evalCount}`);
+
+  // evalCount = 0;
+  // console.time(`testQueens(${numQueens}) BTFSVS`);
+  // bp.runBTFSVS();
+  // console.timeEnd(`testQueens(${numQueens}) BTFSVS`);
+  // console.log(`Evaluations: ${evalCount}`);
 }
 
-for (let n = 5; n <= 10; ++n) {
-  testQueens(n);
-}
-// testQueens(8);
+testQueens(5);
+testQueens(6);
+testQueens(7);
+testQueens(8);
+testQueens(9);
+testQueens(10);
+testQueens(11);
+testQueens(12);

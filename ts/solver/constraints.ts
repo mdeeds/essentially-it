@@ -23,6 +23,9 @@ export class Domain {
   }
 
   remove(v: number): Domain {
+    if (!this.possibilities) {
+      throw new Error(`Already assigned.`);
+    }
     if (!this.possibilities[v]) {
       throw new Error("Tried to remove something twice!?");
     }
@@ -102,7 +105,9 @@ export class PartialAssignment {
   private parent: PartialAssignment = null;
   private overwriteIndex: Variable = null;
   private overwriteValue: Domain = null;
+  private unassignedCount: number;
   constructor(readonly size: number) {
+    this.unassignedCount = size;
   }
   // Returns the value of X_i, or undefined if it is not assigned.
   getValue(i: number): number {
@@ -132,8 +137,17 @@ export class PartialAssignment {
   }
 
   overwrite(i: Variable, v: number): PartialAssignment {
+
+    //TODO: For performance, consider removing this check.
+    const previousValue = this.getDomain(i, 2);
+    if (previousValue.remainingSize() === 1) {
+      throw new Error(`Trying to reassign X_${i}=${v}`);
+    }
+
+
     const result = new PartialAssignment(this.size);
     result.parent = this;
+    result.unassignedCount = this.unassignedCount - 1;
     result.overwriteIndex = i;
     result.overwriteValue = Domain.assigned(v);
     return result;
@@ -143,11 +157,18 @@ export class PartialAssignment {
     // console.log(`Remove ${v} from X_${i}`);
     const result = new PartialAssignment(this.size);
     result.parent = this;
+    result.unassignedCount = this.unassignedCount;
     result.overwriteIndex = i;
     result.overwriteValue = this.getDomain(i, size).remove(v);
+    if (result.overwriteValue.remainingSize() === 1) {
+      --result.unassignedCount;
+    }
     return result;
   }
 
+  getUnassignedCount(): number {
+    return this.unassignedCount;
+  }
 
   toArray(out: number[]) {
     if (out.length != this.size) {
@@ -245,52 +266,129 @@ export class BackProp {
   }
 
   private forwardStep(pa: PartialAssignment): PartialAssignment {
+    // console.log(`FS: ${pa.toString()}`);
+    if (!this.checkConstraints(pa)) {
+      throw new Error("Invalid state!");
+    }
     for (let otherVariable = 0;
       otherVariable < this.variables.length;
       ++otherVariable) {
       const otherDomain = this.getDomain(
         otherVariable, pa,
         this.variables[otherVariable].size());
+      if (otherDomain.remainingSize() === 1) {
+        // Only one value - nothing to remove.
+        continue;
+      }
       for (const otherValue of otherDomain.remainingValues()) {
         const tmpAssignment = pa.overwrite(
           otherVariable, otherValue);
-        // console.log(`FS: ${tmpAssignment.toString()}`);
         if (!this.checkConstraints(tmpAssignment)) {
+          const otherSize = this.variables[otherVariable].size();
           pa = pa.remove(
-            otherVariable, otherValue, this.variables[otherVariable].size());
+            otherVariable, otherValue, otherSize);
+          const remainingSize =
+            pa.getDomain(otherVariable, otherSize).remainingSize();
+          if (remainingSize === 0) {
+            // No possible values for this variable.  Return null.
+            // console.log(`Impossible: ${pa.toString()}`);
+            return null;
+          } else if (remainingSize === 1) {
+            // Reduced to a single variable.  Check constraints and fail
+            // if its not satisfied.
+            if (!this.checkConstraints(pa)) {
+              return null;
+            } else {
+              // No more assignments to try.
+              break;
+            }
+          }
         }
       }
     }
+    // It seems like we need to check the constraints here.
     return pa;
   }
 
   private btfs(i: Variable, assignedSoFar: PartialAssignment) {
+    if (assignedSoFar.getUnassignedCount() < 0) {
+      throw new Error(`Invalid state: ${assignedSoFar.toString()}, ` +
+        `Remaining: ${assignedSoFar.getUnassignedCount()}`);
+    }
     if (this.solutions.length >= this.maxSolutions) {
       return;
     }
-    // console.log(`BT: ${assignedSoFar.toString()}`);
-    if (i === this.variables.length) {
+    // console.log(`BTFS: ${assignedSoFar.toString()}`);
+    if (assignedSoFar.getUnassignedCount() === 0) {
+      const a: number[] = [];
+      a.length = assignedSoFar.size;
+      assignedSoFar.toArray(a);
+      for (let i = 0; i < a.length; ++i) {
+        if (a[i] === undefined) {
+          console.log('AAAAA!');
+        }
+      }
       this.solutions.push(assignedSoFar);
       // console.log(`SOLUTION: ${assignedSoFar.toString()}`);
       return;
     }
+    if (!this.variables[i]) {
+      console.log(`State: ${assignedSoFar.toString()}`);
+      console.log(`Remaining: ${assignedSoFar.getUnassignedCount()}`)
+      throw new Error(`Unknown variable: ${i}`);
+    }
+    if (this.getDomain(i, assignedSoFar, this.variables[i].size()).remainingSize() === 1) {
+      // We have already solved this variable.  Just move on.
+      this.btfs(i + 1, assignedSoFar);
+      return;
+    }
+
     for (const v of this.variables[i].remainingValues()) {
       let newAssignment = assignedSoFar.overwrite(i, v);
+      if (!this.checkConstraints(newAssignment)) {
+        continue;
+      }
       // console.log(`BT trying: ${newAssignment.toString()}`);
 
+      const prev = newAssignment;
       newAssignment = this.forwardStep(newAssignment);
-
-      if (this.checkConstraints(newAssignment)) {
-        this.backtrack(i + 1, newAssignment);
+      if (!newAssignment) {
+        // There is no way to satisfy the constraints.
+        continue;
+      }
+      // If the forward step did nothing, don't check constraints again.
+      if (prev === newAssignment || this.checkConstraints(newAssignment)) {
+        this.btfs(i + 1, newAssignment);
       }
     }
   }
 
+  private mostConstrainedVariable(newAssignment: PartialAssignment): number {
+    let bestSize = 0;
+    let besti = undefined;
+    for (let nexti = 0; nexti < this.variables.length; ++nexti) {
+      const dom = this.getDomain(
+        nexti, newAssignment, this.variables[nexti].size());
+      if (dom.remainingSize() > 1 && dom.remainingSize() > bestSize) {
+        bestSize = dom.remainingSize();
+        besti = nexti;
+      }
+    }
+    return besti;
+  }
+
   private btfsvs(i: Variable, assignedSoFar: PartialAssignment) {
+
     if (this.solutions.length >= this.maxSolutions) {
       return;
     }
-    // console.log(`BT: ${assignedSoFar.toString()}`);
+    if (this.variables[i].remainingSize() <= 1) {
+      throw new Error("Tried to set something twice????");
+    }
+    console.log(`BTFSVS: ${assignedSoFar.toString()}`);
+    if (!this.variables[i]) {
+      throw new Error(`Unknown variable: ${i}`);
+    }
     for (const v of this.variables[i].remainingValues()) {
       let newAssignment = assignedSoFar.overwrite(i, v);
       // console.log(`BT trying: ${newAssignment.toString()}`);
@@ -298,24 +396,23 @@ export class BackProp {
       newAssignment = this.forwardStep(newAssignment);
 
       if (this.checkConstraints(newAssignment)) {
-        let bestSize = 0;
-        let besti = undefined;
-        for (let nexti = 0; nexti < this.variables.length; ++nexti) {
-          const dom = this.getDomain(
-            nexti, newAssignment, this.variables[nexti].size());
-          if (dom.remainingSize() > 1 && dom.remainingSize() > bestSize) {
-            bestSize = dom.remainingSize();
-            besti = nexti;
-          }
+        if (newAssignment.getUnassignedCount() === 0) {
+          this.solutions.push(newAssignment);
         }
-        if (besti === undefined) {
-          this.solutions.push(assignedSoFar);
-          // console.log(`SOLUTION: ${assignedSoFar.toString()}`);
-          return;
+        const besti = this.mostConstrainedVariable(newAssignment);
+        if (besti !== undefined) {
+          this.btfsvs(besti, newAssignment);
         }
-        this.backtrack(besti, newAssignment);
       }
     }
+  }
+
+  printSolutions() {
+    console.log('SOLUTIONS:');
+    for (const s of this.solutions) {
+      console.log(s.toString());
+    }
+    console.log('----------');
   }
 
   runBacktrack() {
@@ -328,12 +425,14 @@ export class BackProp {
     this.solutions.length = 0;
     const pa = new PartialAssignment(this.variables.length);
     this.btfs(0, pa);
+    // this.printSolutions();
     console.log(`Found ${this.solutions.length} solutions.`);
   }
   runBTFSVS() {
     this.solutions.length = 0;
     const pa = new PartialAssignment(this.variables.length);
     this.btfsvs(0, pa);
+    // this.printSolutions();
     console.log(`Found ${this.solutions.length} solutions.`);
   }
 }
