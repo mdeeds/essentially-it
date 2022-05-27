@@ -1,3 +1,4 @@
+import { BeatConstraints } from "./beatConstraints";
 import { BackProp, ConstraintOnArray, Domain, PartialAssignment } from "./constraints";
 
 function test1() {
@@ -71,11 +72,13 @@ function testQueens(numQueens: number) {
   // console.log(`Evaluations: ${evalCount}`);
 }
 
-testQueens(5);
-testQueens(6);
-testQueens(7);
-testQueens(8);
-testQueens(9);
-testQueens(10);
-testQueens(11);
-testQueens(12);
+// testQueens(5);
+// testQueens(6);
+// testQueens(7);
+// testQueens(8);
+
+
+const bc = new BeatConstraints();
+console.time('Beats');
+bc.run();
+console.timeEnd('Beats');

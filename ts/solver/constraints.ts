@@ -206,6 +206,12 @@ export class BackProp {
     }
   }
 
+  addConstraints(cs: Iterable<Constraint>) {
+    for (const c of cs) {
+      this.addConstraint(c);
+    }
+  }
+
   getDomain(i: Variable, pa: PartialAssignment, size: number) {
     const assignment = pa.getDomain(i, size);
     if (assignment === undefined) {
@@ -425,14 +431,12 @@ export class BackProp {
     this.solutions.length = 0;
     const pa = new PartialAssignment(this.variables.length);
     this.btfs(0, pa);
-    // this.printSolutions();
     console.log(`Found ${this.solutions.length} solutions.`);
   }
   runBTFSVS() {
     this.solutions.length = 0;
     const pa = new PartialAssignment(this.variables.length);
     this.btfsvs(0, pa);
-    // this.printSolutions();
     console.log(`Found ${this.solutions.length} solutions.`);
   }
 }
