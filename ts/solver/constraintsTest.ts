@@ -72,7 +72,7 @@ function testQueens(numQueens: number) {
   // console.log(`Evaluations: ${evalCount}`);
 }
 
-// testQueens(5);
+testQueens(5);
 // testQueens(6);
 // testQueens(7);
 // testQueens(8);

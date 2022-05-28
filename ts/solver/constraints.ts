@@ -225,9 +225,10 @@ export class BackProp {
   // that have been set since last successful check.
 
   // Returns true if none of the constraints fail.
-  private checkConstraints(pa: PartialAssignment): boolean {
+  private checkConstraints(pa: PartialAssignment,
+    cs: Iterable<Constraint>): boolean {
     let satisfied = true;
-    for (const c of this.constraints) {
+    for (const c of cs) {
       let finishedThisConstraint = false;
       for (const dependant of c.variables) {
         if (this.getDomain(dependant, pa,
@@ -265,7 +266,7 @@ export class BackProp {
     possibilities.sort((a, b) => Math.random() - 0.5);
     for (const v of possibilities) {
       const newAssignment = assignedSoFar.overwrite(i, v);
-      if (this.checkConstraints(newAssignment)) {
+      if (this.checkConstraints(newAssignment, this.variableToConstraint.get(i))) {
         this.backtrack(i + 1, newAssignment);
       }
     }
@@ -273,9 +274,6 @@ export class BackProp {
 
   private forwardStep(pa: PartialAssignment): PartialAssignment {
     // console.log(`FS: ${pa.toString()}`);
-    if (!this.checkConstraints(pa)) {
-      throw new Error("Invalid state!");
-    }
     for (let otherVariable = 0;
       otherVariable < this.variables.length;
       ++otherVariable) {
@@ -289,7 +287,7 @@ export class BackProp {
       for (const otherValue of otherDomain.remainingValues()) {
         const tmpAssignment = pa.overwrite(
           otherVariable, otherValue);
-        if (!this.checkConstraints(tmpAssignment)) {
+        if (!this.checkConstraints(tmpAssignment, this.variableToConstraint.get(otherVariable))) {
           const otherSize = this.variables[otherVariable].size();
           pa = pa.remove(
             otherVariable, otherValue, otherSize);
@@ -302,7 +300,7 @@ export class BackProp {
           } else if (remainingSize === 1) {
             // Reduced to a single variable.  Check constraints and fail
             // if its not satisfied.
-            if (!this.checkConstraints(pa)) {
+            if (!this.checkConstraints(pa, this.variableToConstraint.get(otherVariable))) {
               return null;
             } else {
               // No more assignments to try.
@@ -351,7 +349,7 @@ export class BackProp {
 
     for (const v of this.variables[i].remainingValues()) {
       let newAssignment = assignedSoFar.overwrite(i, v);
-      if (!this.checkConstraints(newAssignment)) {
+      if (!this.checkConstraints(newAssignment, this.variableToConstraint.get(i))) {
         continue;
       }
       // console.log(`BT trying: ${newAssignment.toString()}`);
@@ -363,7 +361,7 @@ export class BackProp {
         continue;
       }
       // If the forward step did nothing, don't check constraints again.
-      if (prev === newAssignment || this.checkConstraints(newAssignment)) {
+      if (prev === newAssignment || this.checkConstraints(newAssignment, this.variableToConstraint.get(i))) {
         this.btfs(i + 1, newAssignment);
       }
     }
@@ -383,35 +381,35 @@ export class BackProp {
     return besti;
   }
 
-  private btfsvs(i: Variable, assignedSoFar: PartialAssignment) {
+  // private btfsvs(i: Variable, assignedSoFar: PartialAssignment) {
 
-    if (this.solutions.length >= this.maxSolutions) {
-      return;
-    }
-    if (this.variables[i].remainingSize() <= 1) {
-      throw new Error("Tried to set something twice????");
-    }
-    console.log(`BTFSVS: ${assignedSoFar.toString()}`);
-    if (!this.variables[i]) {
-      throw new Error(`Unknown variable: ${i}`);
-    }
-    for (const v of this.variables[i].remainingValues()) {
-      let newAssignment = assignedSoFar.overwrite(i, v);
-      // console.log(`BT trying: ${newAssignment.toString()}`);
+  //   if (this.solutions.length >= this.maxSolutions) {
+  //     return;
+  //   }
+  //   if (this.variables[i].remainingSize() <= 1) {
+  //     throw new Error("Tried to set something twice????");
+  //   }
+  //   console.log(`BTFSVS: ${assignedSoFar.toString()}`);
+  //   if (!this.variables[i]) {
+  //     throw new Error(`Unknown variable: ${i}`);
+  //   }
+  //   for (const v of this.variables[i].remainingValues()) {
+  //     let newAssignment = assignedSoFar.overwrite(i, v);
+  //     // console.log(`BT trying: ${newAssignment.toString()}`);
 
-      newAssignment = this.forwardStep(newAssignment);
+  //     newAssignment = this.forwardStep(newAssignment);
 
-      if (this.checkConstraints(newAssignment)) {
-        if (newAssignment.getUnassignedCount() === 0) {
-          this.solutions.push(newAssignment);
-        }
-        const besti = this.mostConstrainedVariable(newAssignment);
-        if (besti !== undefined) {
-          this.btfsvs(besti, newAssignment);
-        }
-      }
-    }
-  }
+  //     if (this.checkConstraints(newAssignment)) {
+  //       if (newAssignment.getUnassignedCount() === 0) {
+  //         this.solutions.push(newAssignment);
+  //       }
+  //       const besti = this.mostConstrainedVariable(newAssignment);
+  //       if (besti !== undefined) {
+  //         this.btfsvs(besti, newAssignment);
+  //       }
+  //     }
+  //   }
+  // }
 
   printSolutions() {
     console.log('SOLUTIONS:');
@@ -433,10 +431,10 @@ export class BackProp {
     this.btfs(0, pa);
     console.log(`Found ${this.solutions.length} solutions.`);
   }
-  runBTFSVS() {
-    this.solutions.length = 0;
-    const pa = new PartialAssignment(this.variables.length);
-    this.btfsvs(0, pa);
-    console.log(`Found ${this.solutions.length} solutions.`);
-  }
+  // runBTFSVS() {
+  //   this.solutions.length = 0;
+  //   const pa = new PartialAssignment(this.variables.length);
+  //   this.btfsvs(0, pa);
+  //   console.log(`Found ${this.solutions.length} solutions.`);
+  // }
 }
