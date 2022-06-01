@@ -25,6 +25,47 @@ export class VariableSlice {
   }
 }
 
+class MinMaxRange {
+  private min: number[] = [];
+  private max: number[] = [];
+  constructor(size: number) {
+    this.min.length = size;
+    this.max.length = size;
+  }
+
+  public set(i: number, min: number, max: number) {
+    this.min[i] = min;
+    this.max[i] = max;
+  }
+
+  public off(i: number) {
+    this.min[i] = 0;
+    this.max[i] = 0;
+  }
+
+  public *makeConstraints(slice: VariableSlice): Iterable<Constraint> {
+    for (let i = 0; i < this.min.length; ++i) {
+      if (this.min[i] !== undefined && this.max[i] != undefined) {
+        if (this.min[i] == this.max[i]) {
+          yield new ConstraintOnArray([slice.getIndex(i)],
+            function (must: number) {
+              return function (values: number[]) {
+                return values[0] === must;
+              }
+            }(this.min[i]));
+        } else {
+          yield new ConstraintOnArray([slice.getIndex(i)],
+            function (min: number, max: number) {
+              return function (values: number[]) {
+                return values[0] >= min && values[0] <= max;
+              }
+            }(this.min[i], this.max[i]));
+        }
+      }
+    }
+  }
+}
+
 export class BeatConstraints {
   private allVariables: Domain[] = [];
   private bp: BackProp;
@@ -35,7 +76,6 @@ export class BeatConstraints {
     this.bp = new BackProp(this.allVariables, 1e12);
 
     this.bp.addConstraints(this.makeBassDrumConstraints(bdVariables));
-
   }
 
   run() {
@@ -80,54 +120,44 @@ export class BeatConstraints {
     return VariableSlice.append(this.allVariables, 3, 4 * 8);
   }
 
-  // Bass drum:
-  // 0: off, 1: hit, 2: emphasized hit (e.g. with clap)
-  private makeSnareDrumVariables(): VariableSlice {
-    return VariableSlice.append(this.allVariables, 3, 4 * 8);
-  }
-
   private *makeBassDrumConstraints(bd: VariableSlice): Iterable<Constraint> {
     //           1111111111222222222233
     // 01234567890123456789012345678901
     // |       |       |       |       |  // Measures
     // 1 2 3 4 1 2 3 4 1 2 3 4 1 2 3 4 1  // Beats 
 
-    yield new ConstraintOnArray([bd.getIndex(0)],
-      (values: number[]) => values[0] === 2);
-    yield new ConstraintOnArray([bd.getIndex(8)],
-      (values: number[]) => values[0] === 0);
-    yield new ConstraintOnArray([bd.getIndex(16)],
-      (values: number[]) => values[0] === 2);
-    yield new ConstraintOnArray([bd.getIndex(24)],
-      (values: number[]) => values[0] === 0);
-    yield new ConstraintOnArray([bd.getIndex(28)],
-      (values: number[]) => values[0] === 1);
-
     const offBeats: number[] = [];
     const backBeats: number[] = [];
+
+    const mmr = new MinMaxRange(bd.count);
     for (let i = 0; i < 32; ++i) {
       switch (i % 8) {
-        case 1:
-        case 3:
-        case 5:
-        case 7:
-          yield new ConstraintOnArray([bd.getIndex(i)],
-            (values: number[]) => values[0] === 0);
+        case 1: case 3: case 5: case 7:
+          // No 'and' beats
+          mmr.off(i);
           break;
         case 2: case 6:
+          // 'off' beats are okay.
           offBeats.push(bd.getIndex(i));
-          yield new ConstraintOnArray([bd.getIndex(i)],
-            (values: number[]) => values[0] <= 1);
+          mmr.set(i, 0, 1);
           break;
         case 4:
+          // 'back' beats are okay.
           backBeats.push(bd.getIndex(i));
-          if (i != 28) {
-            yield new ConstraintOnArray([bd.getIndex(i)],
-              (values: number[]) => values[0] <= 1);
-          }
+          mmr.set(i, 0, 1);
+          mmr.set(i, 0, 1);
           break;
       }
     }
+
+    mmr.set(0, 2, 2);  // 1.1
+    mmr.off(8);        // 2.1
+    mmr.set(16, 2, 2); // 3.1
+    mmr.off(24);       // 4.1
+
+    mmr.set(28, 1, 1);  // 4.3
+
+    yield* mmr.makeConstraints(bd);
 
     yield new ConstraintOnArray([...offBeats, ...backBeats],
       (values: number[]) => {
@@ -149,6 +179,13 @@ export class BeatConstraints {
         return rightTotal > leftTotal;
       });
   }
+
+  // Snare drum:
+  // 0: off, 1: hit, 2: emphasized hit (e.g. with clap)
+  private makeSnareDrumVariables(): VariableSlice {
+    return VariableSlice.append(this.allVariables, 3, 4 * 8);
+  }
+
 
 
 }

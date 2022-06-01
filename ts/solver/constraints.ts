@@ -1,5 +1,3 @@
-import { DepthFormat } from "three";
-
 export type Variable = number;
 
 export class Domain {
@@ -98,6 +96,10 @@ export class ConstraintOnArray {
       values.push(p.getValue(v));
     }
     return this.constraintFunction(values);
+  }
+
+  toString() {
+    return this.constraintFunction.toString();
   }
 }
 
@@ -244,6 +246,9 @@ export class BackProp {
       }
       // All dependent variables are assigned.
       const satisfaction = c.isSatisfied(pa);
+      // if (!satisfaction && c instanceof ConstraintOnArray) {
+      //   console.log(`Failed: ${pa.toString()}`);
+      // }
       satisfied &&= satisfaction;
       if (!satisfied) break;
     }
@@ -281,6 +286,7 @@ export class BackProp {
         otherVariable, pa,
         this.variables[otherVariable].size());
       if (otherDomain.remainingSize() === 1) {
+        // console.log(`Singleton: ${otherVariable}`);
         // Only one value - nothing to remove.
         continue;
       }
@@ -295,7 +301,7 @@ export class BackProp {
             pa.getDomain(otherVariable, otherSize).remainingSize();
           if (remainingSize === 0) {
             // No possible values for this variable.  Return null.
-            // console.log(`Impossible: ${pa.toString()}`);
+            console.log(`Impossible: ${pa.toString()}`);
             return null;
           } else if (remainingSize === 1) {
             // Reduced to a single variable.  Check constraints and fail
@@ -304,6 +310,7 @@ export class BackProp {
               return null;
             } else {
               // No more assignments to try.
+              // console.log(`Out of options.`);
               break;
             }
           }
@@ -315,6 +322,7 @@ export class BackProp {
   }
 
   private btfs(i: Variable, assignedSoFar: PartialAssignment) {
+    // console.log(`BTFS: ${assignedSoFar.toString()}`);
     if (assignedSoFar.getUnassignedCount() < 0) {
       throw new Error(`Invalid state: ${assignedSoFar.toString()}, ` +
         `Remaining: ${assignedSoFar.getUnassignedCount()}`);
@@ -322,6 +330,19 @@ export class BackProp {
     if (this.solutions.length >= this.maxSolutions) {
       return;
     }
+    const prev = assignedSoFar;
+    assignedSoFar = this.forwardStep(assignedSoFar);
+    if (!assignedSoFar) {
+      // console.log(`Impossible.`);
+      // Constraints cannot be satisfied.
+      return;
+    }
+    // if (prev != assignedSoFar) {
+    //   console.log(`BTFS Eliminated: ${assignedSoFar.toString()}`);
+    // } else {
+    //   console.log(`BTFS No help: ${assignedSoFar.toString()}`);
+    // }
+
     // console.log(`BTFS: ${assignedSoFar.toString()}`);
     if (assignedSoFar.getUnassignedCount() === 0) {
       const a: number[] = [];
@@ -352,14 +373,7 @@ export class BackProp {
       if (!this.checkConstraints(newAssignment, this.variableToConstraint.get(i))) {
         continue;
       }
-      // console.log(`BT trying: ${newAssignment.toString()}`);
-
-      const prev = newAssignment;
-      newAssignment = this.forwardStep(newAssignment);
-      if (!newAssignment) {
-        // There is no way to satisfy the constraints.
-        continue;
-      }
+      // console.log(`BTFS trying: ${newAssignment.toString()}`);
       // If the forward step did nothing, don't check constraints again.
       if (prev === newAssignment || this.checkConstraints(newAssignment, this.variableToConstraint.get(i))) {
         this.btfs(i + 1, newAssignment);

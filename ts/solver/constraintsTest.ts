@@ -65,6 +65,8 @@ function testQueens(numQueens: number) {
   console.timeEnd(`testQueens(${numQueens}) BTFS`);
   console.log(`BTFS evaluations: ${evalCount}`);
 
+  bp.printSolutions();
+
   // evalCount = 0;
   // console.time(`testQueens(${numQueens}) BTFSVS`);
   // bp.runBTFSVS();
@@ -72,7 +74,7 @@ function testQueens(numQueens: number) {
   // console.log(`Evaluations: ${evalCount}`);
 }
 
-testQueens(5);
+// testQueens(5);
 // testQueens(6);
 // testQueens(7);
 // testQueens(8);
