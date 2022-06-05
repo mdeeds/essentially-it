@@ -25,17 +25,20 @@ function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.xr.enabled = true;
 
+  renderer.setAnimationLoop(() => { animate() });
+
   container.appendChild(renderer.domElement);
   container.appendChild(VRButton.createButton(renderer));
 
-  renderer.localClippingEnabled = true;
+  // renderer.localClippingEnabled = true;
 
   // scene
   scene = new THREE.Scene();
+  scene.position.set(0, -15, -50);
 
   // camera
   camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 5000);
-  camera.position.set(0, 75, 160);
+  camera.position.set(0, 1.3, 0);
 
   //
 
@@ -78,34 +81,34 @@ function init() {
   scene.add(rightPortal);
 
   // walls
-  const planeTop = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0xffffff }));
+  const planeTop = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#fef' }));
   planeTop.position.y = 100;
   planeTop.rotateX(Math.PI / 2);
   scene.add(planeTop);
 
-  const planeBottom = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0xffffff }));
+  const planeBottom = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#fef' }));
   planeBottom.rotateX(- Math.PI / 2);
   scene.add(planeBottom);
 
-  const planeFront = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0x7f7fff }));
+  const planeFront = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#88f' }));
   planeFront.position.z = 50;
   planeFront.position.y = 50;
   planeFront.rotateY(Math.PI);
   scene.add(planeFront);
 
-  const planeBack = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0xff7fff }));
+  const planeBack = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#8f8' }));
   planeBack.position.z = - 50;
   planeBack.position.y = 50;
   //planeBack.rotateY( Math.PI );
   scene.add(planeBack);
 
-  const planeRight = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0x00ff00 }));
+  const planeRight = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#808' }));
   planeRight.position.x = 50;
   planeRight.position.y = 50;
   planeRight.rotateY(- Math.PI / 2);
   scene.add(planeRight);
 
-  const planeLeft = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0xff0000 }));
+  const planeLeft = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#088' }));
   planeLeft.position.x = - 50;
   planeLeft.position.y = 50;
   planeLeft.rotateY(Math.PI / 2);
@@ -169,9 +172,6 @@ function renderPortal(thisPortalMesh, otherPortalMesh, thisPortalTexture) {
 }
 
 function animate() {
-
-  requestAnimationFrame(animate);
-
   // move the bouncing sphere(s)
   const timerOne = Date.now() * 0.01;
   const timerTwo = timerOne + Math.PI * 10.0;
@@ -192,21 +192,21 @@ function animate() {
   smallSphereTwo.rotation.y = (Math.PI / 2) - timerTwo * 0.1;
   smallSphereTwo.rotation.z = timerTwo * 0.8;
 
-  // // save the original camera properties
-  // const currentRenderTarget = renderer.getRenderTarget();
-  // const currentXrEnabled = renderer.xr.enabled;
-  // const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
-  // renderer.xr.enabled = false; // Avoid camera modification
-  // renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
+  // save the original camera properties
+  const currentRenderTarget = renderer.getRenderTarget();
+  const currentXrEnabled = renderer.xr.enabled;
+  const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
+  renderer.xr.enabled = false; // Avoid camera modification
+  renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
 
-  // // render the portal effect
-  // renderPortal(leftPortal, rightPortal, leftPortalTexture);
-  // renderPortal(rightPortal, leftPortal, rightPortalTexture);
+  // render the portal effect
+  renderPortal(leftPortal, rightPortal, leftPortalTexture);
+  renderPortal(rightPortal, leftPortal, rightPortalTexture);
 
-  // // restore the original rendering properties
-  // renderer.xr.enabled = currentXrEnabled;
-  // renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
-  // renderer.setRenderTarget(currentRenderTarget);
+  // restore the original rendering properties
+  renderer.xr.enabled = currentXrEnabled;
+  renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
+  renderer.setRenderTarget(currentRenderTarget);
 
   // render the main scene
   renderer.render(scene, camera);
