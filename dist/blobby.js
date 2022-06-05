@@ -42,6 +42,7 @@ function init() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
     container.appendChild(renderer.domElement);
     container.appendChild(VRButton_js_1.VRButton.createButton(renderer));
     renderer.localClippingEnabled = true;
