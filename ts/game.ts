@@ -108,7 +108,8 @@ export class Game {
         break;
       case 'gym':
         if (this.gym === null) {
-          this.gym = new Gymnasium(this.camera, this.ammo, this.physicsWorld);
+          this.gym = new Gymnasium(
+            this.camera, this.ammo, this.physicsWorld, this.keysDown);
         }
         nextWorld = this.gym;
         break;

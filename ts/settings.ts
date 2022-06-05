@@ -36,10 +36,9 @@ export class S {
     S.setDefault('si', 0.9, 'Star intensity');
     S.setDefault('zy', 1.1, 'Zig-Zag height');
     S.setDefault('bh', 0.1, 'Heat of brownian motion.  1.0 = white.');
-    S.setDefault('dr', 0.3, 'Rotation if you are off center.');
-    S.setDefault('ma', 2.0, 'Max player acceleration.');
-    S.setDefault('aa', 0.1, 'Acceleration angle.');
-    S.setDefault('yae', 0.05, 'Y-acceleration epsilon. Min real-world acceleration to jump.')
+    S.setDefault('dr', -0.3, 'Rotation if you are off center.');
+    S.setDefault('ma', 20.0, 'Max player acceleration.');
+    S.setDefault('aa', Math.PI / 4, 'Acceleration angle.');
     S.setDefault('shf', 10.0, 'Super-human jump factor.');
   }
 
