@@ -29,7 +29,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BlobbyDemo = void 0;
 const THREE = __importStar(__webpack_require__(539));
 const VRButton_js_1 = __webpack_require__(7652);
-const CameraUtils = __importStar(__webpack_require__(9151));
+const portal_1 = __webpack_require__(4361);
 class BlobbyDemo {
     camera;
     scene;
@@ -39,12 +39,6 @@ class BlobbyDemo {
     portalCamera;
     leftPortal;
     rightPortal;
-    leftPortalTexture;
-    reflectedPosition;
-    rightPortalTexture;
-    bottomLeftCorner;
-    bottomRightCorner;
-    topLeftCorner;
     constructor() {
         this.init();
         this.animate();
@@ -85,22 +79,12 @@ class BlobbyDemo {
         this.scene.add(this.portalCamera);
         //frustumHelper = new THREE.CameraHelper( portalCamera );
         //scene.add( frustumHelper );
-        this.bottomLeftCorner = new THREE.Vector3();
-        this.bottomRightCorner = new THREE.Vector3();
-        this.topLeftCorner = new THREE.Vector3();
-        this.reflectedPosition = new THREE.Vector3();
-        this.leftPortalTexture = new THREE.WebGLRenderTarget(256, 256);
-        this.leftPortal = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({
-            map: this.leftPortalTexture.texture
-        }));
+        this.leftPortal = new portal_1.Portal(100.1, 100.1);
         this.leftPortal.position.x = -30;
         this.leftPortal.position.y = 20;
         this.leftPortal.scale.set(0.35, 0.35, 0.35);
         this.scene.add(this.leftPortal);
-        this.rightPortalTexture = new THREE.WebGLRenderTarget(256, 256);
-        this.rightPortal = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({
-            map: this.rightPortalTexture.texture
-        }));
+        this.rightPortal = new portal_1.Portal(100.1, 100.1);
         this.rightPortal.position.x = 30;
         this.rightPortal.position.y = 20;
         this.rightPortal.scale.set(0.35, 0.35, 0.35);
@@ -154,28 +138,6 @@ class BlobbyDemo {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
     renderPortal(thisPortalMesh, otherPortalMesh, thisPortalTexture) {
-        // set the portal camera position to be reflected about the portal plane
-        thisPortalMesh.worldToLocal(this.reflectedPosition.copy(this.camera.position));
-        this.reflectedPosition.x *= -1.0;
-        this.reflectedPosition.z *= -1.0;
-        otherPortalMesh.localToWorld(this.reflectedPosition);
-        this.portalCamera.position.copy(this.reflectedPosition);
-        // grab the corners of the other portal
-        // - note: the portal is viewed backwards; flip the left/right coordinates
-        otherPortalMesh.localToWorld(this.bottomLeftCorner.set(50.05, -50.05, 0.0));
-        otherPortalMesh.localToWorld(this.bottomRightCorner.set(-50.05, -50.05, 0.0));
-        otherPortalMesh.localToWorld(this.topLeftCorner.set(50.05, 50.05, 0.0));
-        // set the projection matrix to encompass the portal's frame
-        CameraUtils.frameCorners(this.portalCamera, this.bottomLeftCorner, this.bottomRightCorner, this.topLeftCorner, false);
-        // render the portal
-        thisPortalTexture.texture.encoding = this.renderer.outputEncoding;
-        this.renderer.setRenderTarget(thisPortalTexture);
-        this.renderer.state.buffers.depth.setMask(true); // make sure the depth buffer is writable so it can be properly cleared, see #18897
-        if (this.renderer.autoClear === false)
-            this.renderer.clear();
-        thisPortalMesh.visible = false; // hide this portal from its own rendering
-        this.renderer.render(this.scene, this.portalCamera);
-        thisPortalMesh.visible = true; // re-enable this portal's visibility for general rendering
     }
     animate() {
         // move the bouncing sphere(s)
@@ -193,9 +155,8 @@ class BlobbyDemo {
         const currentShadowAutoUpdate = this.renderer.shadowMap.autoUpdate;
         this.renderer.xr.enabled = false; // Avoid camera modification
         this.renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
-        // render the portal effect
-        this.renderPortal(this.leftPortal, this.rightPortal, this.leftPortalTexture);
-        this.renderPortal(this.rightPortal, this.leftPortal, this.rightPortalTexture);
+        this.leftPortal.render(this.rightPortal, this.camera, this.renderer, this.scene);
+        this.rightPortal.render(this.leftPortal, this.camera, this.renderer, this.scene);
         // restore the original rendering properties
         this.renderer.xr.enabled = currentXrEnabled;
         this.renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
@@ -206,6 +167,84 @@ class BlobbyDemo {
 }
 exports.BlobbyDemo = BlobbyDemo;
 //# sourceMappingURL=blobbyDemo.js.map
+
+/***/ }),
+
+/***/ 4361:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Portal = void 0;
+const THREE = __importStar(__webpack_require__(539));
+const CameraUtils = __importStar(__webpack_require__(9151));
+// A rectangular portal which renders the view looking through another
+// sibling portal.
+class Portal extends THREE.Mesh {
+    width;
+    height;
+    bottomLeftCorner = new THREE.Vector3();
+    bottomRightCorner = new THREE.Vector3();
+    topLeftCorner = new THREE.Vector3();
+    reflectedPosition = new THREE.Vector3();
+    portalTexture;
+    portalCamera = new THREE.PerspectiveCamera(45, 1.0, 0.1, 500.0);
+    constructor(width, height) {
+        const planeGeo = new THREE.PlaneGeometry(width, height);
+        const portalTexture = new THREE.WebGLRenderTarget(256, 1024);
+        super(planeGeo, new THREE.MeshBasicMaterial({
+            map: portalTexture.texture
+        }));
+        this.width = width;
+        this.height = height;
+        this.portalTexture = portalTexture;
+    }
+    render(sibling, camera, renderer, scene) {
+        // set the portal camera position to be reflected about the portal plane
+        this.worldToLocal(this.reflectedPosition.copy(camera.position));
+        this.reflectedPosition.x *= -1.0;
+        this.reflectedPosition.z *= -1.0;
+        sibling.localToWorld(this.reflectedPosition);
+        this.portalCamera.position.copy(this.reflectedPosition);
+        // grab the corners of the other portal
+        // - note: the portal is viewed backwards; flip the left/right coordinates
+        sibling.localToWorld(this.bottomLeftCorner.set(sibling.width / 2, -sibling.height / 2, 0.0));
+        sibling.localToWorld(this.bottomRightCorner.set(-sibling.width / 2, -sibling.height / 2, 0.0));
+        sibling.localToWorld(this.topLeftCorner.set(sibling.width / 2, sibling.height / 2, 0.0));
+        // set the projection matrix to encompass the portal's frame
+        CameraUtils.frameCorners(this.portalCamera, this.bottomLeftCorner, this.bottomRightCorner, this.topLeftCorner, false);
+        // render the portal
+        this.portalTexture.texture.encoding = renderer.outputEncoding;
+        renderer.setRenderTarget(this.portalTexture);
+        renderer.state.buffers.depth.setMask(true); // make sure the depth buffer is writable so it can be properly cleared, see #18897
+        if (renderer.autoClear === false)
+            renderer.clear();
+        this.visible = false; // hide this portal from its own rendering
+        renderer.render(scene, this.portalCamera);
+        this.visible = true; // re-enable this portal's visibility for general rendering
+    }
+}
+exports.Portal = Portal;
+//# sourceMappingURL=portal.js.map
 
 /***/ }),
 
