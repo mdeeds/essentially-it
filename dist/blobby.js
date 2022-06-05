@@ -2,7 +2,7 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 5451:
+/***/ 7628:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -26,166 +26,186 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.BlobbyDemo = void 0;
 const THREE = __importStar(__webpack_require__(539));
 const VRButton_js_1 = __webpack_require__(7652);
 const CameraUtils = __importStar(__webpack_require__(9151));
-console.log('Portal');
-let camera, scene, renderer;
-let smallSphereOne, smallSphereTwo;
-let portalCamera, leftPortal, rightPortal, leftPortalTexture, reflectedPosition, rightPortalTexture, bottomLeftCorner, bottomRightCorner, topLeftCorner;
-init();
-animate();
-function init() {
-    console.log('Init');
-    const container = document.body;
-    // renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.xr.enabled = true;
-    renderer.setAnimationLoop(() => { animate(); });
-    container.appendChild(renderer.domElement);
-    container.appendChild(VRButton_js_1.VRButton.createButton(renderer));
-    // renderer.localClippingEnabled = true;
-    // scene
-    scene = new THREE.Scene();
-    scene.position.set(0, -15, -50);
-    // camera
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 5000);
-    camera.position.set(0, 1.3, 0);
-    //
-    const planeGeo = new THREE.PlaneGeometry(100.1, 100.1);
-    // bouncing icosphere
-    const portalPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0.0);
-    const geometry = new THREE.IcosahedronGeometry(5, 0);
-    const material = new THREE.MeshPhongMaterial({
-        color: 0xffffff, emissive: 0x333333, flatShading: true,
-        clippingPlanes: [portalPlane], clipShadows: true
-    });
-    smallSphereOne = new THREE.Mesh(geometry, material);
-    scene.add(smallSphereOne);
-    smallSphereTwo = new THREE.Mesh(geometry, material);
-    scene.add(smallSphereTwo);
-    // portals
-    portalCamera = new THREE.PerspectiveCamera(45, 1.0, 0.1, 500.0);
-    scene.add(portalCamera);
-    //frustumHelper = new THREE.CameraHelper( portalCamera );
-    //scene.add( frustumHelper );
-    bottomLeftCorner = new THREE.Vector3();
-    bottomRightCorner = new THREE.Vector3();
-    topLeftCorner = new THREE.Vector3();
-    reflectedPosition = new THREE.Vector3();
-    leftPortalTexture = new THREE.WebGLRenderTarget(256, 256);
-    leftPortal = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({ map: leftPortalTexture.texture }));
-    leftPortal.position.x = -30;
-    leftPortal.position.y = 20;
-    leftPortal.scale.set(0.35, 0.35, 0.35);
-    scene.add(leftPortal);
-    rightPortalTexture = new THREE.WebGLRenderTarget(256, 256);
-    rightPortal = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({ map: rightPortalTexture.texture }));
-    rightPortal.position.x = 30;
-    rightPortal.position.y = 20;
-    rightPortal.scale.set(0.35, 0.35, 0.35);
-    scene.add(rightPortal);
-    // walls
-    const planeTop = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#fef' }));
-    planeTop.position.y = 100;
-    planeTop.rotateX(Math.PI / 2);
-    scene.add(planeTop);
-    const planeBottom = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#fef' }));
-    planeBottom.rotateX(-Math.PI / 2);
-    scene.add(planeBottom);
-    const planeFront = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#88f' }));
-    planeFront.position.z = 50;
-    planeFront.position.y = 50;
-    planeFront.rotateY(Math.PI);
-    scene.add(planeFront);
-    const planeBack = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#8f8' }));
-    planeBack.position.z = -50;
-    planeBack.position.y = 50;
-    //planeBack.rotateY( Math.PI );
-    scene.add(planeBack);
-    const planeRight = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#808' }));
-    planeRight.position.x = 50;
-    planeRight.position.y = 50;
-    planeRight.rotateY(-Math.PI / 2);
-    scene.add(planeRight);
-    const planeLeft = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#088' }));
-    planeLeft.position.x = -50;
-    planeLeft.position.y = 50;
-    planeLeft.rotateY(Math.PI / 2);
-    scene.add(planeLeft);
-    // lights
-    const mainLight = new THREE.PointLight(0xcccccc, 1.5, 250);
-    mainLight.position.y = 60;
-    scene.add(mainLight);
-    const greenLight = new THREE.PointLight(0x00ff00, 0.25, 1000);
-    greenLight.position.set(550, 50, 0);
-    scene.add(greenLight);
-    const redLight = new THREE.PointLight(0xff0000, 0.25, 1000);
-    redLight.position.set(-550, 50, 0);
-    scene.add(redLight);
-    const blueLight = new THREE.PointLight(0x7f7fff, 0.25, 1000);
-    blueLight.position.set(0, 50, 550);
-    scene.add(blueLight);
-    window.addEventListener('resize', onWindowResize);
+class BlobbyDemo {
+    camera;
+    scene;
+    renderer;
+    smallSphereOne;
+    smallSphereTwo;
+    portalCamera;
+    leftPortal;
+    rightPortal;
+    leftPortalTexture;
+    reflectedPosition;
+    rightPortalTexture;
+    bottomLeftCorner;
+    bottomRightCorner;
+    topLeftCorner;
+    constructor() {
+        this.init();
+        this.animate();
+    }
+    init() {
+        console.log('Init');
+        const container = document.body;
+        // renderer
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.xr.enabled = true;
+        this.renderer.setAnimationLoop(() => { this.animate(); });
+        container.appendChild(this.renderer.domElement);
+        container.appendChild(VRButton_js_1.VRButton.createButton(this.renderer));
+        // renderer.localClippingEnabled = true;
+        // scene
+        this.scene = new THREE.Scene();
+        this.scene.position.set(0, -15, -50);
+        // camera
+        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 5000);
+        this.camera.position.set(0, 1.3, 0);
+        //
+        const planeGeo = new THREE.PlaneGeometry(100.1, 100.1);
+        // bouncing icosphere
+        const portalPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0.0);
+        const geometry = new THREE.IcosahedronGeometry(5, 0);
+        const material = new THREE.MeshPhongMaterial({
+            color: 0xffffff, emissive: 0x333333, flatShading: true,
+            clippingPlanes: [portalPlane], clipShadows: true
+        });
+        this.smallSphereOne = new THREE.Mesh(geometry, material);
+        this.scene.add(this.smallSphereOne);
+        this.smallSphereTwo = new THREE.Mesh(geometry, material);
+        this.scene.add(this.smallSphereTwo);
+        // portals
+        this.portalCamera = new THREE.PerspectiveCamera(45, 1.0, 0.1, 500.0);
+        this.scene.add(this.portalCamera);
+        //frustumHelper = new THREE.CameraHelper( portalCamera );
+        //scene.add( frustumHelper );
+        this.bottomLeftCorner = new THREE.Vector3();
+        this.bottomRightCorner = new THREE.Vector3();
+        this.topLeftCorner = new THREE.Vector3();
+        this.reflectedPosition = new THREE.Vector3();
+        this.leftPortalTexture = new THREE.WebGLRenderTarget(256, 256);
+        this.leftPortal = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({
+            map: this.leftPortalTexture.texture
+        }));
+        this.leftPortal.position.x = -30;
+        this.leftPortal.position.y = 20;
+        this.leftPortal.scale.set(0.35, 0.35, 0.35);
+        this.scene.add(this.leftPortal);
+        this.rightPortalTexture = new THREE.WebGLRenderTarget(256, 256);
+        this.rightPortal = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({
+            map: this.rightPortalTexture.texture
+        }));
+        this.rightPortal.position.x = 30;
+        this.rightPortal.position.y = 20;
+        this.rightPortal.scale.set(0.35, 0.35, 0.35);
+        this.scene.add(this.rightPortal);
+        // walls
+        const planeTop = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#fef' }));
+        planeTop.position.y = 100;
+        planeTop.rotateX(Math.PI / 2);
+        this.scene.add(planeTop);
+        const planeBottom = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#fef' }));
+        planeBottom.rotateX(-Math.PI / 2);
+        this.scene.add(planeBottom);
+        const planeFront = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#88f' }));
+        planeFront.position.z = 50;
+        planeFront.position.y = 50;
+        planeFront.rotateY(Math.PI);
+        this.scene.add(planeFront);
+        const planeBack = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#8f8' }));
+        planeBack.position.z = -50;
+        planeBack.position.y = 50;
+        //planeBack.rotateY( Math.PI );
+        this.scene.add(planeBack);
+        const planeRight = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#808' }));
+        planeRight.position.x = 50;
+        planeRight.position.y = 50;
+        planeRight.rotateY(-Math.PI / 2);
+        this.scene.add(planeRight);
+        const planeLeft = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#088' }));
+        planeLeft.position.x = -50;
+        planeLeft.position.y = 50;
+        planeLeft.rotateY(Math.PI / 2);
+        this.scene.add(planeLeft);
+        // lights
+        const mainLight = new THREE.PointLight(0xcccccc, 1.5, 250);
+        mainLight.position.y = 60;
+        this.scene.add(mainLight);
+        const greenLight = new THREE.PointLight(0x00ff00, 0.25, 1000);
+        greenLight.position.set(550, 50, 0);
+        this.scene.add(greenLight);
+        const redLight = new THREE.PointLight(0xff0000, 0.25, 1000);
+        redLight.position.set(-550, 50, 0);
+        this.scene.add(redLight);
+        const blueLight = new THREE.PointLight(0x7f7fff, 0.25, 1000);
+        blueLight.position.set(0, 50, 550);
+        this.scene.add(blueLight);
+        window.addEventListener('resize', () => { this.onWindowResize(); });
+    }
+    onWindowResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    renderPortal(thisPortalMesh, otherPortalMesh, thisPortalTexture) {
+        // set the portal camera position to be reflected about the portal plane
+        thisPortalMesh.worldToLocal(this.reflectedPosition.copy(this.camera.position));
+        this.reflectedPosition.x *= -1.0;
+        this.reflectedPosition.z *= -1.0;
+        otherPortalMesh.localToWorld(this.reflectedPosition);
+        this.portalCamera.position.copy(this.reflectedPosition);
+        // grab the corners of the other portal
+        // - note: the portal is viewed backwards; flip the left/right coordinates
+        otherPortalMesh.localToWorld(this.bottomLeftCorner.set(50.05, -50.05, 0.0));
+        otherPortalMesh.localToWorld(this.bottomRightCorner.set(-50.05, -50.05, 0.0));
+        otherPortalMesh.localToWorld(this.topLeftCorner.set(50.05, 50.05, 0.0));
+        // set the projection matrix to encompass the portal's frame
+        CameraUtils.frameCorners(this.portalCamera, this.bottomLeftCorner, this.bottomRightCorner, this.topLeftCorner, false);
+        // render the portal
+        thisPortalTexture.texture.encoding = this.renderer.outputEncoding;
+        this.renderer.setRenderTarget(thisPortalTexture);
+        this.renderer.state.buffers.depth.setMask(true); // make sure the depth buffer is writable so it can be properly cleared, see #18897
+        if (this.renderer.autoClear === false)
+            this.renderer.clear();
+        thisPortalMesh.visible = false; // hide this portal from its own rendering
+        this.renderer.render(this.scene, this.portalCamera);
+        thisPortalMesh.visible = true; // re-enable this portal's visibility for general rendering
+    }
+    animate() {
+        // move the bouncing sphere(s)
+        const timerOne = Date.now() * 0.01;
+        const timerTwo = timerOne + Math.PI * 10.0;
+        this.smallSphereOne.position.set(Math.cos(timerOne * 0.1) * 30, Math.abs(Math.cos(timerOne * 0.2)) * 20 + 5, Math.sin(timerOne * 0.1) * 30);
+        this.smallSphereOne.rotation.y = (Math.PI / 2) - timerOne * 0.1;
+        this.smallSphereOne.rotation.z = timerOne * 0.8;
+        this.smallSphereTwo.position.set(Math.cos(timerTwo * 0.1) * 30, Math.abs(Math.cos(timerTwo * 0.2)) * 20 + 5, Math.sin(timerTwo * 0.1) * 30);
+        this.smallSphereTwo.rotation.y = (Math.PI / 2) - timerTwo * 0.1;
+        this.smallSphereTwo.rotation.z = timerTwo * 0.8;
+        // save the original camera properties
+        const currentRenderTarget = this.renderer.getRenderTarget();
+        const currentXrEnabled = this.renderer.xr.enabled;
+        const currentShadowAutoUpdate = this.renderer.shadowMap.autoUpdate;
+        this.renderer.xr.enabled = false; // Avoid camera modification
+        this.renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
+        // render the portal effect
+        this.renderPortal(this.leftPortal, this.rightPortal, this.leftPortalTexture);
+        this.renderPortal(this.rightPortal, this.leftPortal, this.rightPortalTexture);
+        // restore the original rendering properties
+        this.renderer.xr.enabled = currentXrEnabled;
+        this.renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
+        this.renderer.setRenderTarget(currentRenderTarget);
+        // render the main scene
+        this.renderer.render(this.scene, this.camera);
+    }
 }
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-function renderPortal(thisPortalMesh, otherPortalMesh, thisPortalTexture) {
-    // set the portal camera position to be reflected about the portal plane
-    thisPortalMesh.worldToLocal(reflectedPosition.copy(camera.position));
-    reflectedPosition.x *= -1.0;
-    reflectedPosition.z *= -1.0;
-    otherPortalMesh.localToWorld(reflectedPosition);
-    portalCamera.position.copy(reflectedPosition);
-    // grab the corners of the other portal
-    // - note: the portal is viewed backwards; flip the left/right coordinates
-    otherPortalMesh.localToWorld(bottomLeftCorner.set(50.05, -50.05, 0.0));
-    otherPortalMesh.localToWorld(bottomRightCorner.set(-50.05, -50.05, 0.0));
-    otherPortalMesh.localToWorld(topLeftCorner.set(50.05, 50.05, 0.0));
-    // set the projection matrix to encompass the portal's frame
-    CameraUtils.frameCorners(portalCamera, bottomLeftCorner, bottomRightCorner, topLeftCorner, false);
-    // render the portal
-    thisPortalTexture.texture.encoding = renderer.outputEncoding;
-    renderer.setRenderTarget(thisPortalTexture);
-    renderer.state.buffers.depth.setMask(true); // make sure the depth buffer is writable so it can be properly cleared, see #18897
-    if (renderer.autoClear === false)
-        renderer.clear();
-    thisPortalMesh.visible = false; // hide this portal from its own rendering
-    renderer.render(scene, portalCamera);
-    thisPortalMesh.visible = true; // re-enable this portal's visibility for general rendering
-}
-function animate() {
-    // move the bouncing sphere(s)
-    const timerOne = Date.now() * 0.01;
-    const timerTwo = timerOne + Math.PI * 10.0;
-    smallSphereOne.position.set(Math.cos(timerOne * 0.1) * 30, Math.abs(Math.cos(timerOne * 0.2)) * 20 + 5, Math.sin(timerOne * 0.1) * 30);
-    smallSphereOne.rotation.y = (Math.PI / 2) - timerOne * 0.1;
-    smallSphereOne.rotation.z = timerOne * 0.8;
-    smallSphereTwo.position.set(Math.cos(timerTwo * 0.1) * 30, Math.abs(Math.cos(timerTwo * 0.2)) * 20 + 5, Math.sin(timerTwo * 0.1) * 30);
-    smallSphereTwo.rotation.y = (Math.PI / 2) - timerTwo * 0.1;
-    smallSphereTwo.rotation.z = timerTwo * 0.8;
-    // save the original camera properties
-    const currentRenderTarget = renderer.getRenderTarget();
-    const currentXrEnabled = renderer.xr.enabled;
-    const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
-    renderer.xr.enabled = false; // Avoid camera modification
-    renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
-    // render the portal effect
-    renderPortal(leftPortal, rightPortal, leftPortalTexture);
-    renderPortal(rightPortal, leftPortal, rightPortalTexture);
-    // restore the original rendering properties
-    renderer.xr.enabled = currentXrEnabled;
-    renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
-    renderer.setRenderTarget(currentRenderTarget);
-    // render the main scene
-    renderer.render(scene, camera);
-}
-//# sourceMappingURL=blobby.js.map
+exports.BlobbyDemo = BlobbyDemo;
+//# sourceMappingURL=blobbyDemo.js.map
 
 /***/ }),
 
@@ -84939,12 +84959,18 @@ VRButton.registerSessionGrantedListener();
 /******/ 	})();
 /******/ 	
 /************************************************************************/
-/******/ 	
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __webpack_require__(5451);
-/******/ 	
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+(() => {
+var exports = __webpack_exports__;
+var __webpack_unused_export__;
+
+__webpack_unused_export__ = ({ value: true });
+const blobbyDemo_1 = __webpack_require__(7628);
+new blobbyDemo_1.BlobbyDemo();
+//# sourceMappingURL=blobby.js.map
+})();
+
 /******/ })()
 ;
 //# sourceMappingURL=blobby.js.map
