@@ -190,21 +190,21 @@ function animate() {
   smallSphereTwo.rotation.y = (Math.PI / 2) - timerTwo * 0.1;
   smallSphereTwo.rotation.z = timerTwo * 0.8;
 
-  // save the original camera properties
-  const currentRenderTarget = renderer.getRenderTarget();
-  const currentXrEnabled = renderer.xr.enabled;
-  const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
-  renderer.xr.enabled = false; // Avoid camera modification
-  renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
+  // // save the original camera properties
+  // const currentRenderTarget = renderer.getRenderTarget();
+  // const currentXrEnabled = renderer.xr.enabled;
+  // const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
+  // renderer.xr.enabled = false; // Avoid camera modification
+  // renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
 
-  // render the portal effect
-  renderPortal(leftPortal, rightPortal, leftPortalTexture);
-  renderPortal(rightPortal, leftPortal, rightPortalTexture);
+  // // render the portal effect
+  // renderPortal(leftPortal, rightPortal, leftPortalTexture);
+  // renderPortal(rightPortal, leftPortal, rightPortalTexture);
 
-  // restore the original rendering properties
-  renderer.xr.enabled = currentXrEnabled;
-  renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
-  renderer.setRenderTarget(currentRenderTarget);
+  // // restore the original rendering properties
+  // renderer.xr.enabled = currentXrEnabled;
+  // renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
+  // renderer.setRenderTarget(currentRenderTarget);
 
   // render the main scene
   renderer.render(scene, camera);
