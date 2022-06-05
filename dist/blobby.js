@@ -43,6 +43,7 @@ function init() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.xr.enabled = true;
+    renderer.setAnimationLoop(() => { animate(); });
     container.appendChild(renderer.domElement);
     container.appendChild(VRButton_js_1.VRButton.createButton(renderer));
     // renderer.localClippingEnabled = true;
@@ -86,29 +87,29 @@ function init() {
     rightPortal.scale.set(0.35, 0.35, 0.35);
     scene.add(rightPortal);
     // walls
-    const planeTop = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0xfef }));
+    const planeTop = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#fef' }));
     planeTop.position.y = 100;
     planeTop.rotateX(Math.PI / 2);
     scene.add(planeTop);
-    const planeBottom = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0xfef }));
+    const planeBottom = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#fef' }));
     planeBottom.rotateX(-Math.PI / 2);
     scene.add(planeBottom);
-    const planeFront = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0x88f }));
+    const planeFront = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#88f' }));
     planeFront.position.z = 50;
     planeFront.position.y = 50;
     planeFront.rotateY(Math.PI);
     scene.add(planeFront);
-    const planeBack = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0x8f8 }));
+    const planeBack = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#8f8' }));
     planeBack.position.z = -50;
     planeBack.position.y = 50;
     //planeBack.rotateY( Math.PI );
     scene.add(planeBack);
-    const planeRight = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0x808 }));
+    const planeRight = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#808' }));
     planeRight.position.x = 50;
     planeRight.position.y = 50;
     planeRight.rotateY(-Math.PI / 2);
     scene.add(planeRight);
-    const planeLeft = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: 0x088 }));
+    const planeLeft = new THREE.Mesh(planeGeo, new THREE.MeshPhongMaterial({ color: '#088' }));
     planeLeft.position.x = -50;
     planeLeft.position.y = 50;
     planeLeft.rotateY(Math.PI / 2);
@@ -158,7 +159,6 @@ function renderPortal(thisPortalMesh, otherPortalMesh, thisPortalTexture) {
     thisPortalMesh.visible = true; // re-enable this portal's visibility for general rendering
 }
 function animate() {
-    requestAnimationFrame(animate);
     // move the bouncing sphere(s)
     const timerOne = Date.now() * 0.01;
     const timerTwo = timerOne + Math.PI * 10.0;
