@@ -84,3 +84,7 @@ const bc = new BeatConstraints();
 console.time('Beats');
 bc.run();
 console.timeEnd('Beats');
+
+console.time('Beats2');
+bc.run();
+console.timeEnd('Beats2');
