@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
-import * as CameraUtils from 'three/examples/jsm/utils/CameraUtils.js';
+import { Portal } from './portal';
 
 
 export class BlobbyDemo {
@@ -13,14 +13,8 @@ export class BlobbyDemo {
   private smallSphereTwo: THREE.Object3D;
 
   private portalCamera: THREE.Camera;
-  private leftPortal: THREE.Object3D;
-  private rightPortal: THREE.Object3D;
-  private leftPortalTexture: THREE.WebGLRenderTarget;
-  private reflectedPosition: THREE.Vector3;
-  private rightPortalTexture: THREE.WebGLRenderTarget;
-  private bottomLeftCorner: THREE.Vector3;
-  private bottomRightCorner: THREE.Vector3;
-  private topLeftCorner: THREE.Vector3;
+  private leftPortal: Portal;
+  private rightPortal: Portal;
 
   constructor() {
     this.init();
@@ -73,24 +67,14 @@ export class BlobbyDemo {
     this.scene.add(this.portalCamera);
     //frustumHelper = new THREE.CameraHelper( portalCamera );
     //scene.add( frustumHelper );
-    this.bottomLeftCorner = new THREE.Vector3();
-    this.bottomRightCorner = new THREE.Vector3();
-    this.topLeftCorner = new THREE.Vector3();
-    this.reflectedPosition = new THREE.Vector3();
 
-    this.leftPortalTexture = new THREE.WebGLRenderTarget(256, 256);
-    this.leftPortal = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({
-      map: this.leftPortalTexture.texture
-    }));
+    this.leftPortal = new Portal(100.1, 100.1);
     this.leftPortal.position.x = - 30;
     this.leftPortal.position.y = 20;
     this.leftPortal.scale.set(0.35, 0.35, 0.35);
     this.scene.add(this.leftPortal);
 
-    this.rightPortalTexture = new THREE.WebGLRenderTarget(256, 256);
-    this.rightPortal = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({
-      map: this.rightPortalTexture.texture
-    }));
+    this.rightPortal = new Portal(100.1, 100.1);
     this.rightPortal.position.x = 30;
     this.rightPortal.position.y = 20;
     this.rightPortal.scale.set(0.35, 0.35, 0.35);
@@ -159,30 +143,6 @@ export class BlobbyDemo {
 
   renderPortal(thisPortalMesh, otherPortalMesh, thisPortalTexture) {
 
-    // set the portal camera position to be reflected about the portal plane
-    thisPortalMesh.worldToLocal(this.reflectedPosition.copy(this.camera.position));
-    this.reflectedPosition.x *= - 1.0; this.reflectedPosition.z *= - 1.0;
-    otherPortalMesh.localToWorld(this.reflectedPosition);
-    this.portalCamera.position.copy(this.reflectedPosition);
-
-    // grab the corners of the other portal
-    // - note: the portal is viewed backwards; flip the left/right coordinates
-    otherPortalMesh.localToWorld(this.bottomLeftCorner.set(50.05, - 50.05, 0.0));
-    otherPortalMesh.localToWorld(this.bottomRightCorner.set(- 50.05, - 50.05, 0.0));
-    otherPortalMesh.localToWorld(this.topLeftCorner.set(50.05, 50.05, 0.0));
-    // set the projection matrix to encompass the portal's frame
-    (CameraUtils as any).frameCorners(this.portalCamera, this.bottomLeftCorner,
-      this.bottomRightCorner, this.topLeftCorner, false);
-
-    // render the portal
-    thisPortalTexture.texture.encoding = this.renderer.outputEncoding;
-    this.renderer.setRenderTarget(thisPortalTexture);
-    this.renderer.state.buffers.depth.setMask(true); // make sure the depth buffer is writable so it can be properly cleared, see #18897
-    if (this.renderer.autoClear === false) this.renderer.clear();
-    thisPortalMesh.visible = false; // hide this portal from its own rendering
-    this.renderer.render(this.scene, this.portalCamera);
-    thisPortalMesh.visible = true; // re-enable this portal's visibility for general rendering
-
   }
 
   animate() {
@@ -213,9 +173,8 @@ export class BlobbyDemo {
     this.renderer.xr.enabled = false; // Avoid camera modification
     this.renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
 
-    // render the portal effect
-    this.renderPortal(this.leftPortal, this.rightPortal, this.leftPortalTexture);
-    this.renderPortal(this.rightPortal, this.leftPortal, this.rightPortalTexture);
+    this.leftPortal.render(this.rightPortal, this.camera, this.renderer, this.scene);
+    this.rightPortal.render(this.leftPortal, this.camera, this.renderer, this.scene);
 
     // restore the original rendering properties
     this.renderer.xr.enabled = currentXrEnabled;
