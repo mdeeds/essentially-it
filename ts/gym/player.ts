@@ -3,13 +3,14 @@ import Ammo from "ammojs-typed";
 import { PhysicsObject } from "./physicsObject";
 import { Tick, Ticker } from "../ticker";
 import { S } from "../settings";
+import { Motion } from "../motion";
 
 export class Player extends PhysicsObject implements Ticker {
   private static mass = 100; // kg
   constructor(
     private ammo: typeof Ammo,
     private physicsWorld: Ammo.btDiscreteDynamicsWorld,
-    private camera: THREE.Object3D) {
+    private camera: THREE.Object3D, private motions: Motion[]) {
     super(ammo, Player.mass);
     console.assert(!!physicsWorld, "Physics not initialized!");
 
@@ -26,56 +27,29 @@ export class Player extends PhysicsObject implements Ticker {
       PhysicsObject.makeRigidBody(this, this.ammo, shape, Player.mass);
     this.physicsWorld.addRigidBody(body);
     this.userData['physicsObject'] = body;
-    this.previousY = camera.position.y;
 
     this.position.set(0, 1, 0);
     this.setPhysicsPosition();
   }
 
-  private cameraNormalMatrix = new THREE.Matrix3();
-  private previousY = 0;
-  private previousV = 0;
-  private velocity = new THREE.Vector3();
-  private targetVelocity = new THREE.Vector3();
-  private velocityDelta = new THREE.Vector3();
-  private acceleration = new THREE.Vector3();
-  private maxAcceleration = S.float('ma');  // m/s/s
-  private accelerationAngle = S.float('aa');  // radians from up
+  private v1 = new THREE.Vector3();
+  private v2 = new THREE.Vector3();
+  private v3 = new THREE.Vector3();
   tick(t: Tick) {
-    const deltaY = this.camera.position.y - this.previousY;
-    const velocityY = deltaY / t.deltaS;
-    // if (deltaY > 0) {
-    if (deltaY > 0) {
-      this.cameraNormalMatrix.getNormalMatrix(this.camera.matrixWorld);
-      this.targetVelocity.set(
-        0, 0, -1);
-      this.targetVelocity.applyMatrix3(this.cameraNormalMatrix);
-      // Point targetVelocity in the XZ plane
-      this.targetVelocity.y = 0;
-      this.targetVelocity.setLength(1);
-      // Scale down XZ portion by desired angle of incline
-      this.targetVelocity.z *= Math.sin(this.accelerationAngle);
-      this.targetVelocity.x *= Math.sin(this.accelerationAngle);
-      // Set Y potion to remaining part of angle.
-      this.targetVelocity.y = Math.cos(this.accelerationAngle);
-
-      this.targetVelocity.setLength(S.float('shf') * deltaY / t.deltaS);
-
-      this.velocityDelta.copy(this.targetVelocity);
-      this.velocityDelta.sub(this.velocity);
-      this.acceleration.copy(this.velocityDelta);
-      this.acceleration.multiplyScalar(1 / t.deltaS);
-      // Super-human factor 10x (shf
-      if (this.acceleration.length() > this.maxAcceleration) {
-        this.acceleration.setLength(this.maxAcceleration);
-      }
-      if (this.position.y < 0.5) {
-        // TODO: Raycast to see if player is on the ground.
-        this.acceleration.y += 9.8;
-      }
-      this.applyAcceleration(this.acceleration);
+    this.camera.getWorldDirection(this.v1);
+    this.v2.copy(this.motions[0].velocity);
+    this.v3.copy(this.motions[1].velocity);
+    const a2 = this.v2.dot(this.v1);
+    const a3 = this.v3.dot(this.v1);
+    let push = 0;
+    if (a2 < 0 && a3 > 0) {
+      push = Math.min(-a2, a3);
+    } else if (a2 > 0 && a3 < 0) {
+      push = Math.min(a2, -a3);
     }
-    this.previousY = this.camera.position.y;
-    this.previousV = velocityY;
+    if (push > 0) {
+      this.v1.setLength(push);
+      this.applyAcceleration(this.v1);
+    }
   }
 }

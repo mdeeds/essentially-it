@@ -50,6 +50,5 @@ export class Portal extends THREE.Mesh {
     this.visible = false; // hide this portal from its own rendering
     renderer.render(scene, this.portalCamera);
     this.visible = true; // re-enable this portal's visibility for general rendering
-
   }
 }

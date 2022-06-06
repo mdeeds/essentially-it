@@ -6,13 +6,14 @@ import { Player } from "./player";
 import { Shaders } from "./shaders";
 import { S } from "../settings";
 import { Column } from "./column";
+import { Motion } from "../motion";
 
 export class Gymnasium extends THREE.Object3D implements World, Ticker {
   private universe = new THREE.Object3D();
   constructor(private camera: THREE.Object3D,
     private ammo: typeof Ammo,
     private physicsWorld: Ammo.btDiscreteDynamicsWorld,
-    private keysDown: Set<string>) {
+    private keysDown: Set<string>, private motions: Motion[]) {
     super();
     this.add(this.universe);
     const sky = new THREE.Mesh(
@@ -40,7 +41,7 @@ export class Gymnasium extends THREE.Object3D implements World, Ticker {
 
     this.setUpGround();
 
-    const player = new Player(ammo, physicsWorld, this.camera);
+    const player = new Player(ammo, physicsWorld, this.camera, this.motions);
     this.universe.add(player);
 
     // if (!!speechSynthesis) {
