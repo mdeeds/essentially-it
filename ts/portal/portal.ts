@@ -18,12 +18,13 @@ export class Portal extends THREE.Mesh {
     const portalTexture = new THREE.WebGLRenderTarget(256, 1024);
     super(planeGeo, new THREE.MeshBasicMaterial({
       map: portalTexture.texture
+      // color: '#0ff'
     }));
     this.portalTexture = portalTexture;
   }
 
   render(sibling: Portal, camera: THREE.Camera, renderer: THREE.WebGLRenderer,
-    scene: THREE.Scene) {
+    scene: THREE.Object3D) {
     // set the portal camera position to be reflected about the portal plane
     this.worldToLocal(this.reflectedPosition.copy(camera.position));
     this.reflectedPosition.x *= - 1.0; this.reflectedPosition.z *= - 1.0;

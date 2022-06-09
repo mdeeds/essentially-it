@@ -14,10 +14,11 @@ import { TactileProvider } from "./tactileProvider";
 import { Tick, Ticker } from "./ticker";
 import { World } from "./world";
 import { PhysicsObject } from "./gym/physicsObject";
+import { BlobbyDemo } from "./portal/blobbyDemo";
 
 export class Game {
   private scene: THREE.Scene;
-  private camera: THREE.Camera;
+  private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   private keysDown = new Set<string>();
   private hands: Hand[] = [];
@@ -62,6 +63,7 @@ export class Game {
       case 1: this.run('home'); break;
       case 2: this.run('conduit'); break;
       case 3: this.run('gym'); break;
+      case 4: this.run('blobby'); break;
     }
   }
 
@@ -83,6 +85,7 @@ export class Game {
   private lab: Laboratory = null;
   private conduit: ConduitStage = null;
   private home: Home = null;
+  private blobby: BlobbyDemo = null;
 
   private async run(location: string) {
     let nextWorld: World = null;
@@ -113,6 +116,12 @@ export class Game {
             [this.hands[0].getMotion(), this.hands[1].getMotion()]);
         }
         nextWorld = this.gym;
+        break;
+      case 'blobby':
+        if (this.blobby === null) {
+          this.blobby = new BlobbyDemo(this.camera, this.renderer);
+        }
+        nextWorld = this.blobby;
         break;
       case 'home': default:
         if (this.home === null) {
