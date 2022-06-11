@@ -51,7 +51,8 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
 
   initBlobby() {
-    const geometry = new THREE.IcosahedronBufferGeometry(0.3, 5);
+    const initialRadius = 0.3;
+    const geometry = new THREE.IcosahedronBufferGeometry(initialRadius, 5);
     this.blobby = new Blobby(geometry);
     this.blobby.position.set(0, 0.5, 0);
     this.add(this.blobby);
@@ -62,15 +63,15 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
     const naturalPositions = [
       new THREE.Vector3(0, 0.4, 0),
-      new THREE.Vector3(-0.5, 0.3, -0.1),
-      new THREE.Vector3(0.5, 0.3, -0.1),
+      new THREE.Vector3(-0.5, 0.5, -0.1),
+      new THREE.Vector3(0.5, 0.5, -0.1),
       new THREE.Vector3(0, -0.2, 0)
     ];
 
-    naturalPositions[0].setLength(0.25);
-    naturalPositions[1].setLength(0.3);
-    naturalPositions[2].setLength(0.3);
-    naturalPositions[3].setLength(0.2);
+    naturalPositions[0].setLength(0.8 * initialRadius);
+    naturalPositions[1].setLength(1.1 * initialRadius);
+    naturalPositions[2].setLength(1.1 * initialRadius);
+    naturalPositions[3].setLength(0.99 * initialRadius);
 
     for (let i = 0; i < positions.count; ++i) {
       geometryPosition.fromBufferAttribute(positions, i);
@@ -213,7 +214,18 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.cPos.getWorldPosition(rcp);
     this.cameraMaterial.uniformsNeedUpdate = true;
 
+    this.cPos.getWorldQuaternion(this.blobby.quaternion);
+    this.blobby.updateMatrixWorld(true);
     this.cPos.getWorldPosition(this.p1);
+    this.p2.copy(this.handMotions[0].p);
+    this.p3.copy(this.handMotions[1].p);
+    this.p4.copy(this.p1);
+    this.p4.y = 0;
+
+    this.blobby.worldToLocal(this.p1);
+    this.blobby.worldToLocal(this.p2);
+    this.blobby.worldToLocal(this.p3);
+    this.blobby.worldToLocal(this.p4);
     this.blobby.setLimbs(
       this.p1, this.handMotions[0].p, this.handMotions[1].p, this.p4);
   }

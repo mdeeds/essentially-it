@@ -18,13 +18,41 @@ export class Blobby extends THREE.Mesh {
       attribute vec4 blend;
       varying vec3 vColor;
       varying vec3 vNormal;
+
+      float noise3to1(in vec3 p) {
+        const mat3 m = mat3(
+          1.0, 0.0, 0.0,
+          0.5, 1.2, 0.0,
+          0.0, 0.0, 1.0);
+      
+        vec3 s = m * p;
+      
+        return sin(s.x) * sin(s.y) * sin(s.z);
+      }
+      
+      vec3 noise3to3(in vec3 p) {
+        return vec3(
+          noise3to1(p.xyz + vec3(1, 2, 3) * vec3(0.9, 0.7, 1.3)),
+          noise3to1(p.zyx + vec3(7, 9, 8) * vec3(0.5, 1.2, 1.1)),
+          noise3to1(p.yxz + vec3(3, 2, 5) * vec3(0.8, 0.3, 1.5)));
+      }
+      
+      vec3 brown(in vec3 p) {
+        return 0.5 * noise3to3(p) + 0.2 * noise3to3(p * 3.0) + 0.1 * noise3to3(p * 5.0);
+      
+      }
+      
+      vec3 grey(in vec3 p) {
+        return brown(brown(p * 0.1) * 5.0);
+      }
+
       void main() {
         vec3 updatedPosition = vec3(
           position.x + dot(blend, vec4(p1.x, p2.x, p3.x, p4.x)),
           position.y + dot(blend, vec4(p1.y, p2.y, p3.y, p4.y)),
           position.z + dot(blend, vec4(p1.z, p2.z, p3.z, p4.z)));
         vNormal = normalMatrix * normal;
-        vColor = color;
+        vColor = (0.5 + grey(position * 20.0)) * color;
         vec4 mvPosition = modelViewMatrix * vec4(updatedPosition, 1.0);
         gl_Position = projectionMatrix * mvPosition;
       }
