@@ -119,7 +119,9 @@ export class Game {
         break;
       case 'blobby':
         if (this.blobby === null) {
-          this.blobby = new BlobbyDemo(this.camera, this.renderer);
+          this.blobby = new BlobbyDemo(this.camera,
+            [this.hands[0].getMotion(), this.hands[1].getMotion()],
+            this.renderer);
         }
         nextWorld = this.blobby;
         break;

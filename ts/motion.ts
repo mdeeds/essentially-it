@@ -5,6 +5,8 @@ export class Motion extends THREE.Object3D implements Ticker {
   readonly prevP = new THREE.Vector3();
   private prevX = new THREE.Vector3();
   readonly velocity = new THREE.Vector3();
+
+  // World position
   readonly p = new THREE.Vector3();
   readonly orientX = new THREE.Vector3();
   readonly orientY = new THREE.Vector3();
