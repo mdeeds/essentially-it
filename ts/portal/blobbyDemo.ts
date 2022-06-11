@@ -21,11 +21,6 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     super();
     this.init();
     this.camera.add(this.cPos);
-
-    this.onBeforeRender = (renderer: THREE.WebGLRenderer,
-      scene: THREE.Scene, camera: THREE.Camera) => {
-      this.updateCameras(camera as THREE.ArrayCamera);
-    };
   }
   async run(): Promise<string> {
     return new Promise<string>((resolve) => { });
@@ -131,18 +126,6 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
   }
 
   private cameras: THREE.ArrayCamera = null;
-  private updateCameras(camera: THREE.ArrayCamera) {
-    const s = camera as THREE.ArrayCamera;
-    if (s && s.isArrayCamera) {
-      if (!this.cameras || this.cameras.cameras.length < s.cameras.length) {
-        this.cameras = s;
-        Debug.log(`Camera count: ${this.cameras.cameras.length}`)
-        for (const c of this.cameras.cameras) {
-          Debug.log(`X: ${c.position.x}`);
-        }
-      }
-    }
-  }
 
   tick(t: Tick) {
     // save the original camera properties
@@ -160,7 +143,8 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
     this.renderer.setRenderTarget(currentRenderTarget);
 
-    const rcp = this.cameraMaterial.uniforms['rightCameraPosition'].value as THREE.Vector3;
+    const rcp = this.cameraMaterial.uniforms['rightCameraPosition']
+      .value as THREE.Vector3;
     this.cPos.getWorldPosition(rcp);
     this.cameraMaterial.uniformsNeedUpdate = true;
   }
