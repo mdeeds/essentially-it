@@ -15,7 +15,7 @@ export class Portal extends THREE.Mesh {
 
   constructor(private width: number, private height: number) {
     const planeGeo = new THREE.PlaneGeometry(width, height);
-    const portalTexture = new THREE.WebGLRenderTarget(256, 1024);
+    const portalTexture = new THREE.WebGLRenderTarget(512, 1024);
     super(planeGeo, new THREE.MeshBasicMaterial({
       map: portalTexture.texture
       // color: '#0ff'

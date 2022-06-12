@@ -7,6 +7,7 @@ import { Tick, Ticker } from '../ticker';
 import { World } from '../world';
 import { Blobby } from './blobby';
 import { Portal } from './portal';
+import { PortalPanel } from './portalPanel';
 
 
 export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
@@ -18,11 +19,14 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
   private blobby: Blobby;
 
+  private universe = new THREE.Group();
+
   constructor(private camera: THREE.PerspectiveCamera,
     private handMotions: Motion[],
     private renderer: THREE.WebGLRenderer) {
     super();
     this.init();
+    this.add(this.universe);
     this.camera.add(this.cPos);
   }
   async run(): Promise<string> {
@@ -88,6 +92,27 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       new Float32Array(blend), 4));
   }
 
+  private buildRoom() {
+    const roomRadius = 2;
+    for (let i = -roomRadius; i <= roomRadius; ++i) {
+      const p1 = new PortalPanel();
+      p1.position.set(i * 2, 1.0, -roomRadius * 2 - 1);
+      this.universe.add(p1);
+      const p2 = new PortalPanel();
+      p2.position.set(roomRadius * 2 + 1, 1.0, i * 2);
+      p2.rotateY(-Math.PI / 2);
+      this.universe.add(p2);
+      const p3 = new PortalPanel();
+      p3.position.set(i * 2, 1.0, roomRadius * 2 + 1);
+      p3.rotateY(Math.PI);
+      this.universe.add(p3);
+      const p4 = new PortalPanel();
+      p4.position.set(-roomRadius * 2 - 1, 1.0, i * 2);
+      p4.rotateY(Math.PI / 2);
+      this.universe.add(p4);
+    }
+  }
+
   init() {
     console.log('Init');
     const container = document.body;
@@ -96,7 +121,9 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     const debugConsole = new Debug();
     debugConsole.position.set(0, 1.0, 2.0);
     debugConsole.rotateY(Math.PI);
-    this.add(debugConsole);
+    this.universe.add(debugConsole);
+
+    this.buildRoom();
 
     Debug.log('Initializing');
 
@@ -110,7 +137,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       new THREE.MeshPhongMaterial({ color: '#66f' })
     );
     floor.rotateX(-Math.PI / 2);
-    this.add(floor);
+    this.universe.add(floor);
 
     this.cameraMaterial = this.makeCameraMaterial(new THREE.Color('pink'));
 
@@ -120,27 +147,30 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
         Math.random() * 0.5 + 0.5);
       const ball = new THREE.Mesh(
         new THREE.IcosahedronBufferGeometry(0.2, 3),
-        this.cameraMaterial
+        new THREE.MeshPhongMaterial({ color: color })
       );
       ball.position.set(
         Math.random() * 4 - 2, Math.random(), Math.random() * 4 - 2);
-      this.add(ball);
+      this.universe.add(ball);
     }
 
-    this.leftPortal = new Portal(2, 2);
+    this.leftPortal = new Portal(1, 2);
     this.leftPortal.position.set(-1, 1.5, -2);
     this.leftPortal.rotateY(Math.PI / 4);
-    this.add(this.leftPortal);
+    this.universe.add(this.leftPortal);
 
-    this.rightPortal = new Portal(1, 1);
+    this.rightPortal = new Portal(0.5, 1);
     this.rightPortal.position.set(1, 1.5, -2);
     this.rightPortal.rotateY(-Math.PI / 4)
-    this.add(this.rightPortal);
+    this.universe.add(this.rightPortal);
 
     // lights
-    const mainLight = new THREE.PointLight(0xcccccc, 1.5, 200);
+    const mainLight = new THREE.DirectionalLight(new THREE.Color('white'), 1.0);
     mainLight.position.y = 60;
-    this.add(mainLight);
+    this.universe.add(mainLight);
+    const upLight = new THREE.DirectionalLight(new THREE.Color('#acf'), 0.1);
+    upLight.position.y = -60;
+    this.universe.add(upLight);
 
     window.addEventListener('resize', () => { this.onWindowResize(); });
   }

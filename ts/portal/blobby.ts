@@ -61,7 +61,8 @@ export class Blobby extends THREE.Mesh {
       varying vec3 vColor;
       varying vec3 vNormal;
       void main() {
-        gl_FragColor = vec4(clamp(vColor * vNormal.y, 0.1, 1.0), 1.0);
+        float intensity = clamp(vNormal.y, 0.1, 1.0);
+        gl_FragColor = vec4(clamp(vColor * intensity, 0.1, 1.0), 1.0);
       }
       `,
       vertexColors: true,
