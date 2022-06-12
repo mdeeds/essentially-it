@@ -11,7 +11,13 @@ export class Player extends PhysicsObject implements Ticker {
     private ammo: typeof Ammo,
     private physicsWorld: Ammo.btDiscreteDynamicsWorld,
     private camera: THREE.Object3D, private motions: Motion[]) {
-    super(ammo, Player.mass);
+    const shape = new ammo.btCylinderShape(new ammo.btVector3(
+      0.25, 0.10, 0.25));
+    shape.setMargin(0.01);
+    const body =
+      PhysicsObject.makeRigidBody(ammo, shape, Player.mass);
+    super(ammo, Player.mass, body);
+
     console.assert(!!physicsWorld, "Physics not initialized!");
 
     const mesh = new THREE.Mesh(
@@ -19,14 +25,7 @@ export class Player extends PhysicsObject implements Ticker {
       new THREE.MeshStandardMaterial({ color: '#33a' })
     );
     this.add(mesh);
-    const shape = new this.ammo.btCylinderShape(new this.ammo.btVector3(
-      0.25, 0.10, 0.25));
-    shape.setMargin(0.01);
-
-    const body =
-      PhysicsObject.makeRigidBody(this, this.ammo, shape, Player.mass);
     this.physicsWorld.addRigidBody(body);
-    this.userData['physicsObject'] = body;
 
     this.position.set(0, 1, 0);
     this.setPhysicsPosition();

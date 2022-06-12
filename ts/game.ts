@@ -121,7 +121,7 @@ export class Game {
         if (this.blobby === null) {
           this.blobby = new BlobbyDemo(this.camera,
             [this.hands[0].getMotion(), this.hands[1].getMotion()],
-            this.renderer);
+            this.renderer, this.ammo, this.physicsWorld);
         }
         nextWorld = this.blobby;
         break;
@@ -271,9 +271,6 @@ export class Game {
     if (o['tick']) {
       (o as any as Ticker).tick(t);
     }
-    if (o['updatePositionFromPhysics']) {
-      (o as any as PhysicsObject).updatePositionFromPhysics();
-    }
     for (const child of o.children) {
       this.doTick(child, t);
     }
@@ -287,7 +284,10 @@ export class Game {
     this.handleKeys();
     this.handleHeadMotion();
     this.doTick(this.scene, new Tick(this.clock.elapsedTime, deltaS));
-    this.physicsWorld.stepSimulation(deltaS, /*substeps=*/10);
+    if (deltaS > 0) {
+      // console.log(`Step: ${deltaS.toFixed(3)}`);
+      this.physicsWorld.stepSimulation(deltaS, /*substeps=*/10);
+    }
   }
 
   private setUpAnimation() {

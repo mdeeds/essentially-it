@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import Ammo from "ammojs-typed";
 
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import { Debug } from '../debug';
@@ -8,6 +9,7 @@ import { World } from '../world';
 import { Blobby } from './blobby';
 import { Portal } from './portal';
 import { PortalPanel } from './portalPanel';
+import { PhysicsObject } from '../gym/physicsObject';
 
 
 export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
@@ -23,7 +25,9 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
   constructor(private camera: THREE.PerspectiveCamera,
     private handMotions: Motion[],
-    private renderer: THREE.WebGLRenderer) {
+    private renderer: THREE.WebGLRenderer,
+    private ammo: typeof Ammo,
+    private physicsWorld: Ammo.btDiscreteDynamicsWorld,) {
     super();
     this.init();
     this.add(this.universe);
@@ -111,6 +115,37 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       p4.rotateY(Math.PI / 2);
       this.universe.add(p4);
     }
+
+    const groundPlane = new this.ammo.btStaticPlaneShape(
+      new this.ammo.btVector3(0, 1, 0), 0);
+    groundPlane.setMargin(0.01);
+    const btTx = new this.ammo.btTransform();
+    btTx.setIdentity();
+    const btPosition = new this.ammo.btVector3(0, 0, 0);
+    const motionState = new this.ammo.btDefaultMotionState(btTx);
+    const body = new this.ammo.btRigidBody(
+      new this.ammo.btRigidBodyConstructionInfo(
+      /*mass=*/0, motionState, groundPlane, btPosition));
+    body.setFriction(0.5);
+    this.physicsWorld.addRigidBody(body);
+  }
+
+  makePhysicalBall(position: THREE.Vector3, color: THREE.Color): THREE.Object3D {
+    const sphereRadius = 0.2;
+    const sphereMass = 1.0;
+    const shape = new this.ammo.btSphereShape(sphereRadius);
+    shape.setMargin(0.01);
+    const body =
+      PhysicsObject.makeRigidBody(this.ammo, shape, sphereMass);
+    const obj = new THREE.Mesh(
+      new THREE.IcosahedronBufferGeometry(sphereRadius, 3),
+      new THREE.MeshPhongMaterial({ color: color }));
+    const physicalObject = new PhysicsObject(this.ammo, sphereMass, body);
+    physicalObject.add(obj);
+    physicalObject.position.copy(position);
+    physicalObject.setPhysicsPosition();
+    this.physicsWorld.addRigidBody(body);
+    return physicalObject;
   }
 
   init() {
@@ -141,16 +176,13 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
     this.cameraMaterial = this.makeCameraMaterial(new THREE.Color('pink'));
 
-    for (let i = 0; i < 20; ++i) {
+    for (let i = 0; i < 30; ++i) {
       const color = new THREE.Color(
         Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5,
         Math.random() * 0.5 + 0.5);
-      const ball = new THREE.Mesh(
-        new THREE.IcosahedronBufferGeometry(0.2, 3),
-        new THREE.MeshPhongMaterial({ color: color })
-      );
-      ball.position.set(
+      const position = new THREE.Vector3(
         Math.random() * 4 - 2, Math.random(), Math.random() * 4 - 2);
+      const ball = this.makePhysicalBall(position, color);
       this.universe.add(ball);
     }
 
@@ -274,8 +306,8 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     }
   }
 
-  private previousButtons: number[][] = undefined;
-  private currentButtons: number[][] = undefined;
+  private previousButtons: GamepadButton[][] = undefined;
+  private currentButtons: GamepadButton[][] = undefined;
 
   private updateButtons() {
     if (!this.session) {
@@ -284,23 +316,38 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.previousButtons = this.currentButtons;
     this.currentButtons = [];
     for (const source of this.session.inputSources) {
-      this.currentButtons.push(source.gamepad.buttons.map((b) => b.value));
+      const bs: GamepadButton[] = [];
+      this.currentButtons.push(bs);
+      let i = 0;
+      for (const b of source.gamepad.buttons) {
+        bs.push(b);
+        Debug.log(`${i}: ${b.pressed} ${b.touched} ${b.value}`);
+        ++i;
+      }
+    }
+    if (Math.random() < 0.01) {
+      Debug.log(`Source count: ${this.session.inputSources.length}`);
     }
   }
 
   private moveBlobby(t: Tick) {
-    if (!this.currentButtons || !(this.currentButtons.length < 2)) {
+    if (!this.currentButtons || this.currentButtons.length < 2) {
       if (Math.random() < 0.01) {
-        Debug.log(`No controllers.`);
+        Debug.log(`No controllers. current: ${!!this.currentButtons}`);
       }
       // We don't have a pair of controllers yet.
+      return;
+    }
+    if (!this.previousButtons || this.previousButtons.length < 2) {
+      Debug.log('First frame...');
       return;
     }
     if (this.currentButtons[0][1] !== this.previousButtons[0][1]) {
       Debug.log('Grip 0 changed.');
     }
 
-    if (this.currentButtons[0][1] && this.currentButtons[1][1]) {
+    if (this.currentButtons[0][1].pressed &&
+      this.currentButtons[1][1].pressed) {
       // Hold both grips to move.
       this.p1.copy(this.handMotions[0].velocity);
       this.p2.copy(this.handMotions[1].velocity);

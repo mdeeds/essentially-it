@@ -6,7 +6,13 @@ export class Column extends PhysicsObject {
   constructor(ammo: typeof Ammo,
     physicsWorld: Ammo.btDiscreteDynamicsWorld,
     radius: number, height: number) {
-    super(ammo, /*mass=*/0);
+    const shape = new ammo.btCylinderShape(new ammo.btVector3(
+      radius, height, radius));
+    shape.setMargin(0.01);
+    const body =
+      PhysicsObject.makeRigidBody(ammo, shape, /*mass=*/0);
+    super(ammo, /*mass=*/0, body);
+
     console.assert(!!physicsWorld, "Physics not initialized!");
 
     const mesh = new THREE.Mesh(
@@ -14,13 +20,7 @@ export class Column extends PhysicsObject {
       new THREE.MeshStandardMaterial({ color: '#f98' })
     );
     this.add(mesh);
-    const shape = new ammo.btCylinderShape(new ammo.btVector3(
-      radius, height, radius));
-    shape.setMargin(0.01);
 
-    const body =
-      PhysicsObject.makeRigidBody(this, ammo, shape, /*mass=*/0);
     physicsWorld.addRigidBody(body);
-    this.userData['physicsObject'] = body;
   }
 }

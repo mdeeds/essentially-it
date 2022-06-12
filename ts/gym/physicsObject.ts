@@ -1,12 +1,15 @@
 import * as THREE from "three";
 import Ammo from "ammojs-typed";
 
-export class PhysicsObject extends THREE.Object3D {
+import { Tick, Ticker } from "../ticker";
+
+export class PhysicsObject extends THREE.Object3D implements Ticker {
   private btWorldTransform: Ammo.btTransform;
   private btOrigin: Ammo.btVector3;
   private btRotation: Ammo.btQuaternion;
   private btForce: Ammo.btVector3;
-  constructor(ammo: typeof Ammo, private mass: number) {
+  constructor(ammo: typeof Ammo, private mass: number,
+    private body: Ammo.btRigidBody) {
     super();
     this.btWorldTransform = new ammo.btTransform();
     this.btOrigin = new ammo.btVector3();
@@ -15,10 +18,9 @@ export class PhysicsObject extends THREE.Object3D {
   }
 
   setPhysicsPosition(): void {
-    console.assert(!!this.userData['physicsObject'],
-      "No physics object!");
-    const body = this.userData['physicsObject'] as Ammo.btRigidBody;
-    const motionState = body.getMotionState();
+    console.log(`Setting physics position: ${this.position.y}`);
+    // console.log(this.body);
+    const motionState = this.body.getMotionState();
     motionState.getWorldTransform(this.btWorldTransform);
     this.btOrigin.setValue(this.position.x, this.position.y, this.position.z);
     this.btWorldTransform.setOrigin(this.btOrigin);
@@ -26,33 +28,40 @@ export class PhysicsObject extends THREE.Object3D {
       this.quaternion.z, this.quaternion.w);
     this.btWorldTransform.setRotation(this.btRotation);
     motionState.setWorldTransform(this.btWorldTransform);
+    this.body.setMotionState(motionState);
   }
 
   updatePositionFromPhysics(): void {
-    console.assert(!!this.userData['physicsObject'],
-      "No physics object!");
-    const body = this.userData['physicsObject'] as Ammo.btRigidBody;
-    const motionState = body.getMotionState();
+    // console.log(this.body);
+    const motionState = this.body.getMotionState();
     motionState.getWorldTransform(this.btWorldTransform);
+    // console.log(this.btWorldTransform);
     const btOrigin = this.btWorldTransform.getOrigin();
+    // console.log(btOrigin);
+    // console.log(`Before physics position: ${this.position.y}`);
     this.position.set(btOrigin.x(), btOrigin.y(), btOrigin.z());
+    // console.log(`After physics position: ${this.position.y}`);
     const btQuaternion = this.btWorldTransform.getRotation();
     this.quaternion.set(btQuaternion.x(), btQuaternion.y(),
       btQuaternion.z(), btQuaternion.w());
+    if (isNaN(this.position.y)) {
+      throw new Error('Math failed.');
+    }
+  }
+
+  tick(t: Tick) {
+    this.updatePositionFromPhysics();
   }
 
   applyAcceleration(a: THREE.Vector3): void {
-    console.assert(!!this.userData['physicsObject'],
-      "No physics object!");
-    const body = this.userData['physicsObject'] as Ammo.btRigidBody;
     // F = ma
     this.btForce.setValue(a.x, a.y, a.z);
     this.btForce.op_mul(this.mass);
-    body.applyCentralForce(this.btForce);
+    this.body.applyCentralForce(this.btForce);
   }
 
   static makeRigidBody(
-    object: THREE.Object3D, ammo: typeof Ammo,
+    ammo: typeof Ammo,
     shape: Ammo.btSphereShape | Ammo.btBvhTriangleMeshShape | Ammo.btBoxShape,
     mass: number): Ammo.btRigidBody {
 
@@ -61,18 +70,11 @@ export class PhysicsObject extends THREE.Object3D {
     const btV1 = new ammo.btVector3();
 
     btTx.setIdentity();
-    btV1.setValue(
-      object.position.x,
-      object.position.y,
-      object.position.z);
+    btV1.setValue(0, 0, 0);
     btTx.setOrigin(btV1);
-    btQ.setValue(
-      object.quaternion.x,
-      object.quaternion.y,
-      object.quaternion.z,
-      object.quaternion.w);
+    btQ.setValue(0, 0, 0, 0);
     btTx.setRotation(btQ);
-    const motionState = new ammo.btDefaultMotionState(btTx);
+    const motionState = new ammo.btDefaultMotionState();
     btV1.setValue(0, 0, 0);
     if (mass > 0) {
       shape.calculateLocalInertia(mass, btV1);
@@ -82,10 +84,13 @@ export class PhysicsObject extends THREE.Object3D {
     const body = new ammo.btRigidBody(
       new ammo.btRigidBodyConstructionInfo(
         mass, motionState, shape, btV1));
-    body.setActivationState(4);  // Disable deactivation
+    // body.setActivationState(4);  // Disable deactivation
     body.activate(true);
     body.setFriction(0.3);
     body.setRestitution(0.1);
+    btV1.setValue(0, 0, 0);
+    // body.setLinearVelocity(btV1);
+    // body.setAngularVelocity(btV1);
 
     return body;
   }
