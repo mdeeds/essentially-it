@@ -155,12 +155,12 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     }
 
     this.leftPortal = new Portal(1, 2);
-    this.leftPortal.position.set(-1, 1.5, -2);
+    this.leftPortal.position.set(-1, 1.0, -2);
     this.leftPortal.rotateY(Math.PI / 4);
     this.universe.add(this.leftPortal);
 
     this.rightPortal = new Portal(0.5, 1);
-    this.rightPortal.position.set(1, 1.5, -2);
+    this.rightPortal.position.set(1, 0.5, -2);
     this.rightPortal.rotateY(-Math.PI / 4)
     this.universe.add(this.rightPortal);
 
@@ -176,9 +176,6 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
   }
 
   makeCameraMaterial(color: THREE.Color): THREE.ShaderMaterial {
-
-    Debug.log(`Color: ${color.r}, ${color.g}, ${color.b}`);
-
     const material = new THREE.ShaderMaterial({
       uniforms: {
         'rightCameraPosition': { value: new THREE.Vector3() },
@@ -211,7 +208,6 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     return material;
   }
 
-
   onWindowResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
@@ -223,7 +219,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
   private p3 = new THREE.Vector3();
   private p4 = new THREE.Vector3();
 
-  tick(t: Tick) {
+  private renderPortals() {
     // save the original camera properties
     const currentRenderTarget = this.renderer.getRenderTarget();
     const currentXrEnabled = this.renderer.xr.enabled;
@@ -231,19 +227,25 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.renderer.xr.enabled = false; // Avoid camera modification
     this.renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
 
+    this.blobby.visible = true;
     this.leftPortal.render(this.rightPortal, this.camera, this.renderer, this);
     this.rightPortal.render(this.leftPortal, this.camera, this.renderer, this);
+    this.blobby.visible = false;
 
     // restore the original rendering properties
     this.renderer.xr.enabled = currentXrEnabled;
     this.renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
     this.renderer.setRenderTarget(currentRenderTarget);
+  }
 
+  private updateCameraMaterial() {
     const rcp = this.cameraMaterial.uniforms['rightCameraPosition']
       .value as THREE.Vector3;
     this.cPos.getWorldPosition(rcp);
     this.cameraMaterial.uniformsNeedUpdate = true;
+  }
 
+  private updateBlobby() {
     this.cPos.getWorldQuaternion(this.blobby.quaternion);
     this.blobby.updateMatrixWorld(true);
     this.cPos.getWorldPosition(this.p1);
@@ -260,4 +262,76 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       this.p1, this.handMotions[0].p, this.handMotions[1].p, this.p4);
   }
 
+  private session: THREE.XRSession = undefined;
+  private getSession() {
+    if (!!this.session) {
+      return;
+    }
+    const session = this.renderer.xr.getSession();
+    if (session) {
+      Debug.log('Session aquired.');
+      this.session = session;
+    }
+  }
+
+  private previousButtons: number[][] = undefined;
+  private currentButtons: number[][] = undefined;
+
+  private updateButtons() {
+    if (!this.session) {
+      return;
+    }
+    this.previousButtons = this.currentButtons;
+    this.currentButtons = [];
+    for (const source of this.session.inputSources) {
+      this.currentButtons.push(source.gamepad.buttons.map((b) => b.value));
+    }
+  }
+
+  private moveBlobby(t: Tick) {
+    if (!this.currentButtons || !(this.currentButtons.length < 2)) {
+      if (Math.random() < 0.01) {
+        Debug.log(`No controllers.`);
+      }
+      // We don't have a pair of controllers yet.
+      return;
+    }
+    if (this.currentButtons[0][1] !== this.previousButtons[0][1]) {
+      Debug.log('Grip 0 changed.');
+    }
+
+    if (this.currentButtons[0][1] && this.currentButtons[1][1]) {
+      // Hold both grips to move.
+      this.p1.copy(this.handMotions[0].velocity);
+      this.p2.copy(this.handMotions[1].velocity);
+      // Remove vertical component.
+      this.p1.y = 0;
+      this.p2.y = 0;
+      const xzDot = this.p1.dot(this.p2);
+      if (Math.random() < 0.01) {
+        Debug.log(`Dot: ${xzDot.toFixed(3)}`);
+      }
+      if (xzDot > 0) {
+        // Hands are stationary or moving in the same direction;
+        return;
+      }
+      this.cPos.getWorldDirection(this.p1);
+      this.p1.y = 0;  // Remove vertical component.
+      this.p1.setLength(Math.sqrt(Math.abs(xzDot)) * 0.1);
+      if (this.p1.length() > t.elapsedS) {
+        // For now, cap speed to 1 m/s
+        this.p1.setLength(t.elapsedS);
+      }
+      this.universe.position.add(this.p1);
+    }
+  }
+
+  tick(t: Tick) {
+    this.getSession();
+    this.renderPortals();
+    this.updateCameraMaterial();
+    this.updateBlobby();
+    this.updateButtons();
+    this.moveBlobby(t);
+  }
 }
