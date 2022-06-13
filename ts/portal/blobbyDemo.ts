@@ -324,7 +324,6 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       let i = 0;
       for (const b of source.gamepad.buttons) {
         bs.push(b);
-        Debug.log(`${i}: ${b.pressed} ${b.touched} ${b.value}`);
         ++i;
       }
     }
@@ -354,12 +353,11 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       }
       this.cPos.getWorldDirection(this.p1);
       this.p1.y = 0;  // Remove vertical component.
-      this.p1.setLength(Math.sqrt(Math.abs(xzDot)) * 0.1);
-      if (this.p1.length() > t.elapsedS) {
-        // For now, cap accelleration to 1 m/s/s
-        this.p1.setLength(t.elapsedS);
+      this.p1.setLength(Math.sqrt(Math.abs(xzDot)));
+      this.blobbyBall.setVelocity(this.p1);
+      if (Math.random() < 0.05) {
+        Debug.log(`Acc: ${this.p1.length()}`);
       }
-      this.blobbyBall.applyAcceleration(this.p1);
     }
     this.universe.position.set(
       -this.blobbyBall.position.x,
