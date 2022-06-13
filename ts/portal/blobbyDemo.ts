@@ -20,6 +20,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
   private cPos = new THREE.Object3D();
 
   private blobby: Blobby;
+  private blobbyBall: PhysicsObject;
 
   private universe = new THREE.Group();
 
@@ -64,6 +65,9 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.blobby = new Blobby(geometry);
     this.blobby.position.set(0, 0.5, 0);
     this.add(this.blobby);
+    this.blobbyBall =
+      this.makePhysicalBall(this.blobby.position, new THREE.Color('black'), 0.5);
+    this.universe.add(this.blobbyBall);
 
     const blend: number[] = [];
     const positions = geometry.getAttribute('position');
@@ -130,8 +134,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.physicsWorld.addRigidBody(body);
   }
 
-  makePhysicalBall(position: THREE.Vector3, color: THREE.Color): THREE.Object3D {
-    const sphereRadius = 0.2;
+  makePhysicalBall(position: THREE.Vector3, color: THREE.Color, sphereRadius: number): PhysicsObject {
     const sphereMass = 1.0;
     const shape = new this.ammo.btSphereShape(sphereRadius);
     shape.setMargin(0.01);
@@ -181,8 +184,8 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
         Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5,
         Math.random() * 0.5 + 0.5);
       const position = new THREE.Vector3(
-        Math.random() * 4 - 2, Math.random(), Math.random() * 4 - 2);
-      const ball = this.makePhysicalBall(position, color);
+        Math.random() * 4 - 2, Math.random() + 0.2, Math.random() * 4 - 2);
+      const ball = this.makePhysicalBall(position, color, 0.2);
       this.universe.add(ball);
     }
 
@@ -325,25 +328,15 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
         ++i;
       }
     }
-    if (Math.random() < 0.01) {
-      Debug.log(`Source count: ${this.session.inputSources.length}`);
-    }
   }
 
   private moveBlobby(t: Tick) {
     if (!this.currentButtons || this.currentButtons.length < 2) {
-      if (Math.random() < 0.01) {
-        Debug.log(`No controllers. current: ${!!this.currentButtons}`);
-      }
       // We don't have a pair of controllers yet.
       return;
     }
     if (!this.previousButtons || this.previousButtons.length < 2) {
-      Debug.log('First frame...');
       return;
-    }
-    if (this.currentButtons[0][1] !== this.previousButtons[0][1]) {
-      Debug.log('Grip 0 changed.');
     }
 
     if (this.currentButtons[0][1].pressed &&
@@ -355,9 +348,6 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       this.p1.y = 0;
       this.p2.y = 0;
       const xzDot = this.p1.dot(this.p2);
-      if (Math.random() < 0.01) {
-        Debug.log(`Dot: ${xzDot.toFixed(3)}`);
-      }
       if (xzDot > 0) {
         // Hands are stationary or moving in the same direction;
         return;
@@ -366,11 +356,15 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       this.p1.y = 0;  // Remove vertical component.
       this.p1.setLength(Math.sqrt(Math.abs(xzDot)) * 0.1);
       if (this.p1.length() > t.elapsedS) {
-        // For now, cap speed to 1 m/s
+        // For now, cap accelleration to 1 m/s/s
         this.p1.setLength(t.elapsedS);
       }
-      this.universe.position.add(this.p1);
+      this.blobbyBall.applyAcceleration(this.p1);
     }
+    this.universe.position.set(
+      -this.blobbyBall.position.x,
+      -this.blobbyBall.position.y,
+      -this.blobbyBall.position.z);
   }
 
   tick(t: Tick) {

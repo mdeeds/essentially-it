@@ -18,7 +18,7 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
   }
 
   setPhysicsPosition(): void {
-    console.log(`Setting physics position: ${this.position.y}`);
+    // console.log(`Setting physics position: ${this.position.y}`);
     // console.log(this.body);
     const motionState = this.body.getMotionState();
     motionState.getWorldTransform(this.btWorldTransform);
@@ -65,16 +65,8 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     shape: Ammo.btSphereShape | Ammo.btBvhTriangleMeshShape | Ammo.btBoxShape,
     mass: number): Ammo.btRigidBody {
 
-    const btTx = new ammo.btTransform();
-    const btQ = new ammo.btQuaternion(0, 0, 0, 0);
-    const btV1 = new ammo.btVector3();
-
-    btTx.setIdentity();
-    btV1.setValue(0, 0, 0);
-    btTx.setOrigin(btV1);
-    btQ.setValue(0, 0, 0, 0);
-    btTx.setRotation(btQ);
     const motionState = new ammo.btDefaultMotionState();
+    const btV1 = new ammo.btVector3();
     btV1.setValue(0, 0, 0);
     if (mass > 0) {
       shape.calculateLocalInertia(mass, btV1);
