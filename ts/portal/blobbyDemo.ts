@@ -10,6 +10,7 @@ import { Blobby } from './blobby';
 import { Portal } from './portal';
 import { PortalPanel } from './portalPanel';
 import { PhysicsObject } from '../gym/physicsObject';
+import { KinematicObject } from '../gym/kinematicObject';
 
 
 export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
@@ -60,6 +61,10 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
 
   initBlobby() {
+    for (const hm of this.handMotions) {
+      hm.add(this.makeKinematicBall(hm.p, new THREE.Color('red'), 0.1));
+    }
+
     const initialRadius = 0.3;
     const geometry = new THREE.IcosahedronBufferGeometry(initialRadius, 5);
     this.blobby = new Blobby(geometry);
@@ -144,6 +149,24 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       new THREE.IcosahedronBufferGeometry(sphereRadius, 3),
       new THREE.MeshPhongMaterial({ color: color }));
     const physicalObject = new PhysicsObject(this.ammo, sphereMass, body);
+    physicalObject.add(obj);
+    physicalObject.position.copy(position);
+    physicalObject.setPhysicsPosition();
+    this.physicsWorld.addRigidBody(body);
+    return physicalObject;
+  }
+
+  makeKinematicBall(position: THREE.Vector3, color: THREE.Color, sphereRadius: number): KinematicObject {
+    const sphereMass = 0.0;  // Kinematic
+    const shape = new this.ammo.btSphereShape(sphereRadius);
+    shape.setMargin(0.01);
+    const body =
+      PhysicsObject.makeRigidBody(this.ammo, shape, sphereMass);
+    const obj = new THREE.Mesh(
+      new THREE.IcosahedronBufferGeometry(sphereRadius, 3),
+      new THREE.MeshPhongMaterial({ color: color }));
+    const physicalObject = new KinematicObject(
+      this.ammo, sphereMass, body, this.universe);
     physicalObject.add(obj);
     physicalObject.position.copy(position);
     physicalObject.setPhysicsPosition();
