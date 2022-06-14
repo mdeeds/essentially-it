@@ -83,7 +83,7 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     const body = new ammo.btRigidBody(
       new ammo.btRigidBodyConstructionInfo(
         mass, motionState, shape, btV1));
-    // body.setActivationState(4);  // Disable deactivation
+    body.setActivationState(4);  // DISABLE_DEACTIVATION
     body.activate(true);
     body.setFriction(0.3);
     body.setRestitution(0.1);

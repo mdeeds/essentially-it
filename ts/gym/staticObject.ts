@@ -3,12 +3,13 @@ import Ammo from "ammojs-typed";
 
 import { Tick, Ticker } from "../ticker";
 
-export class KinematicObject extends THREE.Object3D implements Ticker {
+export class StaticObject extends THREE.Object3D implements Ticker {
   private btWorldTransform: Ammo.btTransform;
   private btOrigin: Ammo.btVector3;
   private btRotation: Ammo.btQuaternion;
   private btForce: Ammo.btVector3;
   private btVelocity: Ammo.btVector3;
+  private dirty = true;
   constructor(ammo: typeof Ammo,
     private body: Ammo.btRigidBody, private universeFrame: THREE.Object3D) {
     super();
@@ -34,13 +35,12 @@ export class KinematicObject extends THREE.Object3D implements Ticker {
     this.btWorldTransform.setRotation(this.btRotation);
     motionState.setWorldTransform(this.btWorldTransform);
     this.body.setMotionState(motionState);
-    this.body.setCollisionFlags(2); // CF_KINEMATIC_OBJECT
-    if (!this.body.isKinematicObject()) {
-      throw new Error("Not Kinematic!?");
-    }
+    this.dirty = true;
   }
 
   tick(t: Tick) {
-    this.setPhysicsPosition();
+    if (this.dirty) {
+      this.setPhysicsPosition();
+    }
   }
 }

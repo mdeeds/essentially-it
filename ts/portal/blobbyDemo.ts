@@ -11,6 +11,7 @@ import { Portal } from './portal';
 import { PortalPanel } from './portalPanel';
 import { PhysicsObject } from '../gym/physicsObject';
 import { KinematicObject } from '../gym/kinematicObject';
+import { StaticObject } from '../gym/staticObject';
 
 
 export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
@@ -105,21 +106,37 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       new Float32Array(blend), 4));
   }
 
+  makePanel(): StaticObject {
+    const halfSize = new this.ammo.btVector3(1, 1, 0.01);
+    const shape = new this.ammo.btBoxShape(halfSize);
+    shape.setMargin(0.01);
+    const body =
+      PhysicsObject.makeRigidBody(this.ammo, shape, /*mass=*/0);
+    const obj = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(halfSize.x() * 2, halfSize.y() * 2),
+      PortalPanel.makePanelMaterial());
+    const physicalObject = new StaticObject(
+      this.ammo, body, this.universe);
+    physicalObject.add(obj);
+    this.physicsWorld.addRigidBody(body);
+    return physicalObject;
+  }
+
   private buildRoom() {
     const roomRadius = 2;
     for (let i = -roomRadius; i <= roomRadius; ++i) {
-      const p1 = new PortalPanel();
+      const p1 = this.makePanel();
       p1.position.set(i * 2, 1.0, -roomRadius * 2 - 1);
       this.universe.add(p1);
-      const p2 = new PortalPanel();
+      const p2 = this.makePanel();
       p2.position.set(roomRadius * 2 + 1, 1.0, i * 2);
       p2.rotateY(-Math.PI / 2);
       this.universe.add(p2);
-      const p3 = new PortalPanel();
+      const p3 = this.makePanel();
       p3.position.set(i * 2, 1.0, roomRadius * 2 + 1);
       p3.rotateY(Math.PI);
       this.universe.add(p3);
-      const p4 = new PortalPanel();
+      const p4 = this.makePanel();
       p4.position.set(-roomRadius * 2 - 1, 1.0, i * 2);
       p4.rotateY(Math.PI / 2);
       this.universe.add(p4);
@@ -166,7 +183,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       new THREE.IcosahedronBufferGeometry(sphereRadius, 3),
       new THREE.MeshPhongMaterial({ color: color }));
     const physicalObject = new KinematicObject(
-      this.ammo, sphereMass, body, this.universe);
+      this.ammo, body, this.universe);
     physicalObject.add(obj);
     physicalObject.position.copy(position);
     physicalObject.setPhysicsPosition();
@@ -384,7 +401,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     }
     this.universe.position.set(
       -this.blobbyBall.position.x,
-      -this.blobbyBall.position.y,
+      -this.blobbyBall.position.y + 0.5,
       -this.blobbyBall.position.z);
   }
 
