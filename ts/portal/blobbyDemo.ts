@@ -12,6 +12,9 @@ import { PortalPanel } from './portalPanel';
 import { PhysicsObject } from '../gym/physicsObject';
 import { KinematicObject } from '../gym/kinematicObject';
 import { StaticObject } from '../gym/staticObject';
+import { Volume } from './volume';
+import { isInt16Array } from 'util/types';
+import { dir } from 'console';
 
 
 export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
@@ -66,13 +69,15 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       hm.add(this.makeKinematicBall(hm.p, new THREE.Color('red'), 0.1));
     }
 
+    const blobbyBallRadius = 0.3;
     const initialRadius = 0.3;
     const geometry = new THREE.IcosahedronBufferGeometry(initialRadius, 5);
     this.blobby = new Blobby(geometry);
-    this.blobby.position.set(0, 0.5, 0);
+    this.blobby.position.set(0, blobbyBallRadius, 0);
     this.add(this.blobby);
     this.blobbyBall =
-      this.makePhysicalBall(this.blobby.position, new THREE.Color('black'), 0.5);
+      this.makePhysicalBall(this.blobby.position, new THREE.Color('black'),
+        blobbyBallRadius);
     this.universe.add(this.blobbyBall);
 
     const blend: number[] = [];
@@ -106,7 +111,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       new Float32Array(blend), 4));
   }
 
-  makePanel(): StaticObject {
+  makePanel(nx: number, ny: number, nz: number): StaticObject {
     const halfSize = new this.ammo.btVector3(1, 1, 0.01);
     const shape = new this.ammo.btBoxShape(halfSize);
     shape.setMargin(0.01);
@@ -119,41 +124,81 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       this.ammo, body, this.universe);
     physicalObject.add(obj);
     this.physicsWorld.addRigidBody(body);
+
+    if (nx > 0) {
+      physicalObject.rotateY(Math.PI / 2);
+    } else if (nx < 0) {
+      physicalObject.rotateY(-Math.PI / 2);
+    } else if (nz > 0) {
+      // Nothing to do
+    } else if (nz < 0) {
+      physicalObject.rotateY(Math.PI);
+    } else if (ny > 0) {
+      physicalObject.rotateX(-Math.PI / 2);
+    } else { // ny < 0
+      physicalObject.rotateX(Math.PI / 2);
+    }
     return physicalObject;
   }
 
-  private buildRoom() {
-    const roomRadius = 2;
+  private scanVolume(volume: Volume, direction: THREE.Vector3,
+    d1: THREE.Vector3, d2: THREE.Vector3) {
+    const tmp = new THREE.Vector3();
+    const roomRadius = volume.radius;
+    const cursor = new THREE.Vector3(0, 0, 0);
+    let previousIsOpen = false;
     for (let i = -roomRadius; i <= roomRadius; ++i) {
-      const p1 = this.makePanel();
-      p1.position.set(i * 2, 1.0, -roomRadius * 2 - 1);
-      this.universe.add(p1);
-      const p2 = this.makePanel();
-      p2.position.set(roomRadius * 2 + 1, 1.0, i * 2);
-      p2.rotateY(-Math.PI / 2);
-      this.universe.add(p2);
-      const p3 = this.makePanel();
-      p3.position.set(i * 2, 1.0, roomRadius * 2 + 1);
-      p3.rotateY(Math.PI);
-      this.universe.add(p3);
-      const p4 = this.makePanel();
-      p4.position.set(-roomRadius * 2 - 1, 1.0, i * 2);
-      p4.rotateY(Math.PI / 2);
-      this.universe.add(p4);
+      for (let j = -roomRadius; j <= roomRadius; ++j) {
+        for (let k = -roomRadius; k <= roomRadius; ++k) {
+          tmp.copy(direction);
+          tmp.multiplyScalar(k);
+          cursor.copy(tmp);
+          tmp.copy(d1);
+          tmp.multiplyScalar(i);
+          cursor.add(tmp);
+          tmp.copy(d2);
+          tmp.multiplyScalar(j);
+          cursor.add(tmp);
+
+          const isOpen = volume.isOpen(cursor.x, cursor.y, cursor.z);
+          let panel: StaticObject;
+          if (previousIsOpen && !isOpen) {
+            panel = this.makePanel(-direction.x, -direction.y, -direction.z);
+          } else if (!previousIsOpen && isOpen) {
+            panel = this.makePanel(direction.x, direction.y, direction.z);
+          }
+          previousIsOpen = isOpen;
+          if (!panel) continue;
+          // Panel is half way between previous position and this position.
+          panel.position.copy(direction);
+          panel.position.multiplyScalar(-0.5);
+          panel.position.add(cursor);
+          panel.position.multiplyScalar(2.0);  // Panel size
+          panel.setPhysicsPosition();
+          this.universe.add(panel);
+        }
+      }
+    }
+  }
+
+  private buildRoom() {
+    const volume = new Volume(10);
+
+    const roomRadius = 2;
+    for (let x = -roomRadius; x <= roomRadius; ++x) {
+      for (let y = 0; y < 2; ++y) {
+        for (let z = -roomRadius; z < roomRadius; ++z) {
+          volume.set(x, y, z, true);
+        }
+      }
     }
 
-    const groundPlane = new this.ammo.btStaticPlaneShape(
-      new this.ammo.btVector3(0, 1, 0), 0);
-    groundPlane.setMargin(0.01);
-    const btTx = new this.ammo.btTransform();
-    btTx.setIdentity();
-    const btPosition = new this.ammo.btVector3(0, 0, 0);
-    const motionState = new this.ammo.btDefaultMotionState(btTx);
-    const body = new this.ammo.btRigidBody(
-      new this.ammo.btRigidBodyConstructionInfo(
-      /*mass=*/0, motionState, groundPlane, btPosition));
-    body.setFriction(0.5);
-    this.physicsWorld.addRigidBody(body);
+    let xUnit = new THREE.Vector3(1, 0, 0);
+    let yUnit = new THREE.Vector3(0, 1, 0);
+    let zUnit = new THREE.Vector3(0, 0, 1);
+    this.scanVolume(volume, xUnit, yUnit, zUnit);
+    this.scanVolume(volume, yUnit, xUnit, zUnit);
+    this.scanVolume(volume, zUnit, xUnit, yUnit);
   }
 
   makePhysicalBall(position: THREE.Vector3, color: THREE.Color, sphereRadius: number): PhysicsObject {
@@ -209,13 +254,6 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     container.appendChild(VRButton.createButton(this.renderer));
 
     // renderer.localClippingEnabled = true;
-
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(10, 10),
-      new THREE.MeshPhongMaterial({ color: '#66f' })
-    );
-    floor.rotateX(-Math.PI / 2);
-    this.universe.add(floor);
 
     this.cameraMaterial = this.makeCameraMaterial(new THREE.Color('pink'));
 

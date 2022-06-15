@@ -3,7 +3,7 @@ import Ammo from "ammojs-typed";
 
 import { Tick, Ticker } from "../ticker";
 
-export class StaticObject extends THREE.Object3D implements Ticker {
+export class StaticObject extends THREE.Object3D {
   private btWorldTransform: Ammo.btTransform;
   private btOrigin: Ammo.btVector3;
   private btRotation: Ammo.btQuaternion;
@@ -35,12 +35,5 @@ export class StaticObject extends THREE.Object3D implements Ticker {
     this.btWorldTransform.setRotation(this.btRotation);
     motionState.setWorldTransform(this.btWorldTransform);
     this.body.setMotionState(motionState);
-    this.dirty = true;
-  }
-
-  tick(t: Tick) {
-    if (this.dirty) {
-      this.setPhysicsPosition();
-    }
   }
 }
