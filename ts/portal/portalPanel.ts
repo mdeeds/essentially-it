@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MeshPhongMaterial } from 'three';
 import { Shaders } from './shaders';
 
 export class PortalPanel extends THREE.Mesh {
@@ -38,6 +39,6 @@ export class PortalPanel extends THREE.Mesh {
 
   constructor() {
     super(new THREE.PlaneGeometry(2.0, 2.0),
-      PortalPanel.makePanelMaterial());
+      new MeshPhongMaterial({ color: '#99e' }));
   }
 }

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import Ammo from "ammojs-typed";
 
 import { Tick, Ticker } from "../ticker";
+import { Debug } from "../debug";
 
 export class PhysicsObject extends THREE.Object3D implements Ticker {
   private btWorldTransform: Ammo.btTransform;

@@ -22,24 +22,26 @@ export class S {
 
   static {
     S.setDefault('last change', 3, 'Camera acceleration.');
-    S.setDefault('ep', 4, 'Episode number');
-    S.setDefault('mi', 6, 'Mandelbrot iterations.');
-    S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
-    S.setDefault('pi', 30, 'Pen initial thickness.');
-    S.setDefault('pf', 15, 'Pen final thickness');
-    S.setDefault('lm', 3.0, 'Multiplier for lowest note.');
-    S.setDefault('hm', 1.0, 'Multiplier for highest note.')
-    S.setDefault('sh', 0, '0 = lab, 1 = home, 2 = conduit');
-    S.setDefault('ns', 100000, 'Number of stars in home starfield.');
-    S.setDefault('sr', 10000, 'Radius of the starfield.');
-    S.setDefault('mr', 2, 'Minimum star radius.');
-    S.setDefault('si', 0.9, 'Star intensity');
-    S.setDefault('zy', 1.1, 'Zig-Zag height');
+    S.setDefault('aa', Math.PI / 4, 'Acceleration angle.');
+    S.setDefault('ba', 2.0, 'Blobby stick sensitivity (acceleration)');
     S.setDefault('bh', 0.1, 'Heat of brownian motion.  1.0 = white.');
     S.setDefault('dr', -0.3, 'Rotation if you are off center.');
+    S.setDefault('ep', 4, 'Episode number');
+    S.setDefault('ha', 1.5, 'Hand angle (radians)');
+    S.setDefault('hm', 1.0, 'Multiplier for highest note.')
+    S.setDefault('lm', 3.0, 'Multiplier for lowest note.');
     S.setDefault('ma', 20.0, 'Max player acceleration.');
-    S.setDefault('aa', Math.PI / 4, 'Acceleration angle.');
+    S.setDefault('mi', 6, 'Mandelbrot iterations.');
+    S.setDefault('ns', 100000, 'Number of stars in home starfield.');
+    S.setDefault('mr', 2, 'Minimum star radius.');
+    S.setDefault('pi', 30, 'Pen initial thickness.');
+    S.setDefault('pf', 15, 'Pen final thickness');
+    S.setDefault('s', 0.15, 'Smoothness, lower = more smooth.');
+    S.setDefault('sh', 0, '0 = lab, 1 = home, 2 = conduit');
+    S.setDefault('si', 0.9, 'Star intensity');
     S.setDefault('shf', 10.0, 'Super-human jump factor.');
+    S.setDefault('sr', 10000, 'Radius of the starfield.');
+    S.setDefault('zy', 1.1, 'Zig-Zag height');
   }
 
   public static float(name: string): number {

@@ -15,6 +15,7 @@ import { StaticObject } from '../gym/staticObject';
 import { Volume } from './volume';
 import { isInt16Array } from 'util/types';
 import { dir } from 'console';
+import { S } from '../settings';
 
 
 export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
@@ -84,10 +85,12 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     const positions = geometry.getAttribute('position');
     const geometryPosition = new THREE.Vector3();
 
+    const a = S.float('ha');
+
     const naturalPositions = [
       new THREE.Vector3(0, 0.4, 0),
-      new THREE.Vector3(-0.5, 0.5, -0.1),
-      new THREE.Vector3(0.5, 0.5, -0.1),
+      new THREE.Vector3(-Math.sin(a), Math.cos(a), -0.1),
+      new THREE.Vector3(Math.sin(a), Math.cos(a), -0.1),
       new THREE.Vector3(0, -0.2, 0)
     ];
 
@@ -117,9 +120,13 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     shape.setMargin(0.01);
     const body =
       PhysicsObject.makeRigidBody(this.ammo, shape, /*mass=*/0);
+    const color = new THREE.Color('#ddf');
+    color.r -= Math.random() * 0.1;
+    color.g -= Math.random() * 0.1;
+    color.b -= Math.random() * 0.1;
     const obj = new THREE.Mesh(
       new THREE.PlaneBufferGeometry(halfSize.x() * 2, halfSize.y() * 2),
-      PortalPanel.makePanelMaterial());
+      new THREE.MeshPhongMaterial({ color: color }));
     const physicalObject = new StaticObject(
       this.ammo, body, this.universe);
     physicalObject.add(obj);
@@ -278,12 +285,12 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.universe.add(this.rightPortal);
 
     // lights
-    const mainLight = new THREE.DirectionalLight(new THREE.Color('white'), 1.0);
+    const mainLight = new THREE.HemisphereLight(new THREE.Color('white'),
+      new THREE.Color('#445'));
     mainLight.position.y = 60;
     this.universe.add(mainLight);
-    const upLight = new THREE.DirectionalLight(new THREE.Color('#acf'), 0.1);
-    upLight.position.y = -60;
-    this.universe.add(upLight);
+    const ambient = new THREE.AmbientLight(new THREE.Color('#acf'), 0.1);
+    this.universe.add(ambient);
 
     window.addEventListener('resize', () => { this.onWindowResize(); });
   }
@@ -389,6 +396,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
   private previousButtons: GamepadButton[][] = undefined;
   private currentButtons: GamepadButton[][] = undefined;
+  private stick = new THREE.Vector2();
 
   private updateButtons() {
     if (!this.session) {
@@ -396,6 +404,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     }
     this.previousButtons = this.currentButtons;
     this.currentButtons = [];
+    this.stick.set(0, 0);
     for (const source of this.session.inputSources) {
       const bs: GamepadButton[] = [];
       this.currentButtons.push(bs);
@@ -403,6 +412,11 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       for (const b of source.gamepad.buttons) {
         bs.push(b);
         ++i;
+      }
+      const axes = source.gamepad.axes;
+      if (axes.length >= 4) {
+        this.stick.x += axes[2];
+        this.stick.y += axes[3];
       }
     }
   }
@@ -416,30 +430,16 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       return;
     }
 
-    if (this.currentButtons[0][1].pressed &&
-      this.currentButtons[1][1].pressed) {
-      // Hold both grips to move.
-      this.p1.copy(this.handMotions[0].velocity);
-      this.p2.copy(this.handMotions[1].velocity);
-      // Remove vertical component.
-      this.p1.y = 0;
-      this.p2.y = 0;
-      const xzDot = this.p1.dot(this.p2);
-      if (xzDot > 0) {
-        // Hands are stationary or moving in the same direction;
-        return;
-      }
-      this.cPos.getWorldDirection(this.p1);
-      this.p1.y = 0;  // Remove vertical component.
-      this.p1.setLength(Math.sqrt(Math.abs(xzDot)));
-      this.blobbyBall.setVelocity(this.p1);
-      if (Math.random() < 0.05) {
-        Debug.log(`Acc: ${this.p1.length()}`);
-      }
+    if (this.stick.x != 0 || this.stick.y != 0) {
+      this.p1.set(this.stick.x, 0, this.stick.y);
+      this.p1.multiplyScalar(S.float('ba'));
+      this.p1.applyMatrix3(this.camera.normalMatrix);
+      this.blobbyBall.applyAcceleration(this.p1);
     }
+
     this.universe.position.set(
       -this.blobbyBall.position.x,
-      -this.blobbyBall.position.y + 0.5,
+      -this.blobbyBall.position.y + 0.3,
       -this.blobbyBall.position.z);
   }
 
