@@ -275,8 +275,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       this.p2.multiplyScalar(-c);
       this.p1.add(this.p2);
 
-      this.p1.y += 9.8;
-      closest.applyAcceleration(this.p1);
+      closest.applyForce(this.p1);
     }
   }
 
@@ -297,8 +296,8 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     if (this.stick.x != 0 || this.stick.y != 0) {
       this.p1.set(this.stick.x, 0, this.stick.y);
       this.p1.multiplyScalar(S.float('ba'));
-      this.p1.applyMatrix3(this.camera.normalMatrix);
-      this.blobbyBall.applyAcceleration(this.p1);
+      this.p1.applyMatrix3(this.cPos.normalMatrix);
+      this.blobbyBall.applyForce(this.p1);
     }
 
     for (let i = 0; i < this.currentButtons.length; ++i) {

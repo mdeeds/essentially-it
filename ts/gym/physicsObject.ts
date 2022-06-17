@@ -61,10 +61,9 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     this.updatePositionFromPhysics();
   }
 
-  applyAcceleration(a: THREE.Vector3): void {
+  applyForce(a: THREE.Vector3): void {
     // F = ma
     this.btForce.setValue(a.x, a.y, a.z);
-    this.btForce.op_mul(this.mass);
     this.body.applyCentralForce(this.btForce);
   }
 
