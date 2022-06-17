@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { S } from '../settings';
 
 export class Blobby extends THREE.Mesh {
   private shaderMaterial: THREE.ShaderMaterial;
@@ -73,8 +74,9 @@ export class Blobby extends THREE.Mesh {
 
   // `geometry` must have an attribute called `blend` which is a vec4
   // used to adjust the positioning of each vertex.
-  constructor(geometry: THREE.BufferGeometry) {
+  constructor() {
     const material = Blobby.makeBlobbyMaterial();
+    const geometry = Blobby.makeBlobbyGeometry();
     super(geometry, material);
     this.shaderMaterial = material;
   }
@@ -86,5 +88,65 @@ export class Blobby extends THREE.Mesh {
     this.shaderMaterial.uniforms['p4'].value.copy(p4);
     this.shaderMaterial.uniformsNeedUpdate = true;
   }
+
+  private static makeBlobbyGeometry(): THREE.BufferGeometry {
+    const initialRadius = 0.3;
+    const geometry = new THREE.IcosahedronBufferGeometry(initialRadius, 5);
+
+    const blend: number[] = [];
+    const positions = geometry.getAttribute('position');
+    const geometryPosition = new THREE.Vector3();
+
+    const a = S.float('ha');
+
+    const naturalPositions = [
+      new THREE.Vector3(0, 0.4, 0),
+      new THREE.Vector3(-Math.sin(a), Math.cos(a), -0.1),
+      new THREE.Vector3(Math.sin(a), Math.cos(a), -0.1),
+      new THREE.Vector3(0, -0.2, 0)
+    ];
+
+    naturalPositions[0].setLength(0.8 * initialRadius);
+    naturalPositions[1].setLength(1.1 * initialRadius);
+    naturalPositions[2].setLength(1.1 * initialRadius);
+    naturalPositions[3].setLength(0.99 * initialRadius);
+
+    for (let i = 0; i < positions.count; ++i) {
+      geometryPosition.fromBufferAttribute(positions, i);
+      const a = [
+        Blobby.getBlend(geometryPosition, naturalPositions[0]),
+        Blobby.getBlend(geometryPosition, naturalPositions[1]),
+        Blobby.getBlend(geometryPosition, naturalPositions[2]),
+        Blobby.getBlend(geometryPosition, naturalPositions[3])
+      ];
+
+      blend.push(...Blobby.softMax(a));
+    }
+    geometry.setAttribute('blend', new THREE.BufferAttribute(
+      new Float32Array(blend), 4));
+
+    return geometry;
+  }
+
+  private static t = new THREE.Vector3();
+  private static getBlend(a: THREE.Vector3, b: THREE.Vector3) {
+    Blobby.t.copy(a);
+    Blobby.t.sub(b);
+    return 1.0 / Blobby.t.length();
+  }
+
+  private static softMax(n: number[]): number[] {
+    const result: number[] = [];
+    let sum = 0;
+    for (let i = 0; i < n.length; ++i) {
+      sum += n[i];
+      result[i] = n[i];
+    }
+    for (let i = 0; i < n.length; ++i) {
+      result[i] /= sum;
+    }
+    return result;
+  }
+
 
 }
