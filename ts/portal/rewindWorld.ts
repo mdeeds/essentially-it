@@ -67,11 +67,37 @@ class EncodableRigidBody implements Encodable {
   }
 }
 
+class RecycleBin {
+  private recordSize = undefined;
+  private bin: Float32Array[] = [];
+  constructor() { }
+
+  trash(a: Float32Array) {
+    if (a.length != this.recordSize) {
+      this.bin.splice(0);
+      this.recordSize = a.length;
+    }
+    this.bin.push(a);
+  }
+  create(n: number): Float32Array {
+    if (n != this.recordSize) {
+      this.bin.splice(0);
+      this.recordSize = n;
+    }
+    if (this.bin.length > 0) {
+      return this.bin.pop();
+    } else {
+      return new Float32Array(n);
+    }
+  }
+}
+
 export class RewindWorld implements Encodable {
   private allBodies: EncodableRigidBody[] = [];
   private currentTimeS = 0;
   private previousStates: Float32Array[] = [];
   private encodeSize = 1;
+  private bin = new RecycleBin();
 
   constructor(private baseWorld: Ammo.btDiscreteDynamicsWorld,
     private ammo: typeof Ammo) {
@@ -99,20 +125,22 @@ export class RewindWorld implements Encodable {
   }
 
   private captureState() {
-    const state = new Float32Array(this.encodeSize);
+    const state = this.bin.create(this.encodeSize);
     this.encode(state, 0);
     this.previousStates.push(state);
     if (this.previousStates.length > 90 * 5 * 60) {
       // Remove a random state from the past.  We always keep the last 10%
       // untouched.
-      this.previousStates.splice(
+      const trash = this.previousStates.splice(
         Math.trunc(Math.random() * this.previousStates.length * 0.9), 1);
+      this.bin.trash(trash[0]);
     }
   }
 
   private rewindOneStep() {
     const poppedState = this.previousStates.pop();
     this.decode(poppedState, 0);
+    this.bin.trash(poppedState);
   }
 
   // Encodable
