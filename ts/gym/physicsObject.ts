@@ -10,7 +10,7 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
   private btRotation: Ammo.btQuaternion;
   private btForce: Ammo.btVector3;
   private btVelocity: Ammo.btVector3;
-  constructor(ammo: typeof Ammo, private mass: number,
+  constructor(ammo: typeof Ammo, readonly mass: number,
     private body: Ammo.btRigidBody) {
     super();
     this.btWorldTransform = new ammo.btTransform();
@@ -18,6 +18,11 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     this.btRotation = new ammo.btQuaternion(0, 0, 0, 0);
     this.btForce = new ammo.btVector3();
     this.btVelocity = new ammo.btVector3();
+  }
+
+  getVelocity(v: THREE.Vector3) {
+    const ammoV = this.body.getLinearVelocity();
+    v.set(ammoV.x(), ammoV.y(), ammoV.z());
   }
 
   setPhysicsPosition(): void {

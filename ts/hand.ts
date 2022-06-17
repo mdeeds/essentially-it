@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Object3D } from "three";
+import { Debug } from "./debug";
 import { Motion } from "./motion";
 import { ParticleSystem } from "./particleSystem";
 import { TactileProvider } from "./tactileProvider";
@@ -20,8 +21,14 @@ export class Hand extends THREE.Object3D implements Ticker {
     super();
     this.motion = new Motion(camera);
     this.motion.position.set(0, -0.25, -0.15);
-    const index = (side == 'left') ? 0 : 1;
+    const index = (side == 'right') ? 0 : 1;
     this.grip = renderer.xr.getControllerGrip(index);
+    for (const [key, value] of Object.entries(this.grip.userData)) {
+      Debug.log(`${side} Grip ${key}=${value}`);
+    }
+    for (const [key, value] of Object.entries(renderer.xr.getHand(index))) {
+      Debug.log(`${side} Hand ${key}=${value}`);
+    }
     this.grip.add(this.motion);
     // this.grip = new THREE.Group();
     this.grip.position.set((index - 0.5) * 0.1, 0.1, -0.1);

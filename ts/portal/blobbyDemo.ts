@@ -25,6 +25,8 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
   private universe = new THREE.Group();
 
+  private allBalls: PhysicsObject[] = [];
+
   constructor(private camera: THREE.PerspectiveCamera,
     private handMotions: Motion[],
     private renderer: THREE.WebGLRenderer,
@@ -41,23 +43,23 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
 
 
-  makeKinematicBall(position: THREE.Vector3, color: THREE.Color, sphereRadius: number): KinematicObject {
-    const sphereMass = 0.0;  // Kinematic
-    const shape = new this.ammo.btSphereShape(sphereRadius);
-    shape.setMargin(0.01);
-    const body =
-      PhysicsObject.makeRigidBody(this.ammo, shape, sphereMass);
-    const obj = new THREE.Mesh(
-      new THREE.IcosahedronBufferGeometry(sphereRadius, 3),
-      new THREE.MeshPhongMaterial({ color: color }));
-    const physicalObject = new KinematicObject(
-      this.ammo, body, this.universe);
-    physicalObject.add(obj);
-    physicalObject.position.copy(position);
-    physicalObject.setPhysicsPosition();
-    this.physicsWorld.addRigidBody(body);
-    return physicalObject;
-  }
+  // makeKinematicBall(position: THREE.Vector3, color: THREE.Color, sphereRadius: number): KinematicObject {
+  //   const sphereMass = 0.0;  // Kinematic
+  //   const shape = new this.ammo.btSphereShape(sphereRadius);
+  //   shape.setMargin(0.01);
+  //   const body =
+  //     PhysicsObject.makeRigidBody(this.ammo, shape, sphereMass);
+  //   const obj = new THREE.Mesh(
+  //     new THREE.IcosahedronBufferGeometry(sphereRadius, 3),
+  //     new THREE.MeshPhongMaterial({ color: color }));
+  //   const physicalObject = new KinematicObject(
+  //     this.ammo, body, this.universe);
+  //   physicalObject.add(obj);
+  //   physicalObject.position.copy(position);
+  //   physicalObject.setPhysicsPosition();
+  //   this.physicsWorld.addRigidBody(body);
+  //   return physicalObject;
+  // }
 
   init() {
     console.log('Init');
@@ -92,6 +94,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       const position = new THREE.Vector3(
         Math.random() * 4 - 2, Math.random() + 0.2, Math.random() * 4 - 2);
       const ball = new Ball(this.ammo, position, color, this.physicsWorld);
+      this.allBalls.push(ball);
       this.universe.add(ball);
     }
 
@@ -242,12 +245,52 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     }
   }
 
+  private grabClosestBall(handPosition: THREE.Vector3) {
+    let closest: PhysicsObject = undefined;
+    let closestDistance = 1; /*m*/
+    for (const b of this.allBalls) {
+      b.getWorldPosition(this.p1);
+      this.p1.sub(handPosition);
+      if (this.p1.length() < closestDistance) {
+        closestDistance = this.p1.length();
+        closest = b;
+      }
+    }
+    if (!!closest) {
+      // The force we want to apply is F = F_s - F_f
+      // Where F_s is a spring like force: F_s = kx
+      // And F_f is a friction like force: F_f = cx'
+      // Critically damped when c^2 = 4mk
+      const k = S.float('ga');
+      const m = closest.mass;
+      const c = Math.sqrt(4 * m * k);
+
+      const Fs = k * closestDistance;
+      closest.getWorldPosition(this.p1);
+      this.p1.sub(handPosition);
+      this.p1.setLength(-Fs);
+
+      closest.getVelocity(this.p2);
+      // Friction always opposes the direction of motion
+      this.p2.multiplyScalar(-c);
+      this.p1.add(this.p2);
+
+      this.p1.y += 9.8;
+      closest.applyAcceleration(this.p1);
+    }
+  }
+
   private moveBlobby(t: Tick) {
+    this.universe.position.set(
+      -this.blobbyBall.position.x,
+      -this.blobbyBall.position.y + 0.3,
+      -this.blobbyBall.position.z);
     if (!this.currentButtons || this.currentButtons.length < 2) {
       // We don't have a pair of controllers yet.
       return;
     }
     if (!this.previousButtons || this.previousButtons.length < 2) {
+      Debug.log(`Zero is ${this.session.inputSources[0].handedness}`);
       return;
     }
 
@@ -258,10 +301,16 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       this.blobbyBall.applyAcceleration(this.p1);
     }
 
-    this.universe.position.set(
-      -this.blobbyBall.position.x,
-      -this.blobbyBall.position.y + 0.3,
-      -this.blobbyBall.position.z);
+    for (let i = 0; i < this.currentButtons.length; ++i) {
+      const bs = this.currentButtons[i];
+      const m = this.handMotions[i];
+      if (i == 0 && Math.random() < 0.01) {
+        Debug.log(`bs[0]: ${bs[0].pressed} ${bs[0].touched} ${bs[0].value}`);
+      }
+      if (bs[1].value || bs[0].value) {
+        this.grabClosestBall(m.p);
+      }
+    }
   }
 
   tick(t: Tick) {
