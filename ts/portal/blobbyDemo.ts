@@ -12,6 +12,7 @@ import { KinematicObject } from '../gym/kinematicObject';
 import { S } from '../settings';
 import { Room } from './room';
 import { Ball } from './ball';
+import { RewindWorld } from './rewindWorld';
 
 export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
   private leftPortal: Portal;
@@ -27,11 +28,13 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
   private allBalls: PhysicsObject[] = [];
 
+  ;
+
   constructor(private camera: THREE.PerspectiveCamera,
     private handMotions: Motion[],
     private renderer: THREE.WebGLRenderer,
     private ammo: typeof Ammo,
-    private physicsWorld: Ammo.btDiscreteDynamicsWorld,) {
+    private physicsWorld: RewindWorld,) {
     super();
     this.init();
     this.add(this.universe);
@@ -69,7 +72,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.blobby.position.set(0, blobbyBallRadius, 0);
     this.add(this.blobby);
     this.blobbyBall = new Ball(
-      this.ammo, this.blobby.position, new THREE.Color('black'),
+      this.ammo, this.blobby.position, 'black',
       this.physicsWorld);
     this.universe.add(this.blobbyBall);
 
@@ -93,7 +96,8 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
         Math.random() * 0.5 + 0.5);
       const position = new THREE.Vector3(
         Math.random() * 4 - 2, Math.random() + 0.2, Math.random() * 4 - 2);
-      const ball = new Ball(this.ammo, position, color, this.physicsWorld);
+      const ball = new Ball(this.ammo, position, i === 0 ? 'orange' : 'red',
+        this.physicsWorld);
       this.allBalls.push(ball);
       this.universe.add(ball);
     }

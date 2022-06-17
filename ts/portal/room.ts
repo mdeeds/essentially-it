@@ -3,10 +3,11 @@ import Ammo from "ammojs-typed";
 import { StaticObject } from '../gym/staticObject';
 import { PhysicsObject } from '../gym/physicsObject';
 import { Volume } from './volume';
+import { RewindWorld } from './rewindWorld';
 
 export class Room extends THREE.Object3D {
   constructor(private ammo: typeof Ammo,
-    private physicsWorld: Ammo.btDiscreteDynamicsWorld) {
+    private physicsWorld: RewindWorld) {
     super();
     this.buildRoom();
   }

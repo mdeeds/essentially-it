@@ -7,12 +7,13 @@ import { Shaders } from "./shaders";
 import { S } from "../settings";
 import { Column } from "./column";
 import { Motion } from "../motion";
+import { RewindWorld } from "../portal/rewindWorld";
 
 export class Gymnasium extends THREE.Object3D implements World, Ticker {
   private universe = new THREE.Object3D();
   constructor(private camera: THREE.Object3D,
     private ammo: typeof Ammo,
-    private physicsWorld: Ammo.btDiscreteDynamicsWorld,
+    private physicsWorld: RewindWorld,
     private keysDown: Set<string>, private motions: Motion[]) {
     super();
     this.add(this.universe);

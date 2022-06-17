@@ -1,10 +1,11 @@
 import * as THREE from "three";
 import Ammo from "ammojs-typed";
 import { PhysicsObject } from "./physicsObject";
+import { RewindWorld } from "../portal/rewindWorld";
 
 export class Column extends PhysicsObject {
   constructor(ammo: typeof Ammo,
-    physicsWorld: Ammo.btDiscreteDynamicsWorld,
+    physicsWorld: RewindWorld,
     radius: number, height: number) {
     const shape = new ammo.btCylinderShape(new ammo.btVector3(
       radius, height, radius));

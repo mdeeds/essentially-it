@@ -4,12 +4,13 @@ import { PhysicsObject } from "./physicsObject";
 import { Tick, Ticker } from "../ticker";
 import { S } from "../settings";
 import { Motion } from "../motion";
+import { RewindWorld } from "../portal/rewindWorld";
 
 export class Player extends PhysicsObject implements Ticker {
   private static mass = 100; // kg
   constructor(
     private ammo: typeof Ammo,
-    private physicsWorld: Ammo.btDiscreteDynamicsWorld,
+    private physicsWorld: RewindWorld,
     private camera: THREE.Object3D, private motions: Motion[]) {
     const shape = new ammo.btCylinderShape(new ammo.btVector3(
       0.25, 0.10, 0.25));
@@ -47,8 +48,8 @@ export class Player extends PhysicsObject implements Ticker {
       push = Math.min(a2, -a3);
     }
     if (push > 0) {
-      this.v1.setLength(push);
-      this.applyAcceleration(this.v1);
+      this.v1.setLength(push * this.mass);
+      this.applyForce(this.v1);
     }
   }
 }

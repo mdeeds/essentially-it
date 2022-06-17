@@ -15,6 +15,7 @@ import { Tick, Ticker } from "./ticker";
 import { World } from "./world";
 import { PhysicsObject } from "./gym/physicsObject";
 import { BlobbyDemo } from "./portal/blobbyDemo";
+import { RewindWorld } from "./portal/rewindWorld";
 
 export class Game {
   private scene: THREE.Scene;
@@ -23,7 +24,7 @@ export class Game {
   private keysDown = new Set<string>();
   private hands: Hand[] = [];
   private headMotion: Motion;
-  private physicsWorld: Ammo.btDiscreteDynamicsWorld;
+  private physicsWorld: RewindWorld;
 
   private tactileProvider = new TactileProvider();
   private particleSystem = new ParticleSystem();
@@ -75,10 +76,11 @@ export class Game {
       collisionConfiguration);
     const broadphase = new this.ammo.btDbvtBroadphase();
     const solver = new this.ammo.btSequentialImpulseConstraintSolver();
-    this.physicsWorld = new this.ammo.btDiscreteDynamicsWorld(
+    const baseWorld = new this.ammo.btDiscreteDynamicsWorld(
       dispatcher, broadphase,
       solver, collisionConfiguration);
-    this.physicsWorld.setGravity(new this.ammo.btVector3(0, -9.8, 0));
+    baseWorld.setGravity(new this.ammo.btVector3(0, -9.8, 0));
+    this.physicsWorld = new RewindWorld(baseWorld, this.ammo);
   }
 
   private gym: Gymnasium = null;
