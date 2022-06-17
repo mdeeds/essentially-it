@@ -7,14 +7,11 @@ import { Tick, Ticker } from '../ticker';
 import { World } from '../world';
 import { Blobby } from './blobby';
 import { Portal } from './portal';
-import { PortalPanel } from './portalPanel';
 import { PhysicsObject } from '../gym/physicsObject';
 import { KinematicObject } from '../gym/kinematicObject';
-import { StaticObject } from '../gym/staticObject';
-import { Volume } from './volume';
 import { S } from '../settings';
 import { Room } from './room';
-
+import { Ball } from './ball';
 
 export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
   private leftPortal: Portal;
@@ -44,24 +41,6 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
 
 
-
-  makePhysicalBall(position: THREE.Vector3, color: THREE.Color, sphereRadius: number): PhysicsObject {
-    const sphereMass = 1.0;
-    const shape = new this.ammo.btSphereShape(sphereRadius);
-    shape.setMargin(0.01);
-    const body =
-      PhysicsObject.makeRigidBody(this.ammo, shape, sphereMass);
-    const obj = new THREE.Mesh(
-      new THREE.IcosahedronBufferGeometry(sphereRadius, 3),
-      new THREE.MeshPhongMaterial({ color: color }));
-    const physicalObject = new PhysicsObject(this.ammo, sphereMass, body);
-    physicalObject.add(obj);
-    physicalObject.position.copy(position);
-    physicalObject.setPhysicsPosition();
-    this.physicsWorld.addRigidBody(body);
-    return physicalObject;
-  }
-
   makeKinematicBall(position: THREE.Vector3, color: THREE.Color, sphereRadius: number): KinematicObject {
     const sphereMass = 0.0;  // Kinematic
     const shape = new this.ammo.btSphereShape(sphereRadius);
@@ -87,9 +66,9 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     const blobbyBallRadius = 0.3;
     this.blobby.position.set(0, blobbyBallRadius, 0);
     this.add(this.blobby);
-    this.blobbyBall =
-      this.makePhysicalBall(this.blobby.position, new THREE.Color('black'),
-        blobbyBallRadius);
+    this.blobbyBall = new Ball(
+      this.ammo, this.blobby.position, new THREE.Color('black'),
+      this.physicsWorld);
     this.universe.add(this.blobbyBall);
 
     const debugConsole = new Debug();
@@ -112,7 +91,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
         Math.random() * 0.5 + 0.5);
       const position = new THREE.Vector3(
         Math.random() * 4 - 2, Math.random() + 0.2, Math.random() * 4 - 2);
-      const ball = this.makePhysicalBall(position, color, 0.2);
+      const ball = new Ball(this.ammo, position, color, this.physicsWorld);
       this.universe.add(ball);
     }
 
