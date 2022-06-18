@@ -63,7 +63,9 @@ class EncodableRigidBody implements Encodable {
     this.body.setLinearVelocity(this.tmpVelocity);
     this.tmpWorldTransform.setRotation(this.tmpQuaternion);
     this.body.setAngularVelocity(this.tmpAngularVelocity);
-    this.body.setWorldTransform(this.tmpWorldTransform);
+    // this.body.setWorldTransform(this.tmpWorldTransform);
+    const motionState = this.body.getMotionState();
+    motionState.setWorldTransform(this.tmpWorldTransform);
   }
 }
 
