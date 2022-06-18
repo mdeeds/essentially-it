@@ -316,6 +316,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       }
       if (bs[2].value || bs[3].value) {
         isRewinding = true;
+        Debug.log('Rewind!');
       }
     }
     this.physicsWorld.setRewind(isRewinding);
