@@ -28,8 +28,6 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
   private allBalls: PhysicsObject[] = [];
 
-  ;
-
   constructor(private camera: THREE.PerspectiveCamera,
     private handMotions: Motion[],
     private renderer: THREE.WebGLRenderer,
@@ -43,8 +41,6 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
   async run(): Promise<string> {
     return new Promise<string>((resolve) => { });
   }
-
-
 
   // makeKinematicBall(position: THREE.Vector3, color: THREE.Color, sphereRadius: number): KinematicObject {
   //   const sphereMass = 0.0;  // Kinematic
@@ -73,7 +69,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.add(this.blobby);
     this.blobbyBall = new Ball(
       this.ammo, this.blobby.position, 'black',
-      this.physicsWorld);
+      this.physicsWorld, 50/*kg*/);
     this.universe.add(this.blobbyBall);
 
     const debugConsole = new Debug();
@@ -97,7 +93,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       const position = new THREE.Vector3(
         Math.random() * 4 - 2, Math.random() + 0.2, Math.random() * 4 - 2);
       const ball = new Ball(this.ammo, position, i === 0 ? 'orange' : 'red',
-        this.physicsWorld);
+        this.physicsWorld, Ball.keyBallMass);
       this.allBalls.push(ball);
       this.universe.add(ball);
     }
@@ -280,6 +276,8 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       this.p1.add(this.p2);
 
       closest.applyForce(this.p1);
+      this.p1.multiplyScalar(-1);
+      this.blobbyBall.applyForce(this.p1);
     }
   }
 

@@ -7,13 +7,13 @@ import { RewindWorld } from './rewindWorld';
 export type KeyColor = 'black' | 'red' | 'blue' | 'orange';
 
 export class Ball extends PhysicsObject {
-  static readonly ballMass = 1.0; /*kg*/
+  static readonly keyBallMass = 1.0; /*kg*/
   static readonly ballRadius = 0.2;
   constructor(ammo: typeof Ammo,
     initialPosition: THREE.Vector3, readonly keyColor: KeyColor,
-    private physicsWorld: RewindWorld) {
+    private physicsWorld: RewindWorld, mass: number) {
     const body = Ball.makeBody(ammo);
-    super(ammo, Ball.ballMass, body);
+    super(ammo, mass, body);
 
     const obj = new THREE.Mesh(
       new THREE.IcosahedronBufferGeometry(Ball.ballRadius, 3),
