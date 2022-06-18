@@ -304,6 +304,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       this.blobbyBall.applyForce(this.p1);
     }
 
+    let isRewinding = false;
     for (let i = 0; i < this.currentButtons.length; ++i) {
       const bs = this.currentButtons[i];
       const m = this.handMotions[i];
@@ -313,7 +314,11 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       if (bs[1].value || bs[0].value) {
         this.grabClosestBall(m.p);
       }
+      if (bs[2].value || bs[3].value) {
+        isRewinding = true;
+      }
     }
+    this.physicsWorld.setRewind(isRewinding);
   }
 
   tick(t: Tick) {

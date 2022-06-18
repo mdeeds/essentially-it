@@ -93,6 +93,7 @@ class RecycleBin {
 }
 
 export class RewindWorld implements Encodable {
+  private isRewinding = false;
   private allBodies: EncodableRigidBody[] = [];
   private currentTimeS = 0;
   private previousStates: Float32Array[] = [];
@@ -119,9 +120,19 @@ export class RewindWorld implements Encodable {
   }
 
   public stepSimulation(deltaS: number, substeps: number) {
-    this.captureState();
-    this.currentTimeS += deltaS;
-    this.baseWorld.stepSimulation(deltaS, substeps);
+    if (this.isRewinding && this.previousStates.length > 0) {
+      const poppedState = this.previousStates.pop();
+      this.decode(poppedState, 0);
+      this.bin.trash(poppedState);
+    } else {
+      this.captureState();
+      this.currentTimeS += deltaS;
+      this.baseWorld.stepSimulation(deltaS, substeps);
+    }
+  }
+
+  public setRewind(isRewinding: boolean) {
+    this.isRewinding = isRewinding;
   }
 
   private captureState() {
@@ -135,12 +146,6 @@ export class RewindWorld implements Encodable {
         Math.trunc(Math.random() * this.previousStates.length * 0.9), 1);
       this.bin.trash(trash[0]);
     }
-  }
-
-  private rewindOneStep() {
-    const poppedState = this.previousStates.pop();
-    this.decode(poppedState, 0);
-    this.bin.trash(poppedState);
   }
 
   // Encodable
