@@ -7,7 +7,7 @@ import { RewindWorld } from './rewindWorld';
 export type KeyColor = 'black' | 'red' | 'blue' | 'orange';
 
 export class Ball extends PhysicsObject {
-  static readonly keyBallMass = 1.0; /*kg*/
+  static readonly keyBallMass = 0.2; /*kg*/
   static readonly ballRadius = 0.2;
   constructor(ammo: typeof Ammo,
     initialPosition: THREE.Vector3, readonly keyColor: KeyColor,

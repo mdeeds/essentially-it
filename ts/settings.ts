@@ -27,7 +27,7 @@ export class S {
     S.setDefault('bh', 0.1, 'Heat of brownian motion.  1.0 = white.');
     S.setDefault('dr', -0.3, 'Rotation if you are off center.');
     S.setDefault('ep', 4, 'Episode number');
-    S.setDefault('ga', 1000.0, 'Grab acceleration.')
+    S.setDefault('ga', 10.0, 'Grab acceleration.')
     S.setDefault('ha', 1.5, 'Hand angle (radians)');
     S.setDefault('hm', 1.0, 'Multiplier for highest note.')
     S.setDefault('lm', 3.0, 'Multiplier for lowest note.');

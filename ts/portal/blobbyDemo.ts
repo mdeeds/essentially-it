@@ -257,15 +257,14 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       }
     }
     if (!!closest) {
-      // The force we want to apply is F = F_s - F_f
-      // Where F_s is a spring like force: F_s = kx
-      // And F_f is a friction like force: F_f = cx'
-      // Critically damped when c^2 = 4mk
       const k = S.float('ga');
-      const m = closest.mass;
-      const c = Math.sqrt(4 * m * k);
+      const c = S.float('ga');
+      const epsilon = 0.2;
 
-      const Fs = k * closestDistance;
+      const m = closest.mass;
+      const x = closestDistance;
+      const den = (x * x + epsilon);
+      const Fs = (k * x) / (den * den);
       closest.getWorldPosition(this.p1);
       this.p1.sub(handPosition);
       this.p1.setLength(-Fs);
