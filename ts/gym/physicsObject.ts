@@ -91,7 +91,7 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     body.setActivationState(4);  // DISABLE_DEACTIVATION
     body.activate(true);
     body.setFriction(0.3);
-    body.setRestitution(0.1);
+    body.setRestitution(0.8);  // 1.0 = totally elastic
     btV1.setValue(0, 0, 0);
     // body.setLinearVelocity(btV1);
     // body.setAngularVelocity(btV1);

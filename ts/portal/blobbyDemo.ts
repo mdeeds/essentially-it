@@ -13,6 +13,8 @@ import { S } from '../settings';
 import { Room } from './room';
 import { Ball } from './ball';
 import { RewindWorld } from './rewindWorld';
+import { Grabber } from './grabber';
+import { PortalPanels } from './portalPanel';
 
 export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
   private leftPortal: Portal;
@@ -28,15 +30,24 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
   private allBalls: PhysicsObject[] = [];
 
+  private grabbers: Grabber[] = [];
+
   constructor(private camera: THREE.PerspectiveCamera,
-    private handMotions: Motion[],
+    private grips: THREE.Object3D[],
     private renderer: THREE.WebGLRenderer,
     private ammo: typeof Ammo,
-    private physicsWorld: RewindWorld,) {
+    private physicsWorld: RewindWorld,
+    private audioCtx: AudioContext,
+    private keysDown: Set<string>) {
     super();
     this.init();
     this.add(this.universe);
     this.camera.add(this.cPos);
+    for (const g of grips) {
+      const grabber = new Grabber(this.audioCtx, keysDown);
+      this.grabbers.push(grabber);
+      g.add(grabber);
+    }
   }
   async run(): Promise<string> {
     return new Promise<string>((resolve) => { });
@@ -76,8 +87,8 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     debugConsole.position.set(0, 1.0, 2.0);
     debugConsole.rotateY(Math.PI);
     this.universe.add(debugConsole);
-
-    const room = new Room(this.ammo, this.physicsWorld);
+    const panels = new PortalPanels();
+    const room = new Room(this.ammo, this.physicsWorld, panels);
     this.universe.add(room);
 
     Debug.log('Initializing');
@@ -193,8 +204,8 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.cPos.getWorldQuaternion(this.blobby.quaternion);
     this.blobby.updateMatrixWorld(true);
     this.cPos.getWorldPosition(this.p1);
-    this.p2.copy(this.handMotions[0].p);
-    this.p3.copy(this.handMotions[1].p);
+    this.grips[0].getWorldPosition(this.p2);
+    this.grips[1].getWorldPosition(this.p3);
     this.p4.copy(this.p1);
     this.p4.y = 0;
 
@@ -202,8 +213,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.blobby.worldToLocal(this.p2);
     this.blobby.worldToLocal(this.p3);
     this.blobby.worldToLocal(this.p4);
-    this.blobby.setLimbs(
-      this.p1, this.handMotions[0].p, this.handMotions[1].p, this.p4);
+    this.blobby.setLimbs(this.p1, this.p2, this.p3, this.p4);
   }
 
   private session: THREE.XRSession = undefined;
@@ -245,39 +255,18 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     }
   }
 
-  private grabClosestBall(handPosition: THREE.Vector3) {
+  private findClosestBall(handPosition: THREE.Vector3): PhysicsObject {
     let closest: PhysicsObject = undefined;
-    let closestDistance = 1; /*m*/
+    let closestDistance = 2; /*m*/
     for (const b of this.allBalls) {
-      b.getWorldPosition(this.p1);
-      this.p1.sub(handPosition);
+      b.getWorldPosition(this.p2);
+      this.p2.sub(handPosition);
       if (this.p1.length() < closestDistance) {
-        closestDistance = this.p1.length();
+        closestDistance = this.p2.length();
         closest = b;
       }
     }
-    if (!!closest) {
-      const k = S.float('ga');
-      const c = S.float('ga');
-      const epsilon = 0.2;
-
-      const m = closest.mass;
-      const x = closestDistance;
-      const den = (x * x + epsilon);
-      const Fs = (k * x) / (den * den);
-      closest.getWorldPosition(this.p1);
-      this.p1.sub(handPosition);
-      this.p1.setLength(-Fs);
-
-      closest.getVelocity(this.p2);
-      // Friction always opposes the direction of motion
-      this.p2.multiplyScalar(-c);
-      this.p1.add(this.p2);
-
-      closest.applyForce(this.p1);
-      this.p1.multiplyScalar(-1);
-      this.blobbyBall.applyForce(this.p1);
-    }
+    return closest;
   }
 
   private moveBlobby(t: Tick) {
@@ -304,12 +293,14 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     let isRewinding = false;
     for (let i = 0; i < this.currentButtons.length; ++i) {
       const bs = this.currentButtons[i];
-      const m = this.handMotions[i];
-      if (i == 0 && Math.random() < 0.01) {
-        Debug.log(`bs[0]: ${bs[0].pressed} ${bs[0].touched} ${bs[0].value}`);
-      }
+      this.grabbers[i].getWorldPosition(this.p1);
       if (bs[1].value || bs[0].value) {
-        this.grabClosestBall(m.p);
+        const ball = this.findClosestBall(this.p1);
+        if (ball) {
+          this.grabbers[i].updateNearest(ball, this.blobbyBall);
+        }
+      } else {
+        this.grabbers[i].off();
       }
       if (bs[2].value || bs[3].value) {
         isRewinding = true;

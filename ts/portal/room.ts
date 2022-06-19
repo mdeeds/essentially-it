@@ -4,11 +4,13 @@ import { StaticObject } from '../gym/staticObject';
 import { PhysicsObject } from '../gym/physicsObject';
 import { Volume } from './volume';
 import { RewindWorld } from './rewindWorld';
+import { PortalPanels } from './portalPanel';
 
 export class Room extends THREE.Object3D {
   constructor(private ammo: typeof Ammo,
-    private physicsWorld: RewindWorld) {
+    private physicsWorld: RewindWorld, private panels: PortalPanels) {
     super();
+    this.add(panels);
     this.buildRoom();
   }
 
@@ -25,9 +27,9 @@ export class Room extends THREE.Object3D {
     const obj = new THREE.Mesh(
       new THREE.PlaneBufferGeometry(halfSize.x() * 2, halfSize.y() * 2),
       new THREE.MeshPhongMaterial({ color: color }));
+
     const physicalObject = new StaticObject(
       this.ammo, body, this);
-    physicalObject.add(obj);
     this.physicsWorld.addRigidBody(body);
 
     if (nx > 0) {
@@ -80,6 +82,7 @@ export class Room extends THREE.Object3D {
           panel.position.add(cursor);
           panel.position.multiplyScalar(2.0);  // Panel size
           panel.setPhysicsPosition();
+          this.panels.addPanel(panel.position, panel.quaternion);
           this.add(panel);
         }
       }
