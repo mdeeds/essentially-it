@@ -92,6 +92,7 @@ export class Blobby extends THREE.Mesh {
   private static makeBlobbyGeometry(): THREE.BufferGeometry {
     const initialRadius = 0.3;
     const geometry = new THREE.IcosahedronBufferGeometry(initialRadius, 5);
+    geometry.translate(0, 1.0, 0);
 
     const blend: number[] = [];
     const positions = geometry.getAttribute('position');
@@ -110,6 +111,9 @@ export class Blobby extends THREE.Mesh {
     naturalPositions[1].setLength(1.1 * initialRadius);
     naturalPositions[2].setLength(1.1 * initialRadius);
     naturalPositions[3].setLength(0.99 * initialRadius);
+    for (let i = 0; i < 4; ++i) {
+      naturalPositions[i].y += 1;
+    }
 
     for (let i = 0; i < positions.count; ++i) {
       geometryPosition.fromBufferAttribute(positions, i);

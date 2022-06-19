@@ -20,14 +20,8 @@ export class Room extends THREE.Object3D {
     shape.setMargin(0.01);
     const body =
       PhysicsObject.makeRigidBody(this.ammo, shape, /*mass=*/0);
-    const color = new THREE.Color('#ddf');
-    color.r -= Math.random() * 0.1;
-    color.g -= Math.random() * 0.1;
-    color.b -= Math.random() * 0.1;
-    const obj = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(halfSize.x() * 2, halfSize.y() * 2),
-      new THREE.MeshPhongMaterial({ color: color }));
-
+    body.setFriction(0.2);  // Pretty slick
+    body.setRestitution(1.0);  // Very hard
     const physicalObject = new StaticObject(
       this.ammo, body, this);
     this.physicsWorld.addRigidBody(body);

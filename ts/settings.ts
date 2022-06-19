@@ -21,9 +21,10 @@ export class S {
   }
 
   static {
-    S.setDefault('last change', 3, 'Camera acceleration.');
+    S.setDefault('last change', 3, 'Forward.');
     S.setDefault('aa', Math.PI / 4, 'Acceleration angle.');
-    S.setDefault('ba', 2.0, 'Blobby stick sensitivity (acceleration)');
+    S.setDefault('ba', 100, 'Blobby stick sensitivity (acceleration)');
+    S.setDefault('bf', 0.1, 'Blobby friction');
     S.setDefault('bh', 0.1, 'Heat of brownian motion.  1.0 = white.');
     S.setDefault('dr', -0.3, 'Rotation if you are off center.');
     S.setDefault('ep', 4, 'Episode number');

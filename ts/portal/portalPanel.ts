@@ -46,19 +46,16 @@ export class PortalPanels extends THREE.InstancedMesh {
 
   private v1 = new THREE.Vector3;
   addPanel(position: THREE.Vector3, orientation: THREE.Quaternion) {
-    console.log(`x = ${position.x}`);
     const m4 = new THREE.Matrix4();
     const positionMatrix = new THREE.Matrix4();
     m4.makeRotationFromQuaternion(orientation);
     positionMatrix.makeTranslation(position.x, position.y, position.z);
     m4.premultiply(positionMatrix);
     this.v1.setFromMatrixPosition(m4);
-    console.log(`x = ${this.v1.x}`);
     const index = this.count++;
     this.setMatrixAt(index, m4);
     this.setColorAt(index, new THREE.Color(
       Math.random() * 0.1 + 0.9, Math.random() * 0.1 + 0.9,
       Math.random() * 0.1 + 0.9))
-    console.log(`Panel count: ${this.count}`);
   }
 }

@@ -74,14 +74,23 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
   init() {
     console.log('Init');
     this.blobby = new Blobby();
-
-    const blobbyBallRadius = 0.3;
-    this.blobby.position.set(0, blobbyBallRadius, 0);
+    this.blobby.position.set(0, 0, 0);
     this.add(this.blobby);
-    this.blobbyBall = new Ball(
-      this.ammo, this.blobby.position, 'black',
-      this.physicsWorld, 50/*kg*/);
+
+    const shape = new this.ammo.btCylinderShape(new this.ammo.btVector3(
+      0.25, 0.10, 0.25));
+    //const shape = new this.ammo.btSphereShape(0.2);
+    shape.setMargin(0.01);
+    const body = PhysicsObject.makeRigidBody(this.ammo, shape, 50/*kg*/);
+    body.setFriction(S.float('bf'));
+    body.setRestitution(0.1);  // Blobby doesn't bounce.
+
+    this.blobbyBall = new PhysicsObject(this.ammo, 50/*kg*/, body);
+    this.blobbyBall.add(new THREE.Mesh(
+      new THREE.CylinderBufferGeometry(0.25, 0.25, 0.10),
+      new THREE.MeshStandardMaterial({ color: '#f0f' })));
     this.universe.add(this.blobbyBall);
+    this.physicsWorld.addRigidBody(body);
 
     const debugConsole = new Debug();
     debugConsole.position.set(0, 1.0, 2.0);
@@ -261,7 +270,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     for (const b of this.allBalls) {
       b.getWorldPosition(this.p2);
       this.p2.sub(handPosition);
-      if (this.p1.length() < closestDistance) {
+      if (this.p2.length() < closestDistance) {
         closestDistance = this.p2.length();
         closest = b;
       }
@@ -269,10 +278,11 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     return closest;
   }
 
+  private m3 = new THREE.Matrix3();
   private moveBlobby(t: Tick) {
     this.universe.position.set(
       -this.blobbyBall.position.x,
-      -this.blobbyBall.position.y + 0.3,
+      -this.blobbyBall.position.y,
       -this.blobbyBall.position.z);
     if (!this.currentButtons || this.currentButtons.length < 2) {
       // We don't have a pair of controllers yet.
@@ -286,7 +296,12 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     if (this.stick.x != 0 || this.stick.y != 0) {
       this.p1.set(this.stick.x, 0, this.stick.y);
       this.p1.multiplyScalar(S.float('ba'));
-      this.p1.applyMatrix3(this.cPos.normalMatrix);
+      const msg = `Preforce: ${this.p1.length()}`;
+      this.p1.y = 4.9 * this.blobbyBall.mass;
+      this.cPos.updateMatrixWorld();
+      this.m3.getNormalMatrix(this.cPos.matrixWorld);
+      this.p1.applyMatrix3(this.m3);
+      Debug.log(msg + ` post: ${this.p1.length()}`);
       this.blobbyBall.applyForce(this.p1);
     }
 
@@ -317,5 +332,11 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.updateBlobby();
     this.updateButtons();
     this.moveBlobby(t);
+
+    // TODO: This needs some unit testing before we can put it in here.
+    // for (const b of this.allBalls) {
+    //   this.leftPortal.updatePosition(b, this.rightPortal);
+    //   this.rightPortal.updatePosition(b, this.leftPortal);
+    // }
   }
 }
