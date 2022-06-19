@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Motion } from "../motion";
+import { BeatConstraints } from "../solver/beatConstraints";
 import { Tick, Ticker } from "../ticker";
 import { Synth } from "./synth";
 import { ThresholdMaterial } from "./thresholdMaterial";
@@ -230,6 +231,27 @@ export class ZigZag extends THREE.Object3D implements Ticker {
     }
   }
 
+  private setBassDrumLine() {
+    const bassSynth = this.synths[0];
+    const snareSynth = this.synths[1];
+    const bc = new BeatConstraints();
+    const solutions = bc.run();
+    const solution = solutions[Math.trunc(Math.random() * solutions.length)];
+    for (let j = 0; j < this.particles.length; j += 8) {
+      const i = Math.trunc(j / 8) % solution.size;
+      const v = solution.getValue(i);
+      this.particles[j].setTrigger(null);
+      if (i % 4 == 0) {
+        this.particles[j].setTrigger(new Trigger(snareSynth, 1.0));
+      } else if (i % 2 === 0) {
+        this.particles[j].setTrigger(new Trigger(snareSynth, 0.2));
+      }
+      if (!!v) {
+        this.particles[j].setTrigger(new Trigger(bassSynth, 0.5 * v));
+      }
+    }
+  }
+
   private p1 = new THREE.Vector3();
   private p2 = new THREE.Vector3();
   private lastTriggerTime = 0;
@@ -286,6 +308,10 @@ export class ZigZag extends THREE.Object3D implements Ticker {
         this.lastTriggerTime = t.elapsedS;
       } else if (this.keySet.has('KeyC')) {
         this.slice(0.5, currentBeatNumber, new Trigger(this.synths[1], 0.5));
+        this.lastTriggerTime = t.elapsedS;
+      }
+      if (this.keySet.has('Digit9')) {
+        this.setBassDrumLine();
         this.lastTriggerTime = t.elapsedS;
       }
     }

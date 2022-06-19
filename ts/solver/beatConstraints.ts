@@ -1,4 +1,4 @@
-import { BackProp, Constraint, ConstraintOnArray, Domain } from "./constraints";
+import { BackProp, Constraint, ConstraintOnArray, Domain, PartialAssignment } from "./constraints";
 
 
 export class VariableSlice {
@@ -78,9 +78,10 @@ export class BeatConstraints {
     this.bp.addConstraints(this.makeBassDrumConstraints(bdVariables));
   }
 
-  run() {
+  run(): PartialAssignment[] {
     this.bp.runBTFS();
-    this.bp.printSolutions();
+    // this.bp.printSolutions();
+    return this.bp.getSolutions();
   }
 
   // Four bar Trap:

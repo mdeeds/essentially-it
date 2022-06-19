@@ -433,6 +433,10 @@ export class BackProp {
     console.log('----------');
   }
 
+  getSolutions(): PartialAssignment[] {
+    return this.solutions;
+  }
+
   runBacktrack() {
     this.solutions.length = 0;
     const pa = new PartialAssignment(this.variables.length);

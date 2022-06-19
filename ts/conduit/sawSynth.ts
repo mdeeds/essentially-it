@@ -7,7 +7,7 @@ import { Synth } from "./synth";
 export class SawSynth implements Synth {
 
   static bassDrumPatch = {
-    "A1": 0.010009999999403954, "R1": 0.2238299999892707,
+    "A1": 0.004, "R1": 0.2,
     "Freq": 0.5415600000083471, "Res": 0.2651200000017879,
     "A2": 0, "R2": 0.028180000001192078,
     "Env2Osc": 0.06454999999701978, "Env2Filter": 0.7248799999982111,
