@@ -57,7 +57,7 @@ export class Portal extends THREE.Mesh implements Ticker {
 
   private normalDirection = new THREE.Vector3();
   private worldPosition = new THREE.Vector3();
-  private previousSide = new Map<PhysicsObject, number>();
+  private previousSide = new Map<THREE.Object3D, number>();
 
   private tmp = new THREE.Vector3();
   private side(position: THREE.Vector3) {
@@ -67,37 +67,62 @@ export class Portal extends THREE.Mesh implements Ticker {
     return Math.sign(dot);
   }
 
-  private tmp2 = new THREE.Vector3();
-  private tmpQ = new THREE.Quaternion();
+  private tmpNormal = new THREE.Vector3();
+  private oldOffset = new THREE.Vector3();
+  private newOffset = new THREE.Vector3();
+  private transitTranslation = new THREE.Vector3();
+  private transitRotation = new THREE.Quaternion();
+  private transitScale = new THREE.Vector3();
   private otherWorldPosition = new THREE.Vector3();
   private newWorldPosition = new THREE.Vector3();
-  updatePosition(o: PhysicsObject, sibling: Portal) {
+
+  // Sets the Matrix4 with the portal transforms. Returns false if this
+  // object did not transit through a portal.
+  updatePosition(o: THREE.Object3D, sibling: Portal,
+    portalTransform: THREE.Matrix4): boolean {
+    let moved = false;
     o.getWorldPosition(this.otherWorldPosition);
     const currentSide = this.side(this.otherWorldPosition);
+    if (currentSide === 0) {
+      // On the edge of the portal. Just ignore this frame.
+      portalTransform.identity();
+      return false;
+    }
     if (this.previousSide.has(o)) {
       const previousSide = this.previousSide.get(o);
       if (currentSide < 0 && previousSide >= 0) {
         // TODO check height and width
 
         // Mirror to other portal
-        this.tmpQ.setFromUnitVectors(this.normalDirection, sibling.normalDirection);
-        this.tmp2.copy(this.worldPosition);  // Now tmp2 has the relative position to this portal.
-        this.tmp2.sub(this.otherWorldPosition);
-        this.tmp2.applyQuaternion(this.tmpQ);  // Now relative position to sibling portal
-        // TODO: Apply scale
+        this.tmpNormal.copy(this.normalDirection);
+        this.tmpNormal.multiplyScalar(-1);
+        this.transitRotation.setFromUnitVectors(this.tmpNormal, sibling.normalDirection);
+        const scaleFactor = sibling.width / this.width;
+        this.transitScale.set(scaleFactor, scaleFactor, scaleFactor);
 
-        this.newWorldPosition.copy(sibling.worldPosition);
-        this.newWorldPosition.add(this.tmp2);
-        o.quaternion.multiply(this.tmpQ);  // Rotate based on portal positioning
-        o.position.copy(this.newWorldPosition);
-        o.worldToLocal(o.position);
-        o.setPhysicsPosition();
+        this.oldOffset.copy(this.otherWorldPosition);
+        this.oldOffset.sub(this.worldPosition);
+        this.newOffset.copy(this.oldOffset);
+        this.newOffset.applyQuaternion(this.transitRotation);
+        this.newOffset.multiplyScalar(scaleFactor);
+        // Now add the portal to portal translation
+        this.transitTranslation.copy(sibling.worldPosition);
+        this.transitTranslation.sub(this.worldPosition);
+        this.transitTranslation.sub(this.oldOffset);
+        this.transitTranslation.add(this.newOffset);
+        portalTransform.compose(
+          this.transitTranslation, this.transitRotation, this.transitScale);
+        moved = true;
         const siblingSide = sibling.side(this.newWorldPosition);
         sibling.previousSide.set(o, siblingSide);
         console.log(`Zoop: ${siblingSide}`);
       }
     }
+    if (!moved) {
+      portalTransform.identity();
+    }
     this.previousSide.set(o, currentSide);
+    return moved;
   }
 
   tick(t: Tick) {

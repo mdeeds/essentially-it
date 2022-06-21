@@ -39,6 +39,31 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     this.body.setMotionState(motionState);
   }
 
+  private t = new THREE.Vector3();
+  private q = new THREE.Quaternion();
+  private q2 = new THREE.Quaternion();
+  private euler = new THREE.Euler();
+  applyMatrixToPhysics(m4: THREE.Matrix4): void {
+    m4.decompose(this.position, this.q, this.scale);
+    const angularVelocity = this.body.getAngularVelocity();
+    this.euler.set(angularVelocity.x(), angularVelocity.y(), angularVelocity.z())
+    this.q2.setFromEuler(this.euler);
+    this.q2.multiply(this.q);
+    this.euler.setFromQuaternion(this.q2);
+    angularVelocity.setValue(this.euler.x, this.euler.y, this.euler.z);
+    this.body.setAngularVelocity(angularVelocity);
+
+    const linearVelocity = this.body.getLinearVelocity();
+    this.t.set(linearVelocity.x(), linearVelocity.y(), linearVelocity.z());
+    this.t.applyQuaternion(this.q);
+    linearVelocity.setValue(this.t.x, this.t.y, this.t.z);
+    this.body.setLinearVelocity(linearVelocity);
+
+    this.updateMatrix();
+    this.matrix.multiply(m4);
+    this.matrix.decompose(this.position, this.quaternion, this.scale);
+  }
+
   updatePositionFromPhysics(): void {
     // console.log(this.body);
     const motionState = this.body.getMotionState();

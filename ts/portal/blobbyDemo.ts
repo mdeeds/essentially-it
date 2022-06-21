@@ -325,6 +325,9 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.physicsWorld.setRewind(isRewinding);
   }
 
+  private m4 = new THREE.Matrix4();
+  private q = new THREE.Quaternion();
+
   tick(t: Tick) {
     this.getSession();
     this.renderPortals();
@@ -334,9 +337,15 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.moveBlobby(t);
 
     // TODO: This needs some unit testing before we can put it in here.
-    // for (const b of this.allBalls) {
-    //   this.leftPortal.updatePosition(b, this.rightPortal);
-    //   this.rightPortal.updatePosition(b, this.leftPortal);
-    // }
+    for (const b of this.allBalls) {
+      if (this.leftPortal.updatePosition(b, this.rightPortal, this.m4)) {
+        b.matrix.multiply(this.m4);
+        // TODO: Apply matrix to physics as well.
+        b.setPhysicsPosition();
+      } else if (this.rightPortal.updatePosition(b, this.leftPortal, this.m4)) {
+        b.matrix.multiply(this.m4);
+        b.setPhysicsPosition();
+      }
+    }
   }
 }

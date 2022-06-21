@@ -136,11 +136,14 @@ export class Game {
         break;
     }
     this.scene.add(nextWorld);
-    await this.expand(nextWorld);
-    this.logScene(this.scene, '#: ');
+    // await this.expand(nextWorld);
+    // this.logScene(this.scene, '#: ');
+
+    // this.scene.scale.set(1, 1, 1);
+    // nextWorld.scale.set(1, 1, 1);
 
     const nextWorldName = await nextWorld.run();
-    await this.shrink(nextWorld);
+    // await this.shrink(nextWorld);
     this.scene.remove(nextWorld);
     setTimeout(() => { this.run(nextWorldName) });
   }
