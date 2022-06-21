@@ -4,7 +4,7 @@ module.exports = {
   entry: {
     index: "./src/index.js",
     test: "./src/solver/constraintsTest.js",
-    blobby: "./src/portal/blobby.js",
+    portalTest: "./src/portal/portalTest.js",
   },
   output: {
     path: __dirname + "/dist",
@@ -27,10 +27,10 @@ module.exports = {
       chunks: ['test']
     }),
     new HtmlWebPackPlugin({
-      name: "blobby",
+      name: "portalTest",
       template: "./src/index.html",
-      filename: "blobby.html",
-      chunks: ['blobby']
+      filename: "portalTest.html",
+      chunks: ['portalTest']
     }),
   ],
   devtool: "source-map",
