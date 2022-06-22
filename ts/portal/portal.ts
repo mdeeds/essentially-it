@@ -76,6 +76,8 @@ export class Portal extends THREE.Mesh implements Ticker {
   private otherWorldPosition = new THREE.Vector3();
   private newWorldPosition = new THREE.Vector3();
 
+  private firstZoop: THREE.Object3D = undefined;
+
   // Sets the Matrix4 with the portal transforms. Returns false if this
   // object did not transit through a portal.
   updatePosition(o: THREE.Object3D, sibling: Portal,
@@ -115,7 +117,10 @@ export class Portal extends THREE.Mesh implements Ticker {
         moved = true;
         const siblingSide = sibling.side(this.newWorldPosition);
         sibling.previousSide.set(o, siblingSide);
-        console.log(`Zoop: ${siblingSide}`);
+        if (!this.firstZoop || this.firstZoop === o) {
+          console.log(`Zoop: ${this.oldOffset.x.toFixed(2)} ${o.uuid}`);
+          this.firstZoop = o;
+        }
       }
     }
     if (!moved) {

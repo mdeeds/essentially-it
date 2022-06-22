@@ -297,7 +297,7 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
       this.p1.set(this.stick.x, 0, this.stick.y);
       this.p1.multiplyScalar(S.float('ba'));
       const msg = `Preforce: ${this.p1.length()}`;
-      this.p1.y = 4.9 * this.blobbyBall.mass;
+      this.p1.y = 4.9 * this.blobbyBall.getMass();
       this.cPos.updateMatrixWorld();
       this.m3.getNormalMatrix(this.cPos.matrixWorld);
       this.p1.applyMatrix3(this.m3);
@@ -339,12 +339,9 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     // TODO: This needs some unit testing before we can put it in here.
     for (const b of this.allBalls) {
       if (this.leftPortal.updatePosition(b, this.rightPortal, this.m4)) {
-        b.matrix.multiply(this.m4);
-        // TODO: Apply matrix to physics as well.
-        b.setPhysicsPosition();
+        b.applyMatrixToPhysics(this.m4);
       } else if (this.rightPortal.updatePosition(b, this.leftPortal, this.m4)) {
-        b.matrix.multiply(this.m4);
-        b.setPhysicsPosition();
+        b.applyMatrixToPhysics(this.m4);
       }
     }
   }

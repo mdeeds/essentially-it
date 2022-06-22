@@ -7,7 +7,6 @@ import { Motion } from "../motion";
 import { RewindWorld } from "../portal/rewindWorld";
 
 export class Player extends PhysicsObject implements Ticker {
-  private static mass = 100; // kg
   constructor(
     private ammo: typeof Ammo,
     private physicsWorld: RewindWorld,
@@ -15,9 +14,10 @@ export class Player extends PhysicsObject implements Ticker {
     const shape = new ammo.btCylinderShape(new ammo.btVector3(
       0.25, 0.10, 0.25));
     shape.setMargin(0.01);
+    const playerMass = 100; /*kg*/
     const body =
-      PhysicsObject.makeRigidBody(ammo, shape, Player.mass);
-    super(ammo, Player.mass, body);
+      PhysicsObject.makeRigidBody(ammo, shape, playerMass);
+    super(ammo, playerMass, body);
 
     console.assert(!!physicsWorld, "Physics not initialized!");
 
@@ -48,7 +48,7 @@ export class Player extends PhysicsObject implements Ticker {
       push = Math.min(a2, -a3);
     }
     if (push > 0) {
-      this.v1.setLength(push * this.mass);
+      this.v1.setLength(push * this.getMass());
       this.applyForce(this.v1);
     }
   }

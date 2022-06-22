@@ -10,7 +10,8 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
   private btRotation: Ammo.btQuaternion;
   private btForce: Ammo.btVector3;
   private btVelocity: Ammo.btVector3;
-  constructor(ammo: typeof Ammo, readonly mass: number,
+  private btInertia: Ammo.btVector3;
+  constructor(ammo: typeof Ammo, private mass: number,
     private body: Ammo.btRigidBody) {
     super();
     this.btWorldTransform = new ammo.btTransform();
@@ -18,6 +19,11 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     this.btRotation = new ammo.btQuaternion(0, 0, 0, 0);
     this.btForce = new ammo.btVector3();
     this.btVelocity = new ammo.btVector3();
+    this.btInertia = new ammo.btVector3();
+  }
+
+  getMass(): number {
+    return this.mass;
   }
 
   getVelocity(v: THREE.Vector3) {
@@ -39,12 +45,16 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     this.body.setMotionState(motionState);
   }
 
-  private t = new THREE.Vector3();
+  private t1 = new THREE.Vector3();
+  private scaleChange = new THREE.Vector3();
   private q = new THREE.Quaternion();
   private q2 = new THREE.Quaternion();
   private euler = new THREE.Euler();
   applyMatrixToPhysics(m4: THREE.Matrix4): void {
-    m4.decompose(this.position, this.q, this.scale);
+    m4.decompose(this.t1, this.q, this.scaleChange);
+    this.matrix.multiply(m4);
+    this.matrix.decompose(this.position, this.quaternion, this.scale);
+
     const angularVelocity = this.body.getAngularVelocity();
     this.euler.set(angularVelocity.x(), angularVelocity.y(), angularVelocity.z())
     this.q2.setFromEuler(this.euler);
@@ -54,14 +64,15 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     this.body.setAngularVelocity(angularVelocity);
 
     const linearVelocity = this.body.getLinearVelocity();
-    this.t.set(linearVelocity.x(), linearVelocity.y(), linearVelocity.z());
-    this.t.applyQuaternion(this.q);
-    linearVelocity.setValue(this.t.x, this.t.y, this.t.z);
+    this.t1.set(linearVelocity.x(), linearVelocity.y(), linearVelocity.z());
+    this.t1.applyQuaternion(this.q);
+    linearVelocity.setValue(this.t1.x, this.t1.y, this.t1.z);
     this.body.setLinearVelocity(linearVelocity);
 
-    this.updateMatrix();
-    this.matrix.multiply(m4);
-    this.matrix.decompose(this.position, this.quaternion, this.scale);
+    this.mass *= this.scaleChange.x * this.scaleChange.y * this.scaleChange.z;
+    this.body.getCollisionShape()
+      .calculateLocalInertia(this.mass, this.btInertia);
+    this.body.setMassProps(this.mass, this.btInertia);
   }
 
   updatePositionFromPhysics(): void {

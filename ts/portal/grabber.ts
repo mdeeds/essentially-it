@@ -45,7 +45,7 @@ export class Grabber extends THREE.Object3D implements Ticker {
     const c = S.float('ga');
     const epsilon = 0.2;
 
-    const m = targetObject.mass;
+    const m = targetObject.getMass();
     targetObject.getWorldPosition(this.v1);
     this.getWorldPosition(this.v2);
     this.v1.sub(this.v2);
