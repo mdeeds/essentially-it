@@ -60,6 +60,7 @@ export class Grabber extends THREE.Object3D implements Ticker {
     // Friction always opposes the direction of motion
     this.v2.multiplyScalar(-c);
     this.v1.add(this.v2);
+    this.v1.multiplyScalar(targetObject.getMass());
 
     targetObject.applyForce(this.v1);
     this.v1.multiplyScalar(-1);  // Equal and opposite force

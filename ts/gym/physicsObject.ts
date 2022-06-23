@@ -54,6 +54,7 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     m4.decompose(this.t1, this.q, this.scaleChange);
     this.matrix.multiply(m4);
     this.matrix.decompose(this.position, this.quaternion, this.scale);
+    this.setPhysicsPosition();
 
     const angularVelocity = this.body.getAngularVelocity();
     this.euler.set(angularVelocity.x(), angularVelocity.y(), angularVelocity.z())

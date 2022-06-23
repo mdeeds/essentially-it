@@ -336,7 +336,6 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
     this.updateButtons();
     this.moveBlobby(t);
 
-    // TODO: This needs some unit testing before we can put it in here.
     for (const b of this.allBalls) {
       if (this.leftPortal.updatePosition(b, this.rightPortal, this.m4)) {
         b.applyMatrixToPhysics(this.m4);

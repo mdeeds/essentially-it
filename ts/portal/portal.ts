@@ -1,3 +1,4 @@
+import { SIGLOST } from 'constants';
 import * as THREE from 'three';
 import * as CameraUtils from 'three/examples/jsm/utils/CameraUtils.js';
 import { PhysicsObject } from '../gym/physicsObject';
@@ -59,14 +60,6 @@ export class Portal extends THREE.Mesh implements Ticker {
   private worldPosition = new THREE.Vector3();
   private previousSide = new Map<THREE.Object3D, number>();
 
-  private tmp = new THREE.Vector3();
-  private side(position: THREE.Vector3) {
-    this.tmp.copy(position);
-    this.tmp.sub(this.worldPosition);
-    const dot = this.normalDirection.dot(this.tmp);
-    return Math.sign(dot);
-  }
-
   private tmpNormal = new THREE.Vector3();
   private oldOffset = new THREE.Vector3();
   private newOffset = new THREE.Vector3();
@@ -74,7 +67,8 @@ export class Portal extends THREE.Mesh implements Ticker {
   private transitRotation = new THREE.Quaternion();
   private transitScale = new THREE.Vector3();
   private otherWorldPosition = new THREE.Vector3();
-  private newWorldPosition = new THREE.Vector3();
+  private normalPart = new THREE.Vector3();
+  private perpendicularPart = new THREE.Vector3();
 
   private firstZoop: THREE.Object3D = undefined;
 
@@ -84,7 +78,10 @@ export class Portal extends THREE.Mesh implements Ticker {
     portalTransform: THREE.Matrix4): boolean {
     let moved = false;
     o.getWorldPosition(this.otherWorldPosition);
-    const currentSide = this.side(this.otherWorldPosition);
+    this.oldOffset.copy(this.otherWorldPosition);
+    this.oldOffset.sub(this.worldPosition);
+    const dot = this.normalDirection.dot(this.oldOffset);
+    const currentSide = Math.sign(dot);
     if (currentSide === 0) {
       // On the edge of the portal. Just ignore this frame.
       portalTransform.identity();
@@ -93,33 +90,37 @@ export class Portal extends THREE.Mesh implements Ticker {
     if (this.previousSide.has(o)) {
       const previousSide = this.previousSide.get(o);
       if (currentSide < 0 && previousSide >= 0) {
+        this.normalPart.copy(this.normalDirection);
+        this.normalPart.multiplyScalar(dot);
+        this.perpendicularPart.copy(this.oldOffset);
+        this.perpendicularPart.sub(this.normalPart);
         // TODO check height and width
+        if (this.perpendicularPart.length() < 1) {
+          // Mirror to other portal
+          this.tmpNormal.copy(this.normalDirection);
+          this.tmpNormal.multiplyScalar(-1);
+          this.transitRotation.setFromUnitVectors(this.tmpNormal, sibling.normalDirection);
+          const scaleFactor = sibling.width / this.width;
+          this.transitScale.set(scaleFactor, scaleFactor, scaleFactor);
 
-        // Mirror to other portal
-        this.tmpNormal.copy(this.normalDirection);
-        this.tmpNormal.multiplyScalar(-1);
-        this.transitRotation.setFromUnitVectors(this.tmpNormal, sibling.normalDirection);
-        const scaleFactor = sibling.width / this.width;
-        this.transitScale.set(scaleFactor, scaleFactor, scaleFactor);
-
-        this.oldOffset.copy(this.otherWorldPosition);
-        this.oldOffset.sub(this.worldPosition);
-        this.newOffset.copy(this.oldOffset);
-        this.newOffset.applyQuaternion(this.transitRotation);
-        this.newOffset.multiplyScalar(scaleFactor);
-        // Now add the portal to portal translation
-        this.transitTranslation.copy(sibling.worldPosition);
-        this.transitTranslation.sub(this.worldPosition);
-        this.transitTranslation.sub(this.oldOffset);
-        this.transitTranslation.add(this.newOffset);
-        portalTransform.compose(
-          this.transitTranslation, this.transitRotation, this.transitScale);
-        moved = true;
-        const siblingSide = sibling.side(this.newWorldPosition);
-        sibling.previousSide.set(o, siblingSide);
-        if (!this.firstZoop || this.firstZoop === o) {
-          console.log(`Zoop: ${this.oldOffset.x.toFixed(2)} ${o.uuid}`);
-          this.firstZoop = o;
+          this.newOffset.copy(this.oldOffset);
+          this.newOffset.applyQuaternion(this.transitRotation);
+          this.newOffset.multiplyScalar(scaleFactor);
+          // Now add the portal to portal translation
+          this.transitTranslation.copy(sibling.worldPosition);
+          this.transitTranslation.sub(this.worldPosition);
+          this.transitTranslation.sub(this.oldOffset);
+          this.transitTranslation.add(this.newOffset);
+          portalTransform.compose(
+            this.transitTranslation, this.transitRotation, this.transitScale);
+          moved = true;
+          const siblingSide =
+            Math.sign(this.newOffset.dot(sibling.normalDirection));
+          sibling.previousSide.set(o, siblingSide);
+          if (!this.firstZoop || this.firstZoop === o) {
+            console.log(`Zoop: ${this.oldOffset.x.toFixed(2)} ${o.uuid}`);
+            this.firstZoop = o;
+          }
         }
       }
     }
