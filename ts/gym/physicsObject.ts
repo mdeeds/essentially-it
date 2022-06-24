@@ -11,8 +11,10 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
   private btForce: Ammo.btVector3;
   private btVelocity: Ammo.btVector3;
   private btInertia: Ammo.btVector3;
+  private body: Ammo.btRigidBody;
   constructor(ammo: typeof Ammo, private mass: number,
-    private body: Ammo.btRigidBody) {
+    private shapeFactory: (radius: number) => Ammo.btCollisionShape,
+    private radius) {
     super();
     this.btWorldTransform = new ammo.btTransform();
     this.btOrigin = new ammo.btVector3();
@@ -20,10 +22,15 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     this.btForce = new ammo.btVector3();
     this.btVelocity = new ammo.btVector3();
     this.btInertia = new ammo.btVector3();
+    this.body = PhysicsObject.makeRigidBody(ammo, shapeFactory(radius), mass);
   }
 
   getMass(): number {
     return this.mass;
+  }
+
+  getBody(): Ammo.btRigidBody {
+    return this.body;
   }
 
   getVelocity(v: THREE.Vector3) {
@@ -71,6 +78,11 @@ export class PhysicsObject extends THREE.Object3D implements Ticker {
     this.body.setLinearVelocity(linearVelocity);
 
     this.mass *= this.scaleChange.x * this.scaleChange.y * this.scaleChange.z;
+    if (this.scaleChange.x != 1.0) {
+      this.radius *= this.scaleChange.x;
+      const newShape = this.shapeFactory(this.radius);
+      this.body.setCollisionShape(newShape);
+    }
     this.body.getCollisionShape()
       .calculateLocalInertia(this.mass, this.btInertia);
     this.body.setMassProps(this.mass, this.btInertia);

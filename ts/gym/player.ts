@@ -11,13 +11,14 @@ export class Player extends PhysicsObject implements Ticker {
     private ammo: typeof Ammo,
     private physicsWorld: RewindWorld,
     private camera: THREE.Object3D, private motions: Motion[]) {
-    const shape = new ammo.btCylinderShape(new ammo.btVector3(
-      0.25, 0.10, 0.25));
-    shape.setMargin(0.01);
     const playerMass = 100; /*kg*/
-    const body =
-      PhysicsObject.makeRigidBody(ammo, shape, playerMass);
-    super(ammo, playerMass, body);
+    super(ammo, playerMass, (radius: number) => {
+      const shape = new ammo.btCylinderShape(new ammo.btVector3(
+        0.25, 0.10, 0.25));
+      shape.setMargin(0.01);
+      return shape
+    }, 0.25);
+    const body = this.getBody();
 
     console.assert(!!physicsWorld, "Physics not initialized!");
 

@@ -79,13 +79,16 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
     const shape = new this.ammo.btCylinderShape(new this.ammo.btVector3(
       0.25, 0.10, 0.25));
-    //const shape = new this.ammo.btSphereShape(0.2);
-    shape.setMargin(0.01);
-    const body = PhysicsObject.makeRigidBody(this.ammo, shape, 50/*kg*/);
+    // shape.setMargin(0.01);
+
+    this.blobbyBall = new PhysicsObject(this.ammo, 50/*kg*/,
+      (radius: number) => new this.ammo.btCylinderShape(
+        new this.ammo.btVector3(radius, 0.4 * radius, radius)), 0.25);
+
+    const body = this.blobbyBall.getBody();
     body.setFriction(S.float('bf'));
     body.setRestitution(0.1);  // Blobby doesn't bounce.
 
-    this.blobbyBall = new PhysicsObject(this.ammo, 50/*kg*/, body);
     this.blobbyBall.add(new THREE.Mesh(
       new THREE.CylinderBufferGeometry(0.25, 0.25, 0.10),
       new THREE.MeshStandardMaterial({ color: '#f0f' })));

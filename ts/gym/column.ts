@@ -7,12 +7,13 @@ export class Column extends PhysicsObject {
   constructor(ammo: typeof Ammo,
     physicsWorld: RewindWorld,
     radius: number, height: number) {
-    const shape = new ammo.btCylinderShape(new ammo.btVector3(
-      radius, height, radius));
-    shape.setMargin(0.01);
-    const body =
-      PhysicsObject.makeRigidBody(ammo, shape, /*mass=*/0);
-    super(ammo, /*mass=*/0, body);
+    super(ammo, /*mass=*/0, (r: number) => {
+      const shape = new ammo.btCylinderShape(new ammo.btVector3(
+        radius, height, radius));
+      shape.setMargin(0.01);
+      return shape;
+    }, radius);
+    const body = this.getBody();
 
     console.assert(!!physicsWorld, "Physics not initialized!");
 
