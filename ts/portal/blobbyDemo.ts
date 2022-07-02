@@ -11,7 +11,7 @@ import { PhysicsObject } from '../gym/physicsObject';
 import { KinematicObject } from '../gym/kinematicObject';
 import { S } from '../settings';
 import { Room } from './room';
-import { Ball } from './ball';
+import { Ball, CubeFactory, SphereFactory } from './ball';
 import { RewindWorld } from './rewindWorld';
 import { Grabber } from './grabber';
 import { PortalPanels } from './portalPanel';
@@ -109,14 +109,19 @@ export class BlobbyDemo extends THREE.Object3D implements World, Ticker {
 
     this.cameraMaterial = this.makeCameraMaterial(new THREE.Color('pink'));
 
+    const cubeFactory = new CubeFactory(this.ammo);
+    const sphereFactory = new SphereFactory(this.ammo);
+
     for (let i = 0; i < 30; ++i) {
       const color = new THREE.Color(
         Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5,
         Math.random() * 0.5 + 0.5);
       const position = new THREE.Vector3(
         Math.random() * 4 - 2, Math.random() + 0.2, Math.random() * 4 - 2);
-      const ball = new Ball(this.ammo, position, i === 0 ? 'orange' : 'red',
-        this.physicsWorld, Ball.keyBallMass);
+      const ball = new Ball(this.ammo, position,
+        i === 0 ? 'orange' : 'red',
+        this.physicsWorld, Ball.keyBallMass,
+        Math.random() < 0.5 ? cubeFactory : sphereFactory);
       this.allBalls.push(ball);
       this.universe.add(ball);
     }
