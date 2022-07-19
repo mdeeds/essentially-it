@@ -5,12 +5,23 @@ import { World } from "../world";
 export class EatingHamburgers extends THREE.Object3D implements World, Ticker {
   private upcoming = new Set<THREE.Object3D>();
   private lastSpawn: number = undefined;
+
+  private leftGrip: THREE.Object3D;
+  private rightGrip: THREE.Object3D;
+
   constructor(private camera: THREE.Object3D,
     private renderer: THREE.WebGLRenderer) {
     super();
 
     const light = new THREE.HemisphereLight('#fff', '#112');
     this.add(light);
+
+    this.leftGrip = renderer.xr.getControllerGrip(0);
+    this.leftGrip.add(new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.05, 3),
+      new THREE.MeshPhongMaterial({ color: '#888' })));
+    this.rightGrip = renderer.xr.getControllerGrip(1);
+    this.rightGrip.add(new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.05, 3),
+      new THREE.MeshPhongMaterial({ color: '#888' })));
   }
 
   private spawn() {
@@ -35,6 +46,23 @@ export class EatingHamburgers extends THREE.Object3D implements World, Ticker {
       -15);
   }
 
+  private tmp1 = new THREE.Vector3();
+  private tmp2 = new THREE.Vector3();
+  isHit(o: THREE.Object3D): boolean {
+    o.getWorldPosition(this.tmp1);
+    this.leftGrip.getWorldPosition(this.tmp2);
+    this.tmp2.sub(this.tmp1);
+    if (this.tmp1.length() < 0.1) {
+      return true;
+    }
+    this.rightGrip.getWorldPosition(this.tmp2);
+    this.tmp2.sub(this.tmp1);
+    if (this.tmp1.length() < 0.1) {
+      return true;
+    }
+    return false;
+  }
+
   private toDelete = new Set<THREE.Object3D>();
   tick(t: Tick) {
     if (this.lastSpawn === undefined) {
@@ -46,12 +74,17 @@ export class EatingHamburgers extends THREE.Object3D implements World, Ticker {
     }
     this.toDelete.clear();
     for (const m of this.upcoming) {
-      m.position.z += 3.0 * t.deltaS;
-      m.rotateZ(1.4 * t.deltaS);
-      m.rotateX(0.3 * m.position.z * t.deltaS);
-      if (m.position.z >= 1.0) {
+      if (this.isHit(m)) {
         this.remove(m);
         this.toDelete.add(m);
+      } else {
+        m.position.z += 3.0 * t.deltaS;
+        m.rotateZ(1.4 * t.deltaS);
+        m.rotateX(0.3 * m.position.z * t.deltaS);
+        if (m.position.z >= 1.0) {
+          this.remove(m);
+          this.toDelete.add(m);
+        }
       }
     }
     for (const m of this.toDelete) {

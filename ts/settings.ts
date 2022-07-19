@@ -21,7 +21,7 @@ export class S {
   }
 
   static {
-    S.setDefault('last change', 3, 'Forward.');
+    S.setDefault('last change', 3, 'Hits.');
     S.setDefault('aa', Math.PI / 4, 'Acceleration angle.');
     S.setDefault('ba', 100, 'Blobby stick sensitivity (acceleration)');
     S.setDefault('bf', 0.1, 'Blobby friction');
