@@ -16,6 +16,7 @@ import { World } from "./world";
 import { PhysicsObject } from "./gym/physicsObject";
 import { BlobbyDemo } from "./portal/blobbyDemo";
 import { RewindWorld } from "./portal/rewindWorld";
+import { EatingHamburgers } from "./hamburger/eating";
 
 export class Game {
   private scene: THREE.Scene;
@@ -65,6 +66,7 @@ export class Game {
       case 2: this.run('conduit'); break;
       case 3: this.run('gym'); break;
       case 4: this.run('blobby'); break;
+      case 5: this.run('hamburger'); break;
     }
   }
 
@@ -88,6 +90,7 @@ export class Game {
   private conduit: ConduitStage = null;
   private home: Home = null;
   private blobby: BlobbyDemo = null;
+  private hamburger: EatingHamburgers = null;
 
   private async run(location: string) {
     let nextWorld: World = null;
@@ -127,6 +130,12 @@ export class Game {
             this.keysDown);
         }
         nextWorld = this.blobby;
+        break;
+      case 'hamburger':
+        if (this.hamburger === null) {
+          this.hamburger = new EatingHamburgers(this.camera, this.renderer);
+        }
+        nextWorld = this.hamburger;
         break;
       case 'home': default:
         if (this.home === null) {

@@ -4,17 +4,13 @@ import Ammo from "ammojs-typed";
 import { PhysicsObject } from "../gym/physicsObject";
 import { RewindWorld } from './rewindWorld';
 import { SphereBufferGeometry } from 'three';
+import { ShapeFactory } from './shapeHelpers';
 
 export type KeyColor = 'black' | 'red' | 'blue' | 'orange';
 
-interface ShapeFactory {
-  getBTShape(radius: number): Ammo.btCollisionShape;
-  getThreeShape(radius: number, color: THREE.Color): THREE.Object3D;
-}
-
 export class SphereFactory implements ShapeFactory {
   constructor(private ammo: typeof Ammo) { }
-  getBTShape(radius: number): Ammo.btCollisionShape {
+  getBtShape(radius: number): Ammo.btCollisionShape {
     const shape = new this.ammo.btSphereShape(radius);
     shape.setMargin(0.01);
     return shape;
@@ -29,7 +25,7 @@ export class SphereFactory implements ShapeFactory {
 
 export class CubeFactory implements ShapeFactory {
   constructor(private ammo: typeof Ammo) { }
-  getBTShape(radius: number): Ammo.btCollisionShape {
+  getBtShape(radius: number): Ammo.btCollisionShape {
     const shape = new this.ammo.btBoxShape(
       new this.ammo.btVector3(radius, radius, radius))
     shape.setMargin(0.01);
@@ -53,7 +49,7 @@ export class Ball extends PhysicsObject {
     private physicsWorld: RewindWorld, mass: number,
     factory: ShapeFactory) {
     super(ammo, mass,
-      (r: number) => factory.getBTShape(r),
+      (r: number) => factory.getBtShape(r),
       Ball.ballRadius);
     const body = this.getBody();
     body.setRestitution(0.5);  // Not very bouncy
