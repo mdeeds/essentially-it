@@ -64,6 +64,9 @@ export class EatingHamburgers extends THREE.Object3D implements World, Ticker {
   private tmp1 = new THREE.Vector3();
   private tmp2 = new THREE.Vector3();
   isHit(o: THREE.Object3D): boolean {
+    if (!this.leftGrip || !this.rightGrip) {
+      return false;
+    }
     o.getWorldPosition(this.tmp1);
     this.leftGrip.getWorldPosition(this.tmp2);
     this.tmp2.sub(this.tmp1);
