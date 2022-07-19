@@ -8,6 +8,8 @@ export class EatingHamburgers extends THREE.Object3D implements World, Ticker {
 
   private leftGrip: THREE.Object3D;
   private rightGrip: THREE.Object3D;
+  private leftSource: THREE.XRInputSource;
+  private rightSource: THREE.XRInputSource;
 
   constructor(private camera: THREE.Object3D,
     private renderer: THREE.WebGLRenderer) {
@@ -16,12 +18,25 @@ export class EatingHamburgers extends THREE.Object3D implements World, Ticker {
     const light = new THREE.HemisphereLight('#fff', '#112');
     this.add(light);
 
-    this.leftGrip = renderer.xr.getControllerGrip(0);
-    this.leftGrip.add(new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.05, 3),
-      new THREE.MeshPhongMaterial({ color: '#888' })));
-    this.rightGrip = renderer.xr.getControllerGrip(1);
-    this.rightGrip.add(new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.05, 3),
-      new THREE.MeshPhongMaterial({ color: '#888' })));
+    this.registerConnection(renderer.xr.getControllerGrip(0));
+    this.registerConnection(renderer.xr.getControllerGrip(1));
+  }
+
+  private registerConnection(grip: THREE.Object3D) {
+    grip.addEventListener('connected', (ev) => {
+      const data: THREE.XRInputSource = ev.data;
+      if (data.handedness == 'left') {
+        this.leftGrip = grip;
+        this.leftSource = data;
+        this.leftGrip.add(new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.05, 3),
+          new THREE.MeshPhongMaterial({ color: '#88f' })));
+      } else {
+        this.rightGrip = grip;
+        this.rightSource = data;
+        this.rightGrip.add(new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.05, 3),
+          new THREE.MeshPhongMaterial({ color: '#f88' })));
+      }
+    });
   }
 
   private spawn() {
@@ -52,12 +67,12 @@ export class EatingHamburgers extends THREE.Object3D implements World, Ticker {
     o.getWorldPosition(this.tmp1);
     this.leftGrip.getWorldPosition(this.tmp2);
     this.tmp2.sub(this.tmp1);
-    if (this.tmp1.length() < 0.1) {
+    if (this.tmp2.length() < 0.4) {
       return true;
     }
     this.rightGrip.getWorldPosition(this.tmp2);
     this.tmp2.sub(this.tmp1);
-    if (this.tmp1.length() < 0.1) {
+    if (this.tmp2.length() < 0.4) {
       return true;
     }
     return false;
@@ -65,6 +80,9 @@ export class EatingHamburgers extends THREE.Object3D implements World, Ticker {
 
   private toDelete = new Set<THREE.Object3D>();
   tick(t: Tick) {
+
+
+
     if (this.lastSpawn === undefined) {
       this.lastSpawn = t.elapsedS;
     }
