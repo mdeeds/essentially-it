@@ -17,6 +17,7 @@ import { PhysicsObject } from "./gym/physicsObject";
 import { BlobbyDemo } from "./portal/blobbyDemo";
 import { RewindWorld } from "./portal/rewindWorld";
 import { EatingHamburgers } from "./hamburger/eating";
+import { Luna } from "./lander/luna";
 
 export class Game {
   private scene: THREE.Scene;
@@ -67,6 +68,7 @@ export class Game {
       case 3: this.run('gym'); break;
       case 4: this.run('blobby'); break;
       case 5: this.run('hamburger'); break;
+      case 6: this.run('lander'); break;
     }
   }
 
@@ -91,6 +93,7 @@ export class Game {
   private home: Home = null;
   private blobby: BlobbyDemo = null;
   private hamburger: EatingHamburgers = null;
+  private lander: Luna = null;
 
   private async run(location: string) {
     let nextWorld: World = null;
@@ -136,6 +139,12 @@ export class Game {
           this.hamburger = new EatingHamburgers(this.camera, this.renderer);
         }
         nextWorld = this.hamburger;
+        break;
+      case 'lander':
+        if (this.lander === null) {
+          this.lander = new Luna(this.camera, this.renderer);
+        }
+        nextWorld = this.lander;
         break;
       case 'home': default:
         if (this.home === null) {
