@@ -1,15 +1,13 @@
 import * as THREE from "three";
 import { Tick, Ticker } from "../ticker";
 import { World } from "../world";
+import { TwoHands } from "./twoHands";
 
 export class EatingHamburgers extends THREE.Object3D implements World, Ticker {
   private upcoming = new Set<THREE.Object3D>();
   private lastSpawn: number = undefined;
 
-  private leftGrip: THREE.Object3D;
-  private rightGrip: THREE.Object3D;
-  private leftSource: THREE.XRInputSource;
-  private rightSource: THREE.XRInputSource;
+  private twoHands: TwoHands;
 
   constructor(private camera: THREE.Object3D,
     private renderer: THREE.WebGLRenderer) {
@@ -18,26 +16,9 @@ export class EatingHamburgers extends THREE.Object3D implements World, Ticker {
     const light = new THREE.HemisphereLight('#fff', '#112');
     this.add(light);
 
-    this.registerConnection(renderer.xr.getControllerGrip(0));
-    this.registerConnection(renderer.xr.getControllerGrip(1));
+    this.twoHands = new TwoHands(renderer.xr);
   }
 
-  private registerConnection(grip: THREE.Object3D) {
-    grip.addEventListener('connected', (ev) => {
-      const data: THREE.XRInputSource = ev.data;
-      if (data.handedness == 'left') {
-        this.leftGrip = grip;
-        this.leftSource = data;
-        this.leftGrip.add(new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.05, 3),
-          new THREE.MeshPhongMaterial({ color: '#88f' })));
-      } else {
-        this.rightGrip = grip;
-        this.rightSource = data;
-        this.rightGrip.add(new THREE.Mesh(new THREE.IcosahedronBufferGeometry(0.05, 3),
-          new THREE.MeshPhongMaterial({ color: '#f88' })));
-      }
-    });
-  }
 
   private spawn() {
     let geometry: THREE.BufferGeometry;
@@ -64,16 +45,16 @@ export class EatingHamburgers extends THREE.Object3D implements World, Ticker {
   private tmp1 = new THREE.Vector3();
   private tmp2 = new THREE.Vector3();
   isHit(o: THREE.Object3D): boolean {
-    if (!this.leftGrip || !this.rightGrip) {
+    if (!this.twoHands.isInitialized()) {
       return false;
     }
     o.getWorldPosition(this.tmp1);
-    this.leftGrip.getWorldPosition(this.tmp2);
+    this.twoHands.getLeftPosition(this.tmp2);
     this.tmp2.sub(this.tmp1);
     if (this.tmp2.length() < 0.4) {
       return true;
     }
-    this.rightGrip.getWorldPosition(this.tmp2);
+    this.twoHands.getRightPosition(this.tmp2);
     this.tmp2.sub(this.tmp1);
     if (this.tmp2.length() < 0.4) {
       return true;
