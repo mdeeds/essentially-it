@@ -1,10 +1,14 @@
 import * as THREE from "three";
+import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils.js";
+
 import { Object3D } from "three";
 import { TwoHands } from "../hamburger/twoHands";
 import { Tick, Ticker } from "../ticker";
 import { World } from "../world";
+import { MarchingCubes } from "./marchingCubes";
 import { ThirdPersonCamera } from "./thirdPersonCamera";
 import { Zoa } from "./zoa";
+import { SineToneTool } from "../toneTool";
 
 export class Luna extends THREE.Object3D implements World, Ticker {
   private cameraPos = new Object3D();
@@ -20,6 +24,25 @@ export class Luna extends THREE.Object3D implements World, Ticker {
     const tpc = new ThirdPersonCamera(this.zoa);
     this.add(this.zoa);
     this.twoHands = new TwoHands(renderer.xr);
+
+    const sdf = (pos: THREE.Vector3) => {
+      return (3 - pos.length())
+        + Math.sin(pos.x * 2) * Math.sin(pos.y) * Math.sin(pos.z * 2);
+    }
+    const g = new MarchingCubes(sdf, 4.0,
+      new THREE.Vector3(0, 0, 0), 32);
+    console.time('Merge');
+    const mg = BufferGeometryUtils.mergeVertices(g, 0.01);
+    console.timeEnd('Merge');
+    console.time('Normals');
+    mg.computeVertexNormals();
+    console.timeEnd('Normals');
+
+    const m = new THREE.Mesh(mg,
+      //  new THREE.MeshBasicMaterial({ color: '#048' }));
+      new THREE.MeshStandardMaterial(
+        { color: '#048', side: THREE.DoubleSide }));
+    this.add(m);
   }
 
   run(): Promise<string> {

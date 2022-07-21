@@ -337,7 +337,9 @@ export class MarchingCubes extends THREE.BufferGeometry {
       const indexA = MarchingCubes.cornerIndexAFromEdge[edgeIndex];
       const indexB = MarchingCubes.cornerIndexBFromEdge[edgeIndex];
       const vertex = new THREE.Vector3().copy(cubeCorners[indexA]);
-      vertex.lerp(cubeCorners[indexB], 0.5);
+
+      const p = gridCell[indexA] / (gridCell[indexA] - gridCell[indexB]);
+      vertex.lerp(cubeCorners[indexB], p);
       triangles.push(vertex.x, vertex.y, vertex.z);
     }
   }
