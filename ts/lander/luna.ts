@@ -8,7 +8,7 @@ import { World } from "../world";
 import { MarchingCubes } from "./marchingCubes";
 import { ThirdPersonCamera } from "./thirdPersonCamera";
 import { Zoa } from "./zoa";
-import { SineToneTool } from "../toneTool";
+import { CubeTexture } from "./cubeTexture";
 
 export class Luna extends THREE.Object3D implements World, Ticker {
   private cameraPos = new Object3D();
@@ -25,12 +25,19 @@ export class Luna extends THREE.Object3D implements World, Ticker {
     this.add(this.zoa);
     this.twoHands = new TwoHands(renderer.xr);
 
-    const sdf = (pos: THREE.Vector3) => {
-      return (3 - pos.length())
-        + Math.sin(pos.x * 2) * Math.sin(pos.y) * Math.sin(pos.z * 2);
+    const tex = new CubeTexture();
+    for (let i = 0; i < 7; ++i) {
+      console.time('Sphere');
+      tex.setSphere(new THREE.Vector3(
+        Math.random() * 4 - 2, Math.random() - 1, Math.random() * 4 - 2), 1);
+      console.timeEnd('Sphere');
     }
-    const g = new MarchingCubes(sdf, 4.0,
-      new THREE.Vector3(0, 0, 0), 32);
+    tex.setSphere(new THREE.Vector3(0, 1.5, -5), 0.5);
+
+    const sdf = (pos: THREE.Vector3) => {
+      return tex.sdf(pos);
+    }
+    const g = new MarchingCubes(sdf, 4.0, new THREE.Vector3(0, 0, 0), 32);
     console.time('Merge');
     const mg = BufferGeometryUtils.mergeVertices(g, 0.01);
     console.timeEnd('Merge');
