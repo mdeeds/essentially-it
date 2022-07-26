@@ -50,7 +50,6 @@ export class MarchingCubes extends THREE.BufferGeometry {
 
     this.setAttribute('position', new THREE.BufferAttribute(
       new Float32Array(vertices), 3));
-
   }
 
   private static cornerIndexAFromEdge =

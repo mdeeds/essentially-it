@@ -37,19 +37,55 @@ export class Luna extends THREE.Object3D implements World, Ticker {
     const sdf = (pos: THREE.Vector3) => {
       return tex.sdf(pos);
     }
-    const g = new MarchingCubes(sdf, 4.0, new THREE.Vector3(0, 0, 0), 32);
+    // Voxels are 0.1m apart.
+    // Cube radius should be 0.05m
+    // 32 partitions means the total size should be 3.2 meters across
+    // So the radius of the marching cubes should be 1.6.
+    const g = new MarchingCubes(sdf, 1.6, new THREE.Vector3(0, 0, 0), 32);
     console.time('Merge');
     const mg = BufferGeometryUtils.mergeVertices(g, 0.01);
     console.timeEnd('Merge');
     console.time('Normals');
     mg.computeVertexNormals();
     console.timeEnd('Normals');
+    console.time('Colors');
+    this.addVertexColors(mg, sdf);
+    console.timeEnd('Colors');
 
     const m = new THREE.Mesh(mg,
       //  new THREE.MeshBasicMaterial({ color: '#048' }));
-      new THREE.MeshStandardMaterial(
-        { color: '#048', side: THREE.DoubleSide }));
+      new THREE.MeshPhongMaterial(
+        { color: '#048', side: THREE.FrontSide, vertexColors: true }));
     this.add(m);
+  }
+
+  private addVertexColors(mg: THREE.BufferGeometry,
+    sdf: (pos: THREE.Vector3) => number) {
+    const colors: number[] = [];
+    const positions = mg.getAttribute('position');
+    const normals = mg.getAttribute('normal');
+
+    const tmpP = new THREE.Vector3();
+    const tmpN = new THREE.Vector3();
+    const epsilon = 0.1;
+    const kOcclusionSteps = 10;
+    for (let i = 0; i < positions.count; ++i) {
+      tmpP.fromBufferAttribute(positions, i);
+      tmpN.fromBufferAttribute(normals, i);
+      tmpN.multiplyScalar(epsilon);
+      let al = 0.0;
+      for (let j = 0; j < kOcclusionSteps; ++j) {
+        tmpP.add(tmpN);
+        al += 1 - ((j * epsilon) - sdf(tmpP));
+      }
+      al *= 1 / kOcclusionSteps;
+      al = Math.pow(al, 2.2);
+
+      colors.push(al, al, al);
+      // colors.push(1, 1, 1);
+    }
+    mg.setAttribute('color',
+      new THREE.BufferAttribute(new Float32Array(colors), 3));
   }
 
   run(): Promise<string> {
