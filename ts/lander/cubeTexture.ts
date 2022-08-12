@@ -23,8 +23,8 @@ export class CubeTexture {
 
   private static kCoarse = 8;
   private static kY = CubeTexture.kCoarse * CubeTexture.kCoarse;
-  private static kX = 256;
-  private static kZ = 256;
+  private static kX = 64;
+  private static kZ = 64;
 
   private data = new Uint8Array(
     CubeTexture.kX * CubeTexture.kY * CubeTexture.kZ);
@@ -103,6 +103,8 @@ export class CubeTexture {
     }
   }
 
+  // TODO: clearSphere just like above, but invert and max.
+
   sdf(pos: THREE.Vector3) {
     // As long as the grid size is larger or equal to the voxel
     // size, no sense in interpolating.
@@ -110,7 +112,33 @@ export class CubeTexture {
     return val;
   }
 
-  // TODO: clearSphere just like above, but invert and max.
+  gradient(pos: THREE.Vector3, g: THREE.Vector3) {
+    let i = Math.round(pos.x / CubeTexture.kVoxelSize + CubeTexture.kX / 2);
+    let j = Math.round(pos.y / CubeTexture.kVoxelSize + CubeTexture.kY / 2);
+    let k = Math.round(pos.z / CubeTexture.kVoxelSize + CubeTexture.kZ / 2);
+
+    // TODO: this is pretty horrible for performance.
+    // Better to just extend the arrays by 1 cell on all sides and assert
+    // that we are within bounds.
+    if (i < 1) i = 1;
+    if (j < 1) j = 1;
+    if (k < 1) k = 1;
+    if (i >= CubeTexture.kX - 1) i = CubeTexture.kX - 2;
+    if (j >= CubeTexture.kY - 1) i = CubeTexture.kY - 2;
+    if (k >= CubeTexture.kZ - 1) i = CubeTexture.kZ - 2;
+
+    const dx = this.data[this.getIndex(i + 1, j, k)] -
+      this.data[this.getIndex(i - 1, j, k)];
+    const dy = this.data[this.getIndex(i, j + 1, k)] -
+      this.data[this.getIndex(i, j - 1, k)];
+    const dz = this.data[this.getIndex(i, j, k + 1)] -
+      this.data[this.getIndex(i, j, k - 1)];
+    g.set(dx, dy, dz);
+    if (g.manhattanLength() > 0) {
+      g.normalize();
+    }
+  }
+
 
 
 }

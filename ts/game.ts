@@ -29,7 +29,7 @@ export class Game {
   private physicsWorld: RewindWorld;
 
   private tactileProvider = new TactileProvider();
-  private particleSystem = new ParticleSystem();
+  private particleSystem = new ParticleSystem(THREE.SubtractiveBlending);
 
   constructor(private audioCtx: AudioContext, private ammo: typeof Ammo) {
     this.scene = new THREE.Scene();

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { Tick, Ticker } from "./ticker";
 
-class Particle {
+export class Particle {
   constructor(
     readonly position: THREE.Vector3,
     readonly velocity: THREE.Vector3,
@@ -41,7 +41,7 @@ void main() {
   private geometry = new THREE.BufferGeometry();
   private points: THREE.Points;
 
-  constructor() {
+  constructor(blending: THREE.Blending) {
     super();
     this.name = 'ParticleSystem';
     const uniforms = {
@@ -57,8 +57,7 @@ void main() {
       uniforms: uniforms,
       vertexShader: ParticleSystem.kVS,
       fragmentShader: ParticleSystem.kFS,
-      // blending: THREE.AdditiveBlending,
-      blending: THREE.SubtractiveBlending,
+      blending: blending,
       depthTest: true,
       depthWrite: false,
       transparent: true,
@@ -81,19 +80,21 @@ void main() {
   }
 
   AddParticle(position: THREE.Vector3, velocity: THREE.Vector3,
-    color: THREE.Color) {
+    color: THREE.Color): Particle {
     if (!position.manhattanLength() || !velocity.manhattanLength()) {
-      return;
+      return null;
     }
     const p = new THREE.Vector3();
     p.copy(position);
     const v = new THREE.Vector3();
     v.copy(velocity);
     const colorVector = new THREE.Vector4(color.r, color.g, color.b, 0.5);
-    this.particles.push(new Particle(
+    const particle = new Particle(
       p, v, colorVector,
       Math.random() * 0.05,
-      Math.random() * 2 * Math.PI, 10));
+      Math.random() * 2 * Math.PI, 10);
+    this.particles.push(particle);
+    return particle;
   }
 
   private UpdateGeometry() {

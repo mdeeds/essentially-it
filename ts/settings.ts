@@ -44,6 +44,9 @@ export class S {
     S.setDefault('shf', 10.0, 'Super-human jump factor.');
     S.setDefault('sr', 10000, 'Radius of the starfield.');
     S.setDefault('zy', 1.1, 'Zig-Zag height');
+
+    // Firestarter
+    S.setDefault('fsnb', 1000, 'Number of blades of grass.');
   }
 
   public static float(name: string): number {

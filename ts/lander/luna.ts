@@ -9,11 +9,13 @@ import { MarchingCubes } from "./marchingCubes";
 import { ThirdPersonCamera } from "./thirdPersonCamera";
 import { Zoa } from "./zoa";
 import { CubeTexture } from "./cubeTexture";
+import { ParticleSystem } from "../particleSystem";
 
 export class Luna extends THREE.Object3D implements World, Ticker {
   private cameraPos = new Object3D();
   private zoa = new Zoa();
   private twoHands: TwoHands;
+  private particles: ParticleSystem;
   constructor(private camera: THREE.PerspectiveCamera,
     private renderer: THREE.WebGLRenderer) {
     super();
@@ -29,19 +31,18 @@ export class Luna extends THREE.Object3D implements World, Ticker {
     for (let i = 0; i < 7; ++i) {
       console.time('Sphere');
       tex.setSphere(new THREE.Vector3(
-        Math.random() * 4 - 2, Math.random() - 1, Math.random() * 4 - 2), 1);
+        Math.random() * 8 - 4, Math.random() - 1, Math.random() * 8 - 4), 1);
       console.timeEnd('Sphere');
     }
-    tex.setSphere(new THREE.Vector3(0, 1.5, -5), 0.5);
 
     const sdf = (pos: THREE.Vector3) => {
       return tex.sdf(pos);
     }
     // Voxels are 0.1m apart.
     // Cube radius should be 0.05m
-    // 32 partitions means the total size should be 3.2 meters across
-    // So the radius of the marching cubes should be 1.6.
-    const g = new MarchingCubes(sdf, 1.6, new THREE.Vector3(0, 0, 0), 32);
+    // 64 partitions means the total size should be 6.4 meters across
+    // So the radius of the marching cubes should be 3.2.
+    const g = new MarchingCubes(sdf, 3.2, new THREE.Vector3(0, 0, 0), 64);
     console.time('Merge');
     const mg = BufferGeometryUtils.mergeVertices(g, 0.01);
     console.timeEnd('Merge');
@@ -57,6 +58,9 @@ export class Luna extends THREE.Object3D implements World, Ticker {
       new THREE.MeshPhongMaterial(
         { color: '#048', side: THREE.FrontSide, vertexColors: true }));
     this.add(m);
+
+    this.particles = new ParticleSystem(THREE.AdditiveBlending);
+    this.add(this.particles);
   }
 
   private addVertexColors(mg: THREE.BufferGeometry,
@@ -130,6 +134,15 @@ export class Luna extends THREE.Object3D implements World, Ticker {
     }
     this.updateRotation();
     this.previousY = this.currentCameraPosition.y;
+
+    const p = new THREE.Vector3(
+      Math.random() * 0.1 - 0.05,
+      Math.random() * 0.1 - 0.05, Math.random() * 0.1 - 0.05);
+    p.add(this.zoa.position);
+    const v = new THREE.Vector3(0, -0.01, 0);
+    v.applyMatrix3(this.zoa.normalMatrix);
+    this.particles.AddParticle(p, v, new THREE.Color(
+      Math.random() * 0.1 + 0.9, Math.random() * 0.1 + 0.9, Math.random() * 0.1 + 0.9));
   }
 
 }
