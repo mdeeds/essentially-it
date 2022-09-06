@@ -10,6 +10,7 @@ import { ThirdPersonCamera } from "./thirdPersonCamera";
 import { Zoa } from "./zoa";
 import { CubeTexture } from "./cubeTexture";
 import { ParticleSystem } from "../particleSystem";
+import { Derivitives } from "./derivitives";
 
 export class Luna extends THREE.Object3D implements World, Ticker {
   private cameraPos = new Object3D();
@@ -119,13 +120,15 @@ export class Luna extends THREE.Object3D implements World, Ticker {
     this.zoa.quaternion.setFromEuler(this.zoa.rotation);
   }
 
+  private cameraMotion = new Derivitives();
 
   tick(t: Tick) {
     this.cameraPos.getWorldPosition(this.currentCameraPosition);
-    if (this.previousY) {
-      const deltaY = this.currentCameraPosition.y - this.previousY;
-      if (deltaY > 0) {
-        this.zoa.position.y += 2.0 * deltaY;
+    this.cameraMotion.update(this.currentCameraPosition, t.deltaS);
+
+    if (this.cameraMotion.isValid()) {
+      if (this.cameraMotion.latestVelocity.y > 0) {
+        this.zoa.position.y += 2.0 * this.cameraMotion.latestVelocity.y;
       }
     }
     this.zoa.position.y -= 0.3 * t.deltaS;
