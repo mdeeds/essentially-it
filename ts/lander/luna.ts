@@ -121,6 +121,10 @@ export class Luna extends THREE.Object3D implements World, Ticker {
   }
 
   private cameraMotion = new Derivitives();
+  private tmp = new THREE.Vector3();
+  private zero = new THREE.Vector3();
+  private red = new THREE.Color('#f00');
+  private blue = new THREE.Color('#00f');
 
   tick(t: Tick) {
     this.cameraPos.getWorldPosition(this.currentCameraPosition);
@@ -130,6 +134,11 @@ export class Luna extends THREE.Object3D implements World, Ticker {
       if (this.cameraMotion.latestVelocity.y > 0) {
         this.zoa.position.y += 2.0 * this.cameraMotion.latestVelocity.y;
       }
+      this.tmp.copy(this.cameraMotion.latestPosition);
+      this.tmp.z = -1.5;
+      this.particles.AddParticle(this.tmp, this.zero,
+        this.cameraMotion.latestAcceleration.z > 0 ? this.red : this.blue);
+
     }
     this.zoa.position.y -= 0.3 * t.deltaS;
     if (this.zoa.position.y < 0.0) {
