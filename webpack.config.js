@@ -5,6 +5,7 @@ module.exports = {
     index: "./src/index.js",
     test: "./src/solver/constraintsTest.js",
     portalTest: "./src/portal/portalTest.js",
+    firestarter: "./src/firestarter/firestarter.js"
   },
   output: {
     path: __dirname + "/dist",
@@ -19,6 +20,12 @@ module.exports = {
       template: "./src/index.html",
       filename: "index.html",
       chunks: ['index']
+    }),
+    new HtmlWebPackPlugin({
+      name: "firestarter",
+      template: "./src/index.html",
+      filename: "firestarter.html",
+      chunks: ['firestarter']
     }),
     new HtmlWebPackPlugin({
       name: "test",
